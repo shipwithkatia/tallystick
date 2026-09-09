@@ -1,0 +1,158 @@
+{
+  "_comment": "A four-step research agent. Every sentence of the final answer quotes the intermediate summary verbatim, so any one-hop citation checker scores it 100% faithful. One of those sentences was invented by the summariser and is supported by nothing. tallystick finds it and names the step.",
+  "artifacts": [
+    {
+      "artifact_id": "doc_filing",
+      "kind": "document",
+      "title": "Northwind Q2 filing (excerpt)",
+      "content": "Northwind Systems reported revenue of $412.6 million for the second quarter, an increase of 14% year over year. Operating margin was 11.2%, down from 12.9% in the prior-year period. The company did not provide guidance for the fourth quarter."
+    },
+    {
+      "artifact_id": "tool_headcount",
+      "kind": "tool_result",
+      "title": "hr_api.headcount(company='northwind', quarter='Q2')",
+      "content": "{\"company\": \"northwind\", \"quarter\": \"Q2\", \"headcount\": 2840, \"change_qoq\": -0.06}"
+    },
+    {
+      "artifact_id": "summary",
+      "kind": "intermediate",
+      "title": "Analyst summary (written by the agent at step s3)",
+      "content": "Revenue rose 14% year over year in the second quarter. Operating margin fell to 11.2%. Headcount stands at 2840. Management expects the fourth quarter to be the strongest on record."
+    },
+    {
+      "artifact_id": "answer",
+      "kind": "final_answer",
+      "title": "Answer shown to the user",
+      "content": "Revenue rose 14% year over year in the second quarter. Operating margin fell to 11.2%. Management expects the fourth quarter to be the strongest on record."
+    }
+  ],
+  "steps": [
+    {
+      "step_id": "s1",
+      "kind": "retrieve",
+      "inputs": [],
+      "outputs": [
+        "doc_filing"
+      ]
+    },
+    {
+      "step_id": "s2",
+      "kind": "tool",
+      "inputs": [],
+      "outputs": [
+        "tool_headcount"
+      ]
+    },
+    {
+      "step_id": "s3",
+      "kind": "summarize",
+      "inputs": [
+        "doc_filing",
+        "tool_headcount"
+      ],
+      "outputs": [
+        "summary"
+      ]
+    },
+    {
+      "step_id": "s4",
+      "kind": "answer",
+      "inputs": [
+        "summary"
+      ],
+      "outputs": [
+        "answer"
+      ]
+    }
+  ],
+  "claims": [
+    {
+      "claim_id": "sum_1",
+      "artifact_id": "summary",
+      "start": 0,
+      "end": 54
+    },
+    {
+      "claim_id": "sum_2",
+      "artifact_id": "summary",
+      "start": 55,
+      "end": 86
+    },
+    {
+      "claim_id": "sum_3",
+      "artifact_id": "summary",
+      "start": 87,
+      "end": 112
+    },
+    {
+      "claim_id": "sum_4",
+      "artifact_id": "summary",
+      "start": 113,
+      "end": 181
+    },
+    {
+      "claim_id": "ans_1",
+      "artifact_id": "answer",
+      "start": 0,
+      "end": 54
+    },
+    {
+      "claim_id": "ans_2",
+      "artifact_id": "answer",
+      "start": 55,
+      "end": 86
+    },
+    {
+      "claim_id": "ans_3",
+      "artifact_id": "answer",
+      "start": 87,
+      "end": 155
+    }
+  ],
+  "entries": [
+    {
+      "entry_id": "je_1",
+      "claim_id": "sum_1",
+      "account": "EVIDENCE:doc_filing#0-111",
+      "quoted_span": "Northwind Systems reported revenue of $412.6 million for the second quarter, an increase of 14% year over year."
+    },
+    {
+      "entry_id": "je_2",
+      "claim_id": "sum_2",
+      "account": "EVIDENCE:doc_filing#112-181",
+      "quoted_span": "Operating margin was 11.2%, down from 12.9% in the prior-year period."
+    },
+    {
+      "entry_id": "je_3",
+      "claim_id": "sum_3",
+      "account": "EVIDENCE:tool_headcount#0-81",
+      "quoted_span": "{\"company\": \"northwind\", \"quarter\": \"Q2\", \"headcount\": 2840, \"change_qoq\": -0.06}"
+    },
+    {
+      "_comment": "sum_4 has no entry at all. The summariser wrote a guidance claim the filing explicitly does not make. This is the injection point.",
+      "entry_id": "je_4",
+      "claim_id": "sum_4",
+      "account": "PRIOR:model",
+      "quoted_span": ""
+    },
+    {
+      "entry_id": "je_5",
+      "claim_id": "ans_1",
+      "account": "EVIDENCE:summary#0-54",
+      "quoted_span": "Revenue rose 14% year over year in the second quarter."
+    },
+    {
+      "entry_id": "je_6",
+      "claim_id": "ans_2",
+      "account": "EVIDENCE:summary#55-86",
+      "quoted_span": "Operating margin fell to 11.2%."
+    },
+    {
+      "_comment": "A perfect, verbatim, verifiable quote of the summary. One-hop checkers stop here and pass it.",
+      "entry_id": "je_7",
+      "claim_id": "ans_3",
+      "account": "EVIDENCE:summary#113-181",
+      "quoted_span": "Management expects the fourth quarter to be the strongest on record."
+    }
+  ]
+}

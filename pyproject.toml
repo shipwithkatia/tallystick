@@ -1,0 +1,37 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "tallystick"
+version = "0.1.0"
+description = "Provenance accounting for agent runs: every claim traced back to something outside the model, or named as unfunded."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Katia Engalycheva" }]
+keywords = ["llm", "agents", "provenance", "attribution", "hallucination", "evaluation", "audit"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Topic :: Software Development :: Quality Assurance",
+]
+
+# The verdict path has no dependencies at all, on purpose: nothing to pin, nothing
+# to drift, nothing that could quietly start calling a model.
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=7"]
+
+[project.scripts]
+tallystick = "tallystick.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/shipwithkatia/tallystick"
+Issues = "https://github.com/shipwithkatia/tallystick/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["tallystick"]
