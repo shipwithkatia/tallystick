@@ -21,6 +21,10 @@ jobs:
           set +e
           tallystick examples/laundered_summary.json; test $? -eq 1 || exit 1
           tallystick examples/balanced_run.json;      test $? -eq 0 || exit 1
+      # The benchmark's construction and dry run must work without a model.
+      - run: |
+          python bench/build.py --ragtruth bench/sample --out /tmp/benchwork --limit 6 --seed 1
+          python bench/run.py --work /tmp/benchwork --dry-run
       # A LangChain run, recorded rather than hand-written, must audit the same way.
       - run: |
           set +e

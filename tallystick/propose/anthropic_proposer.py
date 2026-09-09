@@ -15,7 +15,7 @@ from typing import Optional
 
 class AnthropicProposer:
     def __init__(self, model: str = "claude-sonnet-4-6", max_tokens: int = 2048,
-                 api_key: Optional[str] = None):
+                 api_key: Optional[str] = None, max_retries: int = 8):
         try:
             import anthropic
         except ImportError as exc:  # pragma: no cover
@@ -25,7 +25,9 @@ class AnthropicProposer:
         key = api_key or os.environ.get("ANTHROPIC_API_KEY")
         if not key:
             raise RuntimeError("ANTHROPIC_API_KEY is not set")
-        self._client = anthropic.Anthropic(api_key=key)
+        # Long batch jobs (the benchmark) meet rate limits; the SDK's exponential
+        # backoff handles them if it is allowed enough attempts.
+        self._client = anthropic.Anthropic(api_key=key, max_retries=max_retries)
         self.model = model
         self.max_tokens = max_tokens
         self.name = f"anthropic:{model}"

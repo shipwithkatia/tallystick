@@ -146,8 +146,31 @@ The trace format is plain JSON — artifacts, steps with inputs/outputs, claims 
 - [x] v0.3 — LangChain callback recorder
 - [ ] v0.3.x — LlamaIndex, Claude Citations ingestion as pre-verified credits, OpenTelemetry span reader
 - [ ] v0.4 — HTML ledger view: the answer colour-coded by status, click a sentence to unfold its chain to the root
-- [ ] v0.5 — benchmark: laundering detection on multi-step traces derived from RAGTruth, against one-hop baselines; one number, one command
+- [x] v0.5 — benchmark harness: two-hop traces from RAGTruth, tallystick vs. full-history judge; one command
+- [ ] v0.5.1 — run it at n=100 and publish the number
 - [ ] PyPI release
+
+## Benchmark
+
+There is no dataset of laundered claims, because every hallucination dataset is one hop. So `bench/build.py` constructs two-hop traces from RAGTruth (test split, Summary and QA tasks, human-annotated hallucinated spans; MIT) without any model: the RAGTruth response becomes the intermediate summary, and a final answer is built by quoting up to three of its sentences, chosen uniformly at random, verbatim. Ground truth follows from the annotations alone — a quoted sentence that overlaps an annotated span is laundered, one that overlaps none is grounded.
+
+Three things the reader should know before the number, all also printed in the report:
+
+- **The last hop is trivially verifiable.** The answer quotes the summary verbatim, so tallystick's answer-level result is the summary-step detection carried through the chain, not new detection power. What the construction shows is *where a one-hop check breaks*: a judge shown only summary + answer scores ~0 recall by construction. That row is scored anyway, because it is the point.
+- **Prevalence is enriched.** Items with at least one annotated hallucination are oversampled to 60%; within an item, sentence choice is uniform. The report prints the constructed and the natural sentence-level prevalence side by side.
+- **Data2txt is excluded** — a third of the split and the densest in hallucinations — because its sources are structured records, not prose a model could quote.
+
+`bench/run.py` compares three things at the sentence level: a **one-hop judge** (summary + answer only, the industry default), a **full-history judge** (same model, shown every document, the summary and the numbered answer — the strongest thing a team can do today without a provenance tool), and **tallystick**. Every side is rerun — judges `--judge-runs` times, the proposer `--proposer-runs` times, all at API-default sampling — so tallystick's end-to-end spread is reported next to the fact that auditing one posted file twice is identical. Failures are counted per side; a trace on which any run on any side failed is dropped from all sides, so every row and every run is scored on exactly the same sentences, and that count is printed. Results are appended per trace, and rerunning the same command resumes. A fourth number, hallucination detection at the summary step, is the classic task where fine-tuned detectors live; tallystick's known false-positive source there (an abstractive sentence fusing two passages has no single verbatim quote) is stated in the report.
+
+An offline test drives the whole harness with an oracle proposer scripted from the labels and requires F1 = 1.0 on both levels, so a live number measures the proposer, not the plumbing.
+
+```bash
+python bench/build.py --limit 100     # clones RAGTruth, builds traces + manifest, no model
+python bench/run.py --dry-run         # counts calls and estimates cost
+python bench/run.py --limit 100       # needs ANTHROPIC_API_KEY; writes bench/work/RESULTS.md
+```
+
+Results: **not yet run at scale.** The table goes here when it exists, whatever it says.
 
 ## Where This Sits
 
@@ -159,7 +182,7 @@ The trace format is plain JSON — artifacts, steps with inputs/outputs, claims 
 | LEDGER ([arXiv 2608.18398](https://arxiv.org/abs/2608.18398)) | ✅ | ✅ | ❌ *(authors' own caveat)* | partly |
 | **tallystick** | ✅ | ✅ | ✅ | ✅ |
 
-Rows for other tools are my reading of their public documentation as of September 2026, not benchmark results; the benchmark is roadmap item v0.5.
+Rows for other tools are my reading of their public documentation as of September 2026, not benchmark results; see the Benchmark section for what is measured.
 
 Citations grounds one hop and does it well; the plan is to ingest those citations as pre-verified credits and spend effort on the hops citations cannot see. The 2026 survey [*From Agent Traces to Trust*](https://arxiv.org/abs/2606.04990) lists claim-level provenance and error propagation through execution chains as open problems; this is a shipped, tested answer to a narrow slice of both.
 
