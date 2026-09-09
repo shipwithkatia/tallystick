@@ -2,7 +2,7 @@
 
 Deliberately small. Everything here is a transformation a copy-paste or a PDF
 extractor can plausibly introduce: unicode composition, whitespace, quote and dash
-variants, invisible characters. Nothing here is semantic.
+variants, invisible characters, letter case. Nothing here is semantic.
 
 The moment this module starts to know about meaning - stemming, synonyms,
 embeddings - the project's central claim is dead, because a "credit" would then be
@@ -36,7 +36,10 @@ _WS = re.compile(r"\s+")
 
 def normalize(text: str) -> str:
     """Reduce a string to the form used for exact span comparison."""
-    t = unicodedata.normalize("NFKC", text)
+    # NFC, not NFKC: composition only. NFKC also folds compatibility characters
+    # and would let "10²" verify against "102" - a semantic collapse, exactly what
+    # this module promises not to do.
+    t = unicodedata.normalize("NFC", text)
     t = t.translate(_INVISIBLE).translate(_QUOTES).translate(_DASHES)
     t = _WS.sub(" ", t)
     return t.strip().casefold()

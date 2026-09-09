@@ -252,3 +252,84 @@ def test_cli_exit_codes(tmp_path):
     bad.write_text("{not json", encoding="utf-8")
     assert main([str(bad), "--quiet"]) == 2
     assert main([str(tmp_path / "missing.json"), "--quiet"]) == 2
+
+
+# --------------------------------------------------------------------------- #
+# Found in the fourth review
+# --------------------------------------------------------------------------- #
+
+BALANCED = EXAMPLE.parent / "balanced_run.json"
+
+
+def test_an_honest_run_balances_and_exits_zero():
+    """The success path must be exercised too: a gate that can only fail is not
+    a gate."""
+    from tallystick.cli import main
+    balance = audit(str(BALANCED))
+    assert balance.books_balance is True
+    assert balance.coverage == 1.0 and balance.laundering_rate == 0.0
+    assert main([str(BALANCED), "--quiet"]) == 0
+
+
+@pytest.mark.parametrize("bad", [
+    [], "str", 42,
+    {"artifacts": "hello"},
+    {"artifacts": [{"kind": "document", "content": "x"}]},           # no id
+    {"artifacts": [{"artifact_id": "a", "kind": "memo", "content": "x"}]},
+    {"artifacts": [{"artifact_id": "a", "kind": "document", "content": "x"}],
+     "steps": [{"step_id": "s", "inputs": "abc", "outputs": []}]},
+    {"artifacts": [{"artifact_id": "a", "kind": "document", "content": "x"}],
+     "claims": [{"artifact_id": "a", "start": 0, "end": 1}]},          # no claim_id
+    {"artifacts": [{"artifact_id": "a", "kind": "final_answer", "content": "x"}],
+     "claims": [{"claim_id": "c", "artifact_id": "a", "start": 0, "end": 1}],
+     "entries": [{"entry_id": "e", "claim_id": "c"}]},                 # no account
+    {"assumptions": "nope"},
+    {"artifacts": [{"artifact_id": "a", "kind": "document", "content": "x"},
+                   {"artifact_id": "a", "kind": "document", "content": "y"}]},
+])
+def test_every_malformed_shape_is_a_trace_error_not_a_crash(bad):
+    """Exit 2 means 'could not read'. It must never leak as a KeyError/TypeError
+    that the CLI would report as exit 1, 'books do not balance'."""
+    from tallystick import TraceError
+    with pytest.raises(TraceError):
+        load_run(bad)
+
+
+def test_malformed_json_file_is_exit_2(tmp_path):
+    from tallystick.cli import main
+    for i, bad in enumerate(["[]", '{"artifacts": "x"}', '{"claims": [{}]}']):
+        f = tmp_path / f"bad{i}.json"
+        f.write_text(bad)
+        assert main([str(f), "--quiet"]) == 2, bad
+
+
+def test_a_claim_text_that_contradicts_its_span_is_rejected(data):
+    from tallystick import TraceError
+    d = copy.deepcopy(data)
+    d["claims"][0]["text"] = "Revenue FELL 90% and the CEO resigned."
+    with pytest.raises(TraceError, match="does not match"):
+        audit(d)
+
+
+def test_a_hand_built_run_gets_the_same_checks_as_a_file():
+    from tallystick import Artifact, ArtifactKind, Claim, Entry, Account, Run, TraceError
+    run = Run()
+    run.artifacts["f"] = Artifact("f", ArtifactKind.FINAL_ANSWER, "alpha.")
+    run.claims["c"] = Claim("c", "f", 0, 6, "alpha.")
+    run.entries.append(Entry("e", "ghost", Account.parse("PRIOR:model")))
+    with pytest.raises(TraceError, match="ghost"):
+        audit(run)
+
+
+def test_chain_for_an_unknown_claim_is_exit_2(capsys):
+    from tallystick.cli import main
+    assert main([str(EXAMPLE), "--chain", "nope"]) == 2
+    assert "ans_1" in capsys.readouterr().err
+
+
+def test_compatibility_characters_are_not_folded_together():
+    """NFC, not NFKC: '10²' must not verify against '102'."""
+    from tallystick.normalize import normalize
+    assert normalize("10²") != normalize("102")
+    assert normalize("½") != normalize("1/2")
+    assert normalize("café") == normalize("café")     # composition still ok

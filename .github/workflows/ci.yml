@@ -11,10 +11,19 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
-      - run: pip install -e .[dev]
+      - run: pip install -e ".[dev]"
+      # The audit path must work with no SDK installed at all.
+      - run: python -c "import anthropic" && exit 1 || echo "no sdk, as intended"
       - run: pytest -q
-      # The example must keep failing: it is the whole point of the project.
+      # The laundered example must keep failing - it is the whole point - and
+      # the honest one must keep passing, or the gate is not a gate.
       - run: |
           set +e
-          tallystick examples/laundered_summary.json
+          tallystick examples/laundered_summary.json; test $? -eq 1 || exit 1
+          tallystick examples/balanced_run.json;      test $? -eq 0 || exit 1
+      # The propose path, end to end, with canned answers and no network.
+      - run: |
+          set +e
+          tallystick propose examples/raw_research_run.json -o /tmp/posted.json \
+            --proposer fake --script examples/fake_answers.json
           test $? -eq 1

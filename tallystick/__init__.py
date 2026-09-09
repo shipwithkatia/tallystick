@@ -17,17 +17,19 @@ books say so without anyone being asked to judge.
 """
 
 from .io import load_run, load_run_file
-from .ledger import ClaimAudit, ClaimStatus, TrialBalance, close_books
+from .ledger import ChainHop, ClaimAudit, ClaimStatus, TrialBalance, close_books
+from .report import chain_view, summary
 from .types import (
     Account, AccountType, Artifact, ArtifactKind, Claim, Entry, Run, Step,
     TraceError,
 )
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 __all__ = [
     "audit", "close_books", "load_run", "load_run_file",
-    "TrialBalance", "ClaimAudit", "ClaimStatus",
+    "TrialBalance", "ClaimAudit", "ClaimStatus", "ChainHop",
+    "summary", "chain_view",
     "Run", "Step", "Artifact", "ArtifactKind", "Claim", "Entry",
     "Account", "AccountType", "TraceError",
 ]

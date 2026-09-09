@@ -47,6 +47,8 @@ MAX_DEPTH = 256
 
 
 class ClaimStatus(str, Enum):
+    """Where a claim's provenance chain ended up."""
+
     GROUNDED = "grounded"        # chain reaches a root artifact
     ASSUMED = "assumed"          # chain terminates on a declared assumption
     LAUNDERED = "laundered"      # funded locally, chain breaks further back
@@ -84,6 +86,8 @@ class ChainHop:
 
 @dataclass
 class ClaimAudit:
+    """The verdict on one claim, with the chain that produced it."""
+
     claim_id: str
     text: str
     artifact_id: str
@@ -115,10 +119,12 @@ class TrialBalance:
 
     # -- headline numbers --------------------------------------------------- #
 
-    def counts(self, claim_ids: Optional[List[str]] = None) -> Dict[str, int]:
-        ids = claim_ids if claim_ids is not None else list(self.audits)
+    def counts(self, claim_ids: List[str]) -> Dict[str, int]:
+        """Status histogram over the given claims. Pass `final_claim_ids` for the
+        headline numbers; `audits` also holds every intermediate claim and the
+        claims of root artifacts (always grounded), which are not the headline."""
         out = {s.value: 0 for s in ClaimStatus}
-        for cid in ids:
+        for cid in claim_ids:
             out[self.audits[cid].status.value] += 1
         return out
 
@@ -313,7 +319,12 @@ def _resolve(
 
 
 def close_books(run: Run) -> TrialBalance:
-    """Verify every entry, then resolve every claim back to its roots."""
+    """Verify every entry, then resolve every claim back to its roots.
+
+    Raises TraceError if the run is not auditable, whether it came from disk or
+    was assembled by hand.
+    """
+    run.validate()
     verify_run(run)
 
     balance = TrialBalance()

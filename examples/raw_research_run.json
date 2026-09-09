@@ -1,0 +1,68 @@
+{
+  "_comment": "The same four-step run with no claims and no entries. Feed it to `tallystick propose` and a model will post the books; then the audit runs deterministically on the file it wrote.",
+  "artifacts": [
+    {
+      "artifact_id": "doc_filing",
+      "kind": "document",
+      "title": "Northwind Q2 filing (excerpt)",
+      "content": "Northwind Systems reported revenue of $412.6 million for the second quarter, an increase of 14% year over year. Operating margin was 11.2%, down from 12.9% in the prior-year period. The company did not provide guidance for the fourth quarter."
+    },
+    {
+      "artifact_id": "tool_headcount",
+      "kind": "tool_result",
+      "title": "hr_api.headcount(company='northwind', quarter='Q2')",
+      "content": "{\"company\": \"northwind\", \"quarter\": \"Q2\", \"headcount\": 2840, \"change_qoq\": -0.06}"
+    },
+    {
+      "artifact_id": "summary",
+      "kind": "intermediate",
+      "title": "Analyst summary (written by the agent at step s3)",
+      "content": "Revenue rose 14% year over year in the second quarter. Operating margin fell to 11.2%. Headcount stands at 2840. Management expects the fourth quarter to be the strongest on record."
+    },
+    {
+      "artifact_id": "answer",
+      "kind": "final_answer",
+      "title": "Answer shown to the user",
+      "content": "Revenue rose 14% year over year in the second quarter. Operating margin fell to 11.2%. Management expects the fourth quarter to be the strongest on record."
+    }
+  ],
+  "steps": [
+    {
+      "step_id": "s1",
+      "kind": "retrieve",
+      "inputs": [],
+      "outputs": [
+        "doc_filing"
+      ]
+    },
+    {
+      "step_id": "s2",
+      "kind": "tool",
+      "inputs": [],
+      "outputs": [
+        "tool_headcount"
+      ]
+    },
+    {
+      "step_id": "s3",
+      "kind": "summarize",
+      "inputs": [
+        "doc_filing",
+        "tool_headcount"
+      ],
+      "outputs": [
+        "summary"
+      ]
+    },
+    {
+      "step_id": "s4",
+      "kind": "answer",
+      "inputs": [
+        "summary"
+      ],
+      "outputs": [
+        "answer"
+      ]
+    }
+  ]
+}

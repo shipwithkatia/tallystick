@@ -1,0 +1,132 @@
+{
+  "_comment": "The same four-step run with an honest summariser: no invented guidance sentence. Every claim in the answer traces to the filing or the tool result. This is what a passing gate looks like: exit code 0.",
+  "artifacts": [
+    {
+      "artifact_id": "doc_filing",
+      "kind": "document",
+      "title": "Northwind Q2 filing (excerpt)",
+      "content": "Northwind Systems reported revenue of $412.6 million for the second quarter, an increase of 14% year over year. Operating margin was 11.2%, down from 12.9% in the prior-year period. The company did not provide guidance for the fourth quarter."
+    },
+    {
+      "artifact_id": "tool_headcount",
+      "kind": "tool_result",
+      "title": "hr_api.headcount(company='northwind', quarter='Q2')",
+      "content": "{\"company\": \"northwind\", \"quarter\": \"Q2\", \"headcount\": 2840, \"change_qoq\": -0.06}"
+    },
+    {
+      "artifact_id": "summary",
+      "kind": "intermediate",
+      "title": "Analyst summary (honest)",
+      "content": "Revenue rose 14% year over year in the second quarter. Operating margin fell to 11.2%. Headcount stands at 2840."
+    },
+    {
+      "artifact_id": "answer",
+      "kind": "final_answer",
+      "title": "Answer shown to the user",
+      "content": "Revenue rose 14% year over year in the second quarter. Operating margin fell to 11.2%."
+    }
+  ],
+  "steps": [
+    {
+      "step_id": "s1",
+      "kind": "retrieve",
+      "inputs": [],
+      "outputs": [
+        "doc_filing"
+      ]
+    },
+    {
+      "step_id": "s2",
+      "kind": "tool",
+      "inputs": [],
+      "outputs": [
+        "tool_headcount"
+      ]
+    },
+    {
+      "step_id": "s3",
+      "kind": "summarize",
+      "inputs": [
+        "doc_filing",
+        "tool_headcount"
+      ],
+      "outputs": [
+        "summary"
+      ]
+    },
+    {
+      "step_id": "s4",
+      "kind": "answer",
+      "inputs": [
+        "summary"
+      ],
+      "outputs": [
+        "answer"
+      ]
+    }
+  ],
+  "claims": [
+    {
+      "claim_id": "sum_1",
+      "artifact_id": "summary",
+      "start": 0,
+      "end": 54
+    },
+    {
+      "claim_id": "sum_2",
+      "artifact_id": "summary",
+      "start": 55,
+      "end": 86
+    },
+    {
+      "claim_id": "sum_3",
+      "artifact_id": "summary",
+      "start": 87,
+      "end": 112
+    },
+    {
+      "claim_id": "ans_1",
+      "artifact_id": "answer",
+      "start": 0,
+      "end": 54
+    },
+    {
+      "claim_id": "ans_2",
+      "artifact_id": "answer",
+      "start": 55,
+      "end": 86
+    }
+  ],
+  "entries": [
+    {
+      "entry_id": "je_1",
+      "claim_id": "sum_1",
+      "account": "EVIDENCE:doc_filing#0-111",
+      "quoted_span": "Northwind Systems reported revenue of $412.6 million for the second quarter, an increase of 14% year over year."
+    },
+    {
+      "entry_id": "je_2",
+      "claim_id": "sum_2",
+      "account": "EVIDENCE:doc_filing#112-181",
+      "quoted_span": "Operating margin was 11.2%, down from 12.9% in the prior-year period."
+    },
+    {
+      "entry_id": "je_3",
+      "claim_id": "sum_3",
+      "account": "EVIDENCE:tool_headcount#0-81",
+      "quoted_span": "{\"company\": \"northwind\", \"quarter\": \"Q2\", \"headcount\": 2840, \"change_qoq\": -0.06}"
+    },
+    {
+      "entry_id": "je_4",
+      "claim_id": "ans_1",
+      "account": "EVIDENCE:summary#0-54",
+      "quoted_span": "Revenue rose 14% year over year in the second quarter."
+    },
+    {
+      "entry_id": "je_5",
+      "claim_id": "ans_2",
+      "account": "EVIDENCE:summary#55-86",
+      "quoted_span": "Operating margin fell to 11.2%."
+    }
+  ]
+}

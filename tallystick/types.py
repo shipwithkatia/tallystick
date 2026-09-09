@@ -55,6 +55,8 @@ class ArtifactKind(str, Enum):
 
 @dataclass(frozen=True)
 class Artifact:
+    """A piece of text observed in the run, addressed by id, located by kind."""
+
     artifact_id: str
     kind: ArtifactKind
     content: str
@@ -219,3 +221,49 @@ class Run:
 
     def final_artifacts(self) -> List[Artifact]:
         return [a for a in self.artifacts.values() if a.kind is ArtifactKind.FINAL_ANSWER]
+
+    # -- invariants ---------------------------------------------------------- #
+
+    def validate(self) -> None:
+        """Raise TraceError if the run cannot be audited.
+
+        Called by the loader, and again by close_books so that a Run assembled
+        by hand in Python gets the same checks as one read from disk.
+        """
+        from .normalize import normalize  # local import keeps types.py dependency-free
+
+        seen_out: Dict[str, str] = {}
+        for step in self.steps:
+            for aid in (*step.inputs, *step.outputs):
+                if aid not in self.artifacts:
+                    raise TraceError(
+                        f"step {step.step_id} references unknown artifact {aid!r}")
+            for aid in step.outputs:
+                if aid in seen_out and seen_out[aid] != step.step_id:
+                    raise TraceError(
+                        f"artifact {aid!r} is produced by both {seen_out[aid]} "
+                        f"and {step.step_id}")
+                seen_out[aid] = step.step_id
+
+        for cid, claim in self.claims.items():
+            if cid != claim.claim_id:
+                raise TraceError(f"claim keyed {cid!r} has claim_id {claim.claim_id!r}")
+            art = self.artifacts.get(claim.artifact_id)
+            if art is None:
+                raise TraceError(f"claim {cid} is in unknown artifact {claim.artifact_id!r}")
+            if not (0 <= claim.start < claim.end <= len(art.content)):
+                raise TraceError(
+                    f"claim {cid} span {claim.start}-{claim.end} is outside artifact "
+                    f"{art.artifact_id!r} (length {len(art.content)})")
+            if normalize(claim.text) != normalize(art.slice(claim.start, claim.end)):
+                raise TraceError(
+                    f"claim {cid}.text does not match the text at its span")
+
+        seen_entries: set = set()
+        for entry in self.entries:
+            if entry.entry_id in seen_entries:
+                raise TraceError(f"duplicate entry id {entry.entry_id!r}")
+            seen_entries.add(entry.entry_id)
+            if entry.claim_id not in self.claims:
+                raise TraceError(
+                    f"entry {entry.entry_id} refers to unknown claim {entry.claim_id!r}")
