@@ -29,3 +29,7 @@ venv/
 dist/
 build/
 *.egg-info/
+
+# tallystick working files
+raw_langchain.json
+posted.json

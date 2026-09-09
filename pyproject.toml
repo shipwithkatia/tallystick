@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "tallystick"
-version = "0.2.0"
+version = "0.3.0"
 description = "Provenance accounting for agent runs: every claim traced back to something outside the model, or named as unfunded."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -26,6 +26,8 @@ dependencies = []
 [project.optional-dependencies]
 # The model side. Optional on purpose: `tallystick audit` never needs it.
 propose = ["anthropic>=1.0,<2"]
+# Recording a LangChain run. Optional, and never part of a verdict.
+langchain = ["langchain-core>=1.0,<2"]
 dev = ["pytest>=7"]
 
 [project.scripts]

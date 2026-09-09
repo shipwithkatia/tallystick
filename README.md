@@ -59,13 +59,17 @@ ans_3 [laundered] depth=1
 
 ```bash
 git clone https://github.com/shipwithkatia/tallystick && cd tallystick
-pip install -e ".[propose]"           # or plain `pip install -e .` for the audit path only
+pip install -e ".[propose,langchain]"   # plain `pip install -e .` gives the audit path only
 
-# 1. Let a model post the books for a raw trace (artifacts + steps only).
-#    Writes a posted trace, then audits it. Needs ANTHROPIC_API_KEY.
-tallystick propose examples/raw_research_run.json -o posted.json
+# 1. Get a raw trace (artifacts + steps, no claims yet). Either record a
+#    LangChain run — or write the JSON by hand, as examples/raw_research_run.json.
+python examples/langchain_demo.py          # a 4-step agent, recorded -> raw_langchain.json
 
-# 2. Audit a posted trace. Deterministic, offline, no SDK needed.
+# 2. Let a model post the books: writes a posted trace, then audits it.
+#    Needs ANTHROPIC_API_KEY.
+tallystick propose raw_langchain.json -o posted.json
+
+# 3. Audit a posted trace. Deterministic, offline, no SDK needed.
 tallystick posted.json                 # exit 0 = balance, 1 = don't, 2 = could not run
 tallystick posted.json --chain <id>    # full provenance chain for one claim
 tallystick posted.json --json out.json # machine-readable balance
@@ -75,6 +79,14 @@ tallystick examples/balanced_run.json  # what a passing gate looks like: exit 0
 # Same propose path with canned answers and no network — what CI runs.
 tallystick propose examples/raw_research_run.json -o posted.json \
   --proposer fake --script examples/fake_answers.json
+```
+
+```python
+from tallystick.adapters.langchain import TraceRecorder
+
+rec = TraceRecorder()                                 # one recorder per agent run
+chain.invoke(question, config={"callbacks": [rec]})   # any LangChain runnable
+rec.save("raw.json")                                  # then: tallystick propose raw.json
 ```
 
 Exit code 2 covers everything that stops the audit from running — a malformed trace, a missing SDK or key, a proposer that crashed. A bad API key must never read as "books do not balance".
@@ -100,6 +112,8 @@ The trace format is plain JSON — artifacts, steps with inputs/outputs, claims 
 
 **The conservation rule** is the gate that makes this a trace auditor rather than another span matcher: a step may only cite artifacts it received as inputs. Reachability is checked without reading any text.
 
+**The recorder recovers inputs from the prompt.** No framework logs what a model call could see, so the LangChain adapter takes the only honest source: when a model starts, its prompt is kept; when it ends, every artifact recorded so far whose content appears verbatim in that prompt is an input of the step. "Was retrieved earlier" is not "was seen". Matching is longest-first with each match blanked out, so a document nested inside another is credited only when it appears on its own, and duplicates are credited once. Root artifacts under 20 characters are never matched (a three-word tool result would appear in any prompt by coincidence); model outputs always are. If a framework reformats a document before prompting — truncates it, re-wraps it — the recorder will not find it, the step gets no input, and its claims fail reachability. That fails closed, on purpose, and is the adapter's main limitation.
+
 **Two rules keep the walk honest.** A citation into a derived artifact inherits *every* claim it covers — quoting the whole summary does not launder the one bad sentence in it. And the cited span must be fully accounted for by claims: text nobody vouched for cannot fund anything.
 
 **The proposer is a pointer generator, not a judge.** It is asked for claims and quotes as verbatim substrings of text it was shown. Each one is then *located* by exact substring search; whatever cannot be located is logged in the posted file and dropped. A claim with no locatable support is posted as `PRIOR:model`, which never funds anything, and a quote into text no claim vouches for is refused — so an invented sentence fails closed downstream, whether or not the segmenter picked it up. The model never answers "is this faithful?"; it only answers "where?", and the answer is checked.
@@ -123,12 +137,14 @@ The trace format is plain JSON — artifacts, steps with inputs/outputs, claims 
 - "Deterministic" is a property you have to defend structurally. Memoising a result computed while a cycle was open made the verdict depend on array order in the JSON file. Same run, same code, different exit code. The fix was to refuse to cache anything tainted by an open cycle, and the shuffle test now exists so it cannot regress silently.
 - A README that overstates what the code does is the single most expensive defect in a project whose thesis is "unsupported claims should be named". The adversarial review pass caught seven such lines before publish.
 - **Writing and attacking are different jobs, and the same pass cannot do both.** Every serious defect in this repo was found not while writing but in a separate adversarial review run afterwards, by a reviewer whose only brief was to break it: the wide-citation bypass and the array-order dependence in v0.1; in v0.2, a false `laundered` verdict on a model that had followed the prompt correctly, a string-shaped answer that would have posted one claim per character, and three ways to sneak a model import past the boundary test. None of them were visible from inside the writing.
+- **A framework tells you what happened, not what a model saw.** LangChain logs retrievals, tool calls and model outputs, but nothing in it says which of those a given model call had in its context. The recorder recovers that from the prompt bytes, and the first review showed how easy it is to get subtly wrong: a 20-character floor meant for tiny tool results was also dropping short model outputs from the chain, and chat "content blocks" were being JSON-escaped so no multi-line document ever matched. Both mislocated the injection step — the one number the project promises — while every test stayed green, because the demo happened to use one long paragraph.
 - **A fix needs its own review.** The fix for the false `laundered` verdict passed its tests and was wrong in both directions — it still failed when the meta text sat *between* two claims, and it turned a mostly-unvouched quote into a two-character credit that counted. The tests I wrote for the fix tested the case I had in mind, not the cases I had not. A third pass, scoped to the fixes only, caught it. The rule this repo now follows: nothing ships without a second pass whose job is to make the first one look bad, and fixes get the same treatment as the code they fix.
 
 ## Next Steps
 
 - [x] v0.2 — model-side proposers, kept outside the verdict path
-- [ ] v0.3 — adapters: LangChain / LlamaIndex callback traces, Claude Citations ingestion as pre-verified credits, OpenTelemetry span reader
+- [x] v0.3 — LangChain callback recorder
+- [ ] v0.3.x — LlamaIndex, Claude Citations ingestion as pre-verified credits, OpenTelemetry span reader
 - [ ] v0.4 — HTML ledger view: the answer colour-coded by status, click a sentence to unfold its chain to the root
 - [ ] v0.5 — benchmark: laundering detection on multi-step traces derived from RAGTruth, against one-hop baselines; one number, one command
 - [ ] PyPI release
@@ -151,6 +167,7 @@ Citations grounds one hop and does it well; the plan is to ingest those citation
 
 - Python 3.10+; the verdict path is standard library only
 - `anthropic` SDK, optional, for the proposer
+- `langchain-core`, optional, for the recorder
 - pytest
 
 ## Why a tally stick

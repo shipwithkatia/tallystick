@@ -15,11 +15,12 @@ import pathlib
 
 PKG = pathlib.Path(__file__).resolve().parents[1] / "tallystick"
 
-#: Every module in the package except propose/ is on the verdict path. Recursive,
-#: so a future subpackage (adapters/, say) is covered the day it appears.
+#: Every module in the package except propose/ and adapters/ is on the verdict
+#: path. Recursive, so any other future subpackage is covered the day it appears.
+NOT_VERDICT = {"propose", "adapters"}
 VERDICT_MODULES = sorted(
     str(p.relative_to(PKG)) for p in PKG.rglob("*.py")
-    if "propose" not in p.relative_to(PKG).parts
+    if not (set(p.relative_to(PKG).parts) & NOT_VERDICT)
 )
 
 FORBIDDEN_ROOTS = {
@@ -163,3 +164,29 @@ def test_the_boundary_test_catches_every_known_bypass(tmp_path):
     tree = ast.parse(lazy)
     hits = list(_model_side_imports(tree))
     assert hits and all(id(h) in _nodes_inside_functions(tree) for h in hits)
+
+
+def test_adapters_never_import_an_sdk():
+    """An adapter records; it must not be able to call a model. Frameworks
+    (langchain_core) are allowed, model SDKs are not."""
+    sdk_roots = {"anthropic", "openai", "cohere", "litellm", "transformers", "torch"}
+    for p in (PKG / "adapters").rglob("*.py"):
+        bad = _imported_roots(p) & sdk_roots
+        assert not bad, f"adapters/{p.name} imports {sorted(bad)}"
+
+
+def test_adapters_never_import_the_model_side_and_the_core_never_imports_adapters():
+    """Recording and proposing are separate jobs. An adapter that proposed would be
+    a framework-specific verdict; a core that recorded would drag in frameworks."""
+    for p in (PKG / "adapters").rglob("*.py"):
+        tree = ast.parse(p.read_text(encoding="utf-8"))
+        assert not list(_model_side_imports(tree)), f"adapters/{p.name} imports propose/"
+    for name in VERDICT_MODULES:
+        tree = ast.parse((PKG / name).read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ImportFrom) and node.module and \
+                    "adapters" in node.module.split("."):
+                raise AssertionError(f"{name} imports adapters/")
+            if isinstance(node, ast.ImportFrom) and node.level > 0 and \
+                    any(a.name == "adapters" for a in node.names):
+                raise AssertionError(f"{name} imports adapters/")

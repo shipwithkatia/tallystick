@@ -1,0 +1,68 @@
+[
+  {
+    "claims": [
+      "Revenue rose 14% year over year in the second quarter.",
+      "Operating margin fell to 11.2%.",
+      "Headcount stands at 2840.",
+      "Management expects the fourth quarter to be the strongest on record."
+    ]
+  },
+  {
+    "claims": [
+      "Revenue rose 14% year over year in the second quarter.",
+      "Operating margin fell to 11.2%.",
+      "Management expects the fourth quarter to be the strongest on record."
+    ]
+  },
+  {
+    "credits": [
+      {
+        "artifact_id": "doc_1",
+        "quote": "an increase of 14% year over year"
+      }
+    ]
+  },
+  {
+    "credits": [
+      {
+        "artifact_id": "doc_1",
+        "quote": "Operating margin was 11.2%"
+      }
+    ]
+  },
+  {
+    "credits": [
+      {
+        "artifact_id": "tool_1",
+        "quote": "\"headcount\": 2840"
+      }
+    ]
+  },
+  {
+    "credits": []
+  },
+  {
+    "credits": [
+      {
+        "artifact_id": "llm_1",
+        "quote": "Revenue rose 14% year over year in the second quarter."
+      }
+    ]
+  },
+  {
+    "credits": [
+      {
+        "artifact_id": "llm_1",
+        "quote": "Operating margin fell to 11.2%."
+      }
+    ]
+  },
+  {
+    "credits": [
+      {
+        "artifact_id": "llm_1",
+        "quote": "Management expects the fourth quarter to be the strongest on record."
+      }
+    ]
+  }
+]
