@@ -33,3 +33,4 @@ build/
 # tallystick working files
 raw_langchain.json
 posted.json
+bench/work/
