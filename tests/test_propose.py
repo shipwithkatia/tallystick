@@ -358,3 +358,14 @@ def test_a_trailing_full_stop_outside_the_claim_does_not_warn():
     ]))
     assert posted["_proposal"]["warnings"] == []
     assert audit(posted).audits["f.c1"].status.value == "grounded"
+
+
+def test_parse_json_ignores_text_after_the_object():
+    """Seen live: a valid object followed by prose or a second object."""
+    assert parse_json('{"claims": ["a."]}\n\nHope this helps!') == {"claims": ["a."]}
+    assert parse_json('{"credits": []} {"note": "x"}') == {"credits": []}
+    assert parse_json('Sure:\n```json\n{"claims": []}\n```\nDone.') == {"claims": []}
+    with pytest.raises(ValueError):
+        parse_json('{"claims": ["a."')          # truncated: still an error
+    with pytest.raises(ValueError):
+        parse_json('[1, 2]')                     # not an object

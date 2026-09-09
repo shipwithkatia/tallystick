@@ -301,3 +301,18 @@ def test_a_trace_with_any_failed_run_is_dropped_so_denominators_match(traces, tm
     assert rep["dropped_traces"] == 1
     ns = {run["n"] for side in ("tallystick", "one_hop", "full") for run in rep[side]["runs"]}
     assert len(ns) == 1 and ns == {rep["answer_sentences"]}
+
+
+def test_progress_line_survives_a_failed_first_proposer_run(traces, tmp_path, capsys):
+    """Seen live at trace 12: the first proposer run failed, and the progress
+    print crashed the whole session on sum(None)."""
+    import argparse
+    from run import run_trace
+    t = traces[0]
+    args = argparse.Namespace(proposer_runs=2, judge_runs=1, skip_judge=True, model="x")
+    script = ["garbage"] + _oracle_script(t)          # run 0 fails, run 1 succeeds
+    row = run_trace(t, FakeProposer(script), args, tmp_path, "t.json")
+    assert row["tallystick_runs"][0] is None and row["tallystick_runs"][1] is not None
+    # the exact expression main() prints must not raise
+    fmt = lambda runs: [sum(x) if x is not None else None for x in runs]  # noqa: E731
+    assert fmt(row["tallystick_runs"])[0] is None

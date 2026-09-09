@@ -28,10 +28,19 @@ def parse_json(text: str) -> Dict[str, Any]:
     guessed at - a guessed entry would end up in the books.
     """
     cleaned = _FENCE.sub("", text.strip())
-    start, end = cleaned.find("{"), cleaned.rfind("}")
-    if start < 0 or end < 0:
+    start = cleaned.find("{")
+    if start < 0:
         raise ValueError(f"proposer returned no JSON object: {text[:120]!r}")
-    return json.loads(cleaned[start:end + 1])
+    # Decode the first complete object and ignore whatever follows it: models
+    # sometimes append a sentence, or a second object, after the answer. Taking
+    # "first { to last }" instead would break on exactly that.
+    try:
+        obj, _ = json.JSONDecoder().raw_decode(cleaned[start:])
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"proposer returned malformed JSON: {exc}") from None
+    if not isinstance(obj, dict):
+        raise ValueError(f"proposer returned {type(obj).__name__}, expected an object")
+    return obj
 
 
 class FakeProposer:

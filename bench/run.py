@@ -405,10 +405,10 @@ def main(argv=None) -> int:
             rows.append(row)
             fh.write(json.dumps(row, ensure_ascii=False) + "\n")
             fh.flush()
-            ts0 = row["tallystick_runs"][0] if row["tallystick_runs"] else []
-            print(f"    truth={sum(row['truth'])}/{len(row['truth'])} tallystick={sum(ts0)} "
-                  f"one-hop={[sum(x) if x else None for x in row['one_hop_runs']]} "
-                  f"full={[sum(x) if x else None for x in row['full_runs']]}")
+            fmt = lambda runs: [sum(x) if x is not None else None for x in runs]  # noqa: E731
+            print(f"    truth={sum(row['truth'])}/{len(row['truth'])} "
+                  f"tallystick={fmt(row['tallystick_runs'])} "
+                  f"one-hop={fmt(row['one_hop_runs'])} full={fmt(row['full_runs'])}")
             consecutive_failures = 0 if _usable(row, args.skip_judge) else consecutive_failures + 1
             if consecutive_failures >= 5:
                 print("five unusable traces in a row - stopping; check the key, quota "
