@@ -129,7 +129,7 @@ The trace format is plain JSON — artifacts, steps with inputs/outputs, claims 
 - **No tolerance floor on quote matching.** A 2% edit tolerance for typographic drift with a minimum of one edit meant `14%` could be cited as `44%` and pass. The floor is gone; a three-character quote gets no free edit.
 - **An empty trace does not balance.** `all([])` is `True` in Python, so a truncated trace originally exited 0. A gate that passes on missing input is not a gate.
 - **Exit 2 is a hard boundary.** Seven ordinary malformed-JSON shapes originally escaped the loader as `KeyError`/`TypeError` and reached the shell as exit 1 — "your agent is unfaithful" — when the truth was "I could not read your file". The loader now validates every shape and raises one typed error, and the same validation runs on a `Run` built by hand.
-- **What I'd do differently:** check the package name on PyPI before writing a line. The project started as `pacioli`; someone else shipped an unrelated AI-trust library under that name four days before this was scaffolded.
+
 
 ## What I Learned
 
