@@ -345,3 +345,16 @@ def test_a_source_containing_the_fence_cannot_close_its_own_block():
     assert fence not in evil.content
     # the block opens and closes exactly once with the chosen fence
     assert text.count(fence) == 1 and text.count(fence.replace("<", ">")) == 1
+
+
+def test_a_trailing_full_stop_outside_the_claim_does_not_warn():
+    run = _two_claim_run("Revenue grew 14%. Costs fell 3%.")
+    posted = post_run(run, FakeProposer([
+        {"claims": ["Revenue grew 14%", "Costs fell 3%"]},
+        {"claims": ["Revenue grew 14% and costs fell 3%."]},
+        {"credits": [{"artifact_id": "d", "quote": "Revenue grew 14%."}]},
+        {"credits": [{"artifact_id": "d", "quote": "Costs fell 3%."}]},
+        {"credits": [{"artifact_id": "s", "quote": "Revenue grew 14%."}]},
+    ]))
+    assert posted["_proposal"]["warnings"] == []
+    assert audit(posted).audits["f.c1"].status.value == "grounded"

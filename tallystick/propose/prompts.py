@@ -12,7 +12,8 @@ You split text into atomic factual claims for an audit ledger.
 
 Rules, all strict:
 - Each claim is a contiguous, VERBATIM substring of the text. Copy characters
-  exactly; do not paraphrase, merge, trim punctuation, or fix typos.
+  exactly; do not paraphrase, merge, or fix typos. Include the sentence's closing
+    punctuation (the final "." or "?") in the claim.
 - One claim = one checkable assertion. Split compound sentences at "and", ";" or
   similar when each part is independently checkable.
 - Skip questions, instructions, greetings, hedges without content, and meta text

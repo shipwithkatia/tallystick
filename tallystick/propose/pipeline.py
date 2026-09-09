@@ -114,10 +114,10 @@ def _locate(haystack: str, needle: str, taken: List[Tuple[int, int]],
 
 def _chars_outside(content: str, span: Tuple[int, int],
                    kept: List[Tuple[int, int]]) -> int:
-    """Non-whitespace characters of `span` not inside any kept span."""
+    """Letters and digits of `span` not inside any kept span. Only alphanumerics count: a live run showed the segmenter returning claims without their final full stop while the credit quote included it; that punctuation is not unvouched text."""
     n = 0
     for i in range(span[0], span[1]):
-        if content[i].isspace():
+        if not content[i].isalnum():
             continue
         if not any(a <= i < b for a, b in kept):
             n += 1
