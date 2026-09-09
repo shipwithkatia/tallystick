@@ -30,6 +30,13 @@ from .report import chain_view, summary
 SUBCOMMANDS = ("audit", "propose")
 
 
+def _write_json(path: str, payload) -> None:
+    """Write a JSON output file. OSError here is a "could not run" failure, not a
+    verdict, so callers turn it into exit 2 - never into exit 1."""
+    with open(path, "w", encoding="utf-8") as fh:
+        json.dump(payload, fh, indent=2, ensure_ascii=False)
+
+
 def _audit(args: argparse.Namespace) -> int:
     try:
         run = load_run_file(args.trace)
@@ -70,8 +77,11 @@ def _audit(args: argparse.Namespace) -> int:
                 for a in balance.audits.values()
             ],
         }
-        with open(args.json_out, "w", encoding="utf-8") as fh:
-            json.dump(payload, fh, indent=2, ensure_ascii=False)
+        try:
+            _write_json(args.json_out, payload)
+        except OSError as exc:
+            print(f"tallystick: cannot write {args.json_out}: {exc}", file=sys.stderr)
+            return 2
 
     return 0 if balance.books_balance else 1
 
@@ -104,8 +114,11 @@ def _propose(args: argparse.Namespace) -> int:
               file=sys.stderr)
         return 2
 
-    with open(args.out, "w", encoding="utf-8") as fh:
-        json.dump(posted, fh, indent=2, ensure_ascii=False)
+    try:
+        _write_json(args.out, posted)
+    except OSError as exc:
+        print(f"tallystick: cannot write {args.out}: {exc}", file=sys.stderr)
+        return 2
 
     log = posted["_proposal"]
     print(f"posted {log['claims_posted']} claims, {log['credits_posted']} credits, "

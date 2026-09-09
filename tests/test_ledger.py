@@ -333,3 +333,30 @@ def test_compatibility_characters_are_not_folded_together():
     assert normalize("10²") != normalize("102")
     assert normalize("½") != normalize("1/2")
     assert normalize("café") == normalize("café")     # composition still ok
+
+
+# --------------------------------------------------------------------------- #
+# Found in the fifth review
+# --------------------------------------------------------------------------- #
+
+
+def test_an_unwritable_output_path_is_exit_2_not_a_traceback(tmp_path):
+    """Writing the report is not the verdict.
+
+    `--json` into a directory that does not exist used to raise FileNotFoundError
+    out of main(), which reaches the shell as exit 1 - "books do not balance" - on
+    a run that balances. Same class of confusion as exit 2 exists to prevent.
+    """
+    from tallystick.cli import main
+    unwritable = tmp_path / "no-such-dir" / "out.json"
+    assert main([str(BALANCED), "--quiet", "--json", str(unwritable)]) == 2
+
+
+def test_an_unwritable_propose_output_is_exit_2(tmp_path):
+    from tallystick.cli import main
+    script = tmp_path / "answers.json"
+    script.write_text('[{"claims": []}]', encoding="utf-8")
+    raw = EXAMPLE.parent / "raw_research_run.json"
+    out = tmp_path / "no-such-dir" / "posted.json"
+    assert main(["propose", str(raw), "-o", str(out),
+                 "--proposer", "fake", "--script", str(script)]) == 2
