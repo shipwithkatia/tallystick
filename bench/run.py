@@ -29,8 +29,8 @@ spread is reported next to the fact that auditing one posted file (re-read from
 disk) is identical. Sampling is at the API default for every side; nobody gets
 temperature 0.
 
-Failures - bad JSON twice, a reply without an "unsupported" list, a rate limit, a
-network error - are counted per side and stored as a placeholder at their run
+Failures - bad JSON (twice for a judge; the proposer gets one attempt), a reply
+without an "unsupported" list, a rate limit, a network error - are counted per side and stored as a placeholder at their run
 index. A trace is scored only if EVERY run on EVERY side succeeded, so all rows
 and all run indices are computed over exactly the same sentences; that count is
 printed once. Each trace's result is appended to rows.jsonl as it finishes, so a

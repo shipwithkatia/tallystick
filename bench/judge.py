@@ -17,8 +17,9 @@ costs it precision; that is disclosed, not hidden.
 
 Neither judge is deterministic. The benchmark reruns them and reports the spread.
 A judge call that fails for any reason - unparseable output, a rate limit, a
-network error - is retried once, then recorded as a failure; a proposer failure
-is handled the same way in run.py. No failure on either side stops the run.
+network error - is retried once, then recorded as a failure. A proposer failure
+is counted in run.py without a retry (retry is v0.5.3). No failure on either side
+stops the run.
 """
 
 from __future__ import annotations
