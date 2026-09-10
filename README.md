@@ -204,7 +204,7 @@ What the table says, in order of importance:
 The traces are plain JSON and the labels are in them, so anything that flags sentences can be scored on the same construction without running tallystick:
 
 ```bash
-python bench/build.py --limit 100   # seed 7 by default; same seed, same files, byte for byte
+python bench/build.py --limit 100   # -> bench/work/traces/<id>.json + manifest.json; seed 7, reproducible
 ```
 
 Each trace has `artifacts` (root documents, an `intermediate` summary, a `final_answer`), `steps` (retrieve → summarize → answer, with inputs and outputs), and a `_truth` block: `answer_sentences` is a list of `{start, end, text, laundered}` over the answer text, and `summary_hallucinated_spans` are the RAGTruth annotations over the summary. Run your detector on the answer, produce one boolean per entry of `answer_sentences` in order, and score with `prf` from `bench/run.py` (from the repo root; the import needs no SDK):
