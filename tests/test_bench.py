@@ -316,3 +316,66 @@ def test_progress_line_survives_a_failed_first_proposer_run(traces, tmp_path, ca
     # the exact expression main() prints must not raise
     fmt = lambda runs: [sum(x) if x is not None else None for x in runs]  # noqa: E731
     assert fmt(row["tallystick_runs"])[0] is None
+
+
+# --------------------------------------------------------------------------- #
+# The labels are the foundation of the table; the oracle test cannot see them.
+# --------------------------------------------------------------------------- #
+
+
+def test_ragtruth_annotation_offsets_address_the_text_they_claim():
+    """Every RAGTruth label carries both a span and the text at that span. If
+    any preprocessing shifted the response, this is where it would show. The
+    same check over the full dataset (14,289 labels) passed at the n=100 run."""
+    resp, _ = build.load_ragtruth(ROOT / "bench" / "sample")
+    n = 0
+    for r in resp:
+        for lab in r["labels"]:
+            n += 1
+            assert r["response"][lab["start"]:lab["end"]] == lab["text"]
+    assert n > 0
+
+
+def test_answer_sentence_labels_can_be_rederived_from_the_raw_annotations(traces):
+    """Independent derivation: locate each answer sentence in the raw response
+    and test overlap against the raw label spans, without using build.sentences
+    or the spans build_trace chose. Must agree with what build_trace wrote."""
+    resp, _ = build.load_ragtruth(ROOT / "bench" / "sample")
+    by_id = {r["id"]: r for r in resp}
+    checked = 0
+    for t in traces:
+        item = by_id[t["_meta"]["ragtruth_id"]]
+        labels = [(lab["start"], lab["end"]) for lab in item["labels"]]
+        cursor = 0                      # answer sentences are in response order
+        for s in t["_truth"]["answer_sentences"]:
+            # A sentence's text can recur in a response (51 of 9,690 pool
+            # sentences), and in one pool item (RAGTruth 12471) the recurrence
+            # sits inside a labelled span while the sentence itself does not.
+            # So collect every occurrence past the cursor and require the
+            # written label to be the label of one of them; where the text is
+            # unique, that is an exact check.
+            occ, o = [], item["response"].find(s["text"], cursor)
+            while o >= 0:
+                occ.append(o)
+                o = item["response"].find(s["text"], o + 1)
+            assert occ, "answer sentence must come verbatim from the response"
+            expects = {any(o < e and a < o + len(s["text"]) for a, e in labels)
+                       for o in occ}
+            assert s["laundered"] in expects
+            cursor = occ[0] + len(s["text"])
+            checked += 1
+    assert checked > 0
+
+
+def test_ci_reproduces_the_table_and_bootstraps_over_traces(traces, tmp_path, capsys):
+    """bench/ci.py's point estimate must be exact on oracle rows, its interval
+    must contain it, and the paired difference must collapse to zero when both
+    sides are the oracle."""
+    import ci
+    rows, _ = _oracle_rows(traces, tmp_path)
+    point = ci.mean_f1(rows, "tallystick_runs")
+    assert point["f1"] == 1.0                      # oracle rows
+    boot = ci.bootstrap(rows, n=50, seed=3)
+    lo, hi = boot["f1_ci"]["tallystick_runs"]
+    assert lo <= 1.0 <= hi
+    assert boot["diff_full_minus_tallystick"]["ci"] == (0.0, 0.0)  # oracle on both sides
