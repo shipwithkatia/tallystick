@@ -106,8 +106,13 @@ class ClaimAudit:
     def ok(self) -> bool:
         return self.status in (ClaimStatus.GROUNDED, ClaimStatus.ASSUMED)
 
-    def _key(self) -> Tuple[int, int]:
-        return (_RANK[self.status], self.depth)
+    def _key(self) -> Tuple:
+        # A total order. Rank and depth decide; the ids that name the break and
+        # the chain break the remaining ties, so which of two equally bad
+        # candidates is reported never depends on entry order in the file.
+        return (_RANK[self.status], self.depth,
+                self.break_step_id or "", self.break_claim_id or "",
+                tuple(h.account for h in self.chain))
 
 
 @dataclass
@@ -250,9 +255,22 @@ def _resolve(
 
     visiting.add(claim.claim_id)
     candidates: List[ClaimAudit] = []
+    groups: List[str] = []          # parallel to candidates; "" = no group
     tainted = False
 
-    for entry in verified:
+    for entry in entries:
+        if not entry.verified:
+            if entry.group:
+                # A grouped entry that does not fund - the verifier rejected its
+                # quote, or it is a PRIOR/undeclared-assumption someone put in a
+                # group by hand. Its group cannot close, whatever the others say.
+                groups.append(entry.group)
+                candidates.append(make(ClaimStatus.UNSUPPORTED,
+                                       break_claim_id=claim.claim_id,
+                                       break_step_id=step_id,
+                                       break_reason=entry.reason))
+            continue
+        groups.append(entry.group)
         acct = entry.account
         hop = ChainHop(claim.claim_id, acct.artifact_id or "", step_id,
                        str(acct), entry.quoted_span)
@@ -312,7 +330,25 @@ def _resolve(
 
     visiting.discard(claim.claim_id)
 
-    result = min(candidates, key=lambda a: a._key())
+    # Between independent entries the claim closes on the best (any-of): a real
+    # second source is a real second source. Within a group - entries that came
+    # from one quote covering several claims - it closes on the WORST (all-of):
+    # the quote vouched for all of that text at once. Without this a proposer
+    # that snaps a quote to claim boundaries would bypass the all-of rule that
+    # _span_is_accounted_for enforces for a single wide entry.
+    merged: List[ClaimAudit] = []
+    by_group: Dict[str, List[ClaimAudit]] = {}
+    for g, cand in zip(groups, candidates):
+        if g:
+            by_group.setdefault(g, []).append(cand)
+        else:
+            merged.append(cand)
+    for members in by_group.values():
+        failing = [m for m in members if not m.ok]
+        merged.append(max(failing, key=lambda a: a._key()) if failing
+                      else min(members, key=lambda a: a._key()))
+
+    result = min(merged, key=lambda a: a._key())
     if not tainted:
         audits[claim.claim_id] = result
     return result, tainted

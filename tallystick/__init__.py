@@ -24,7 +24,7 @@ from .types import (
     TraceError,
 )
 
-__version__ = "0.5.2"
+__version__ = "0.5.3"
 
 __all__ = [
     "audit", "close_books", "load_run", "load_run_file",

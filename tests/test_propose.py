@@ -369,3 +369,58 @@ def test_parse_json_ignores_text_after_the_object():
         parse_json('{"claims": ["a."')          # truncated: still an error
     with pytest.raises(ValueError):
         parse_json('[1, 2]')                     # not an object
+
+
+def test_a_quote_covering_a_true_and_an_invented_claim_is_laundered_not_grounded():
+    """The any-of leak found while reviewing the v0.5.2 benchmark. The summary
+    has one grounded claim and one invented claim; the answer quotes both in one
+    quote. The proposer snaps that quote into two entries, and the claim used
+    to close on the grounded one. The two entries now share a group and the
+    group closes on its worst member."""
+    run = _two_claim_run("Revenue grew 14%. Costs fell 3%.")
+    posted = post_run(run, FakeProposer([
+        {"claims": ["Revenue grew 14%.", "Costs fell 3%."]},
+        {"claims": ["Revenue grew 14% and costs fell 3%."]},
+        {"credits": [{"artifact_id": "d", "quote": "Revenue grew 14%."}]},
+        {"credits": []},                                  # invented: prior only
+        {"credits": [{"artifact_id": "s", "quote": "Revenue grew 14%. Costs fell 3%."}]},
+    ]))
+    groups = {e.get("group") for e in posted["entries"] if e["claim_id"] == "f.c1"}
+    assert len(groups) == 1 and groups != {None}
+    balance = audit(posted)
+    a = balance.audits["f.c1"]
+    assert a.status.value == "laundered"
+    assert a.break_claim_id == "s.c2" and a.break_step_id == "s2"
+
+
+def test_two_independent_quotes_still_close_on_the_better_one():
+    """Grouping must not turn every claim into all-of. Two separate quotes are
+    two independent entries, and the claim closes on the better one - the
+    documented any-of rule, and the recall cost the README states: the verifier
+    checks where a quote is, not whether it covers the whole claim."""
+    run = _two_claim_run("Revenue grew 14%. Costs fell 3%.")
+    posted = post_run(run, FakeProposer([
+        {"claims": ["Revenue grew 14%.", "Costs fell 3%."]},
+        {"claims": ["Revenue grew 14% and costs fell 3%."]},
+        {"credits": [{"artifact_id": "d", "quote": "Revenue grew 14%."}]},
+        {"credits": []},
+        {"credits": [{"artifact_id": "s", "quote": "Revenue grew 14%."},
+                     {"artifact_id": "s", "quote": "Costs fell 3%."}]},
+    ]))
+    assert all(not e.get("group") for e in posted["entries"] if e["claim_id"] == "f.c1")
+    assert audit(posted).audits["f.c1"].status.value == "grounded"
+
+
+def test_an_unparseable_reply_is_asked_for_once_more_then_fails():
+    """7 of 198 proposer runs at n=100 died on a missing comma. One retry,
+    logged; a second failure still raises - guessing an entry is worse."""
+    posted = post_run(_tiny_run(), FakeProposer([
+        "{not json",                                    # first try
+        {"claims": ["revenue rose 14 percent."]},       # retry succeeds
+        {"claims": []},
+        {"credits": [{"artifact_id": "d", "quote": "Revenue rose"}]},
+    ]))
+    assert [e["account"] for e in posted["entries"] if e["claim_id"] == "s.c1"] == ["EVIDENCE:d#0-12"]
+    assert any("asked again" in w for w in posted["_proposal"]["warnings"])
+    with pytest.raises(ValueError):
+        post_run(_tiny_run(), FakeProposer(["{not json", "{still not json"]))

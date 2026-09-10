@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pytest
 
-from tallystick import audit, load_run
+from tallystick import TraceError, audit, load_run
 from tallystick.ledger import ClaimStatus, close_books
 from tallystick.verify import NOT_REACHABLE, SPAN_MISMATCH, verify_run
 
@@ -360,3 +360,120 @@ def test_an_unwritable_propose_output_is_exit_2(tmp_path):
     out = tmp_path / "no-such-dir" / "posted.json"
     assert main(["propose", str(raw), "-o", str(out),
                  "--proposer", "fake", "--script", str(script)]) == 2
+
+
+def _grouped_run(group_a, group_b):
+    doc = "The company reported revenue of 10 million dollars."
+    summary = "Revenue was 10 million dollars. Profit doubled."
+    s1 = (0, 31)
+    s2 = (32, 47)
+    assert summary[s1[0]:s1[1]] == "Revenue was 10 million dollars."
+    assert summary[s2[0]:s2[1]] == "Profit doubled."
+    return load_run({
+        "artifacts": [
+            {"artifact_id": "doc", "kind": "document", "content": doc},
+            {"artifact_id": "summary", "kind": "intermediate", "content": summary},
+            {"artifact_id": "answer", "kind": "final_answer", "content": summary},
+        ],
+        "steps": [
+            {"step_id": "s1", "kind": "retrieve", "inputs": [], "outputs": ["doc"]},
+            {"step_id": "s2", "kind": "summarize", "inputs": ["doc"], "outputs": ["summary"]},
+            {"step_id": "s3", "kind": "answer", "inputs": ["summary"], "outputs": ["answer"]},
+        ],
+        "claims": [
+            {"claim_id": "sum_1", "artifact_id": "summary", "start": s1[0], "end": s1[1]},
+            {"claim_id": "sum_2", "artifact_id": "summary", "start": s2[0], "end": s2[1]},
+            {"claim_id": "ans_1", "artifact_id": "answer", "start": 0, "end": len(summary)},
+        ],
+        "entries": [
+            {"entry_id": "e1", "claim_id": "sum_1", "account": "EVIDENCE:doc#21-50",
+             "quoted_span": doc[21:50]},
+            {"entry_id": "e2", "claim_id": "sum_2", "account": "PRIOR:model"},
+            {"entry_id": "e3", "claim_id": "ans_1", "account": f"EVIDENCE:summary#{s1[0]}-{s1[1]}",
+             "quoted_span": summary[s1[0]:s1[1]], "group": group_a},
+            {"entry_id": "e4", "claim_id": "ans_1", "account": f"EVIDENCE:summary#{s2[0]}-{s2[1]}",
+             "quoted_span": summary[s2[0]:s2[1]], "group": group_b},
+        ],
+    })
+
+
+def test_entries_in_one_group_close_on_the_worst_member():
+    """Two entries from one quote, one of them into an invented claim: the
+    group inherits the break, exactly as one wide entry over both would."""
+    balance = close_books(_grouped_run("g1", "g1"))
+    a = balance.audits["ans_1"]
+    assert a.status is ClaimStatus.LAUNDERED
+    assert a.break_claim_id == "sum_2"
+
+
+def test_ungrouped_entries_close_on_the_best_member():
+    """The same two entries as independent credits: any-of, grounded. This is
+    the pre-existing rule for separate sources, unchanged."""
+    balance = close_books(_grouped_run("", ""))
+    assert balance.audits["ans_1"].status is ClaimStatus.GROUNDED
+
+
+def test_group_verdict_does_not_depend_on_entry_order():
+    run = _grouped_run("g1", "g1")
+    run.entries.reverse()
+    assert close_books(run).audits["ans_1"].status is ClaimStatus.LAUNDERED
+
+
+def _two_prior_summaries_run():
+    """An answer claim whose one quote covers two summary sentences, both
+    posted prior-only: two failing group members at equal depth - the tie
+    that made the reported break depend on entry order."""
+    return load_run({
+        "artifacts": [
+            {"artifact_id": "doc", "kind": "document", "content": "Nothing relevant here."},
+            {"artifact_id": "summary", "kind": "intermediate", "content": "Alpha rose. Beta fell."},
+            {"artifact_id": "answer", "kind": "final_answer", "content": "Alpha rose. Beta fell."},
+        ],
+        "steps": [
+            {"step_id": "s1", "kind": "retrieve", "inputs": [], "outputs": ["doc"]},
+            {"step_id": "s2", "kind": "summarize", "inputs": ["doc"], "outputs": ["summary"]},
+            {"step_id": "s3", "kind": "answer", "inputs": ["summary"], "outputs": ["answer"]},
+        ],
+        "claims": [
+            {"claim_id": "sum_a", "artifact_id": "summary", "start": 0, "end": 11},
+            {"claim_id": "sum_b", "artifact_id": "summary", "start": 12, "end": 22},
+            {"claim_id": "ans_1", "artifact_id": "answer", "start": 0, "end": 22},
+        ],
+        "entries": [
+            {"entry_id": "e1", "claim_id": "sum_a", "account": "PRIOR:model"},
+            {"entry_id": "e2", "claim_id": "sum_b", "account": "PRIOR:model"},
+            {"entry_id": "e3", "claim_id": "ans_1", "account": "EVIDENCE:summary#0-11",
+             "quoted_span": "Alpha rose.", "group": "g"},
+            {"entry_id": "e4", "claim_id": "ans_1", "account": "EVIDENCE:summary#12-22",
+             "quoted_span": "Beta fell.", "group": "g"},
+        ],
+    })
+
+
+def test_reported_break_of_a_group_does_not_depend_on_entry_order():
+    def view(run):
+        a = close_books(run).audits["ans_1"]
+        return (a.status, a.break_claim_id, a.break_step_id, [h.account for h in a.chain])
+    run = _two_prior_summaries_run()
+    forward = view(run)
+    run.entries.reverse()
+    assert view(run) == forward
+    assert forward[0] is ClaimStatus.LAUNDERED
+
+
+def test_a_group_with_a_member_the_verifier_rejected_cannot_close():
+    """The quote vouched for text that is not at that address; the survivor
+    must not close the group on its own."""
+    run = _grouped_run("g1", "g1")
+    bad = next(e for e in run.entries if e.entry_id == "e4")
+    bad.quoted_span = "Profit halved."
+    a = close_books(run).audits["ans_1"]
+    assert a.status is ClaimStatus.UNSUPPORTED
+    assert a.break_reason == SPAN_MISMATCH
+
+
+def test_a_group_may_not_span_two_claims():
+    run = _grouped_run("g1", "g1")
+    run.entries[0].group = "g1"          # e1 belongs to sum_1, not ans_1
+    with pytest.raises(TraceError, match="spans claims"):
+        close_books(run)

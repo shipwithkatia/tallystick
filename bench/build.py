@@ -55,22 +55,28 @@ from typing import Any, Dict, List, Tuple
 
 RAGTRUTH_REPO = "https://github.com/ParticleMedia/RAGTruth"
 _SENT = re.compile(r"[^.!?]+[.!?]+(?=\s|$)|[^.!?]+$")
+_LINE = re.compile(r"[^\n]+")
 
 
 def sentences(text: str) -> List[Tuple[int, int]]:
     """Sentence spans by a plain regex. Deterministic and dependency-free.
 
-    Fragments under 15 characters are dropped. Measured on the eligible test pool
-    that leaves ~4% of response text and ~1.5% of annotated spans outside every
-    sentence; they can never be quoted, never scored, and are excluded from the
-    natural prevalence too, so the two sides stay consistent."""
+    A line break is a boundary too: RAGTruth responses are full of numbered
+    lists and headings without terminal punctuation ("(Passage 3)"), and v0.5.2
+    glued such a line to the sentence after it. Fragments under 15 characters
+    are dropped. Measured on the eligible test pool that leaves ~4% of response
+    text and ~2% of annotated spans (10 of 479) outside every sentence; they can never
+    be quoted, never scored, and are excluded from the natural prevalence too,
+    so the two sides stay consistent."""
     out = []
-    for m in _SENT.finditer(text):
-        s, e = m.start(), m.end()
-        while s < e and text[s].isspace():
-            s += 1
-        if e - s >= 15:
-            out.append((s, e))
+    for line in _LINE.finditer(text):
+        base = line.start()
+        for m in _SENT.finditer(line.group(0)):
+            s, e = base + m.start(), base + m.end()
+            while s < e and text[s].isspace():
+                s += 1
+            if e - s >= 15:
+                out.append((s, e))
     return out
 
 
@@ -97,7 +103,10 @@ def root_documents(source: Dict[str, Any]) -> List[Dict[str, str]]:
         return [{"artifact_id": "doc_1", "kind": "document", "title": "source",
                  "content": info}]
     if source["task_type"] == "QA":
-        docs = []
+        # The responder saw the question as well as the passages; a sentence
+        # that restates it has nothing else to quote. v0.5.2 omitted it.
+        docs = [{"artifact_id": "question", "kind": "document", "title": "question",
+                 "content": info["question"].strip()}]
         for i, chunk in enumerate(re.split(r"\n\n(?=passage \d+:)", info["passages"]), 1):
             chunk = re.sub(r"^passage \d+:", "", chunk).strip()
             if chunk:

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "tallystick"
-version = "0.5.2"
+version = "0.5.3"
 description = "Provenance accounting for agent runs: every claim traced back to something outside the model, or named as unfunded."
 readme = "README.md"
 requires-python = ">=3.10"

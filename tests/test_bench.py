@@ -310,7 +310,7 @@ def test_progress_line_survives_a_failed_first_proposer_run(traces, tmp_path, ca
     from run import run_trace
     t = traces[0]
     args = argparse.Namespace(proposer_runs=2, judge_runs=1, skip_judge=True, model="x")
-    script = ["garbage"] + _oracle_script(t)          # run 0 fails, run 1 succeeds
+    script = ["garbage", "garbage"] + _oracle_script(t)   # run 0 fails twice, run 1 succeeds
     row = run_trace(t, FakeProposer(script), args, tmp_path, "t.json")
     assert row["tallystick_runs"][0] is None and row["tallystick_runs"][1] is not None
     # the exact expression main() prints must not raise

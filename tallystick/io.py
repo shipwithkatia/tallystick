@@ -8,7 +8,9 @@ frameworks belong in `adapters/` and should all funnel into `load_run`.
       "artifacts": [{"artifact_id", "kind", "content", "title"?}],
       "steps":     [{"step_id", "kind", "inputs": [...], "outputs": [...]}],
       "claims":    [{"claim_id", "artifact_id", "start", "end", "text"?}],
-      "entries":   [{"entry_id", "claim_id", "account", "quoted_span"?, "proposed_by"?}],
+      "entries":   [{"entry_id", "claim_id", "account", "quoted_span"?, "proposed_by"?,
+                     "group"?}],   group: entries of ONE claim that came from one
+                                   quote; the ledger closes a group on its worst member
       "assumptions": {"<id>": "<premise text>"}          (optional)
     }
 
@@ -137,6 +139,7 @@ def load_run(data: Dict[str, Any]) -> Run:
             account=Account.parse(_str(raw, "account", what)),
             quoted_span=str(raw.get("quoted_span", "")),
             proposed_by=str(raw.get("proposed_by", "manual")),
+            group=str(raw.get("group", "") or ""),
         ))
 
     run.validate()

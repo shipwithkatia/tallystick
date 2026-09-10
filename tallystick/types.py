@@ -167,6 +167,13 @@ class Entry:
     quote proves; it cannot be wrong about whether the quote exists.
 
     `verified` and `reason` are written only by the verifier, never by a proposer.
+
+    `group`: entries that came from ONE quote which covered several claims of a
+    derived artifact share a group id. The ledger closes a group only if every
+    member closes - the quote vouched for all of that text at once, so it must
+    inherit the worst thing it covered, exactly as a single wide entry would.
+    Without groups, a proposer that snaps a quote to claim boundaries would post
+    independent entries and the claim would close on the best of them.
     """
 
     entry_id: str
@@ -175,6 +182,7 @@ class Entry:
     quoted_span: str = ""
     amount: float = 1.0
     proposed_by: str = "manual"
+    group: str = ""
     verified: Optional[bool] = None
     reason: str = ""
 
@@ -260,6 +268,7 @@ class Run:
                     f"claim {cid}.text does not match the text at its span")
 
         seen_entries: set = set()
+        group_owner: Dict[str, str] = {}
         for entry in self.entries:
             if entry.entry_id in seen_entries:
                 raise TraceError(f"duplicate entry id {entry.entry_id!r}")
@@ -267,3 +276,8 @@ class Run:
             if entry.claim_id not in self.claims:
                 raise TraceError(
                     f"entry {entry.entry_id} refers to unknown claim {entry.claim_id!r}")
+            if entry.group:
+                owner = group_owner.setdefault(entry.group, entry.claim_id)
+                if owner != entry.claim_id:
+                    raise TraceError(f"group {entry.group!r} spans claims {owner} "
+                                     f"and {entry.claim_id}; a group belongs to one claim")

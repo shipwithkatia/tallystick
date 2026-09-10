@@ -124,12 +124,29 @@ def _chars_outside(content: str, span: Tuple[int, int],
     return n
 
 
+def _ask_json(proposer: Proposer, system: str, user: str, log: ProposalLog,
+              what: str) -> Dict[str, Any]:
+    """One model call, parsed. A reply that is not a JSON object is asked for
+    once more - a missing comma is not a verdict about the text - and the
+    retry is logged. A second failure raises, as before: guessing is worse."""
+    for attempt in (1, 2):
+        raw = proposer.complete(system, user)
+        try:
+            return parse_json(raw)
+        except ValueError as exc:
+            if attempt == 2:
+                raise
+            log.warnings.append(f"{what}: unparseable reply, asked again ({exc})")
+    raise AssertionError("unreachable")
+
+
 def segment_artifact(art: Artifact, proposer: Proposer, log: ProposalLog,
                      ) -> List[Dict[str, Any]]:
     fence = fence_for(art.content)
-    raw = proposer.complete(SEGMENT_SYSTEM, SEGMENT_USER.format(
-        text=art.content, fence=fence, close=fence.replace("<", ">")))
-    proposed = _as_list(parse_json(raw).get("claims", []), "claims", log)
+    reply = _ask_json(proposer, SEGMENT_SYSTEM, SEGMENT_USER.format(
+        text=art.content, fence=fence, close=fence.replace("<", ">")),
+        log, f"segment {art.artifact_id}")
+    proposed = _as_list(reply.get("claims", []), "claims", log)
 
     spans: List[Tuple[int, int]] = []
     for text in proposed:
@@ -162,16 +179,16 @@ def propose_credits(claim: Dict[str, Any], claim_text: str, sources: List[Artifa
     """`claim_spans` maps derived artifact id -> its claim spans, for snapping."""
     by_id = {a.artifact_id: a for a in sources}
     fence = fence_for(claim_text)
-    raw = proposer.complete(
-        CREDIT_SYSTEM,
+    reply = _ask_json(
+        proposer, CREDIT_SYSTEM,
         CREDIT_USER.format(claim=claim_text, fence=fence,
                            close=fence.replace("<", ">"),
                            sources=format_sources(sources)),
-    )
-    credits = _as_list(parse_json(raw).get("credits", []), "credits", log)
+        log, f"credits for {claim['claim_id']}")
+    credits = _as_list(reply.get("credits", []), "credits", log)
 
     entries: List[Dict[str, Any]] = []
-    seen_accounts: set = set()
+    seen_quotes: set = set()
     cid = claim["claim_id"]
 
     def drop(aid: str, quote: str, reason: str) -> None:
@@ -208,18 +225,26 @@ def propose_credits(claim: Dict[str, Any], claim_text: str, sources: List[Artifa
                 drop(aid, quote, "quote covers no whole claim of the cited artifact")
                 continue
 
+        # One quote that covers several claims becomes several entries that share
+        # a group: the ledger closes a group only if every member closes, so the
+        # quote inherits the worst claim it covered - as one wide entry would.
+        key = (aid, tuple(spans))
+        if key in seen_quotes:
+            continue  # same credit twice adds nothing to the books
+        seen_quotes.add(key)
+        group = f"{cid}.g{len(entries) + 1}" if len(spans) > 1 else ""
         for a, b in spans:
             account = f"EVIDENCE:{aid}#{a}-{b}"
-            if account in seen_accounts:
-                continue  # same credit twice adds nothing to the books
-            seen_accounts.add(account)
-            entries.append({
+            entry = {
                 "entry_id": f"{cid}.e{len(entries) + 1}",
                 "claim_id": cid,
                 "account": account,
                 "quoted_span": art.content[a:b],
                 "proposed_by": proposer.name,
-            })
+            }
+            if group:
+                entry["group"] = group
+            entries.append(entry)
 
     if not entries:
         # The honest position: the model found nothing external. Recorded, never
