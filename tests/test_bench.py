@@ -217,6 +217,7 @@ def test_rows_file_enables_resume(traces, tmp_path, monkeypatch):
     def fake_run_trace(trace, proposer, args, w, name):
         calls["n"] += 1
         row = {"file": name, "meta": {}, "truth": [False], "tallystick_runs": [[False]],
+               "trace_sha": runmod.trace_sha(trace),
                "model": args.model, "proposer_runs": args.proposer_runs,
                "judge_runs": args.judge_runs,
                "summary_runs": [([], [])], "audit_identical": True,
@@ -248,6 +249,7 @@ def test_resume_refuses_rows_from_different_settings_and_survives_a_truncated_li
         names.append(f"t{i}.json")
     (work / "manifest.json").write_text(json.dumps({"order": names}))
     good = {"file": "t0.json", "meta": {}, "truth": [False], "tallystick_runs": [[False]],
+            "trace_sha": runmod.trace_sha(traces[0]),
             "model": "m", "proposer_runs": 1, "judge_runs": 1,
             "summary_runs": [[[], []]], "audit_identical": True, "claims_per_sentence": [1.0],
             "proposal": [{"claims_posted": 1, "credits_posted": 1, "prior_posted": 0}],
@@ -267,7 +269,7 @@ def test_resume_refuses_rows_from_different_settings_and_survives_a_truncated_li
     def fake_run_trace(trace, proposer, args, w, name):
         ran.append(name)
         return dict(good, file=name, model=args.model, proposer_runs=args.proposer_runs,
-                    judge_runs=args.judge_runs)
+                    judge_runs=args.judge_runs, trace_sha=runmod.trace_sha(trace))
 
     import tallystick.propose as tp
     monkeypatch.setattr(tp, "AnthropicProposer", Oracle)
@@ -280,6 +282,45 @@ def test_resume_refuses_rows_from_different_settings_and_survives_a_truncated_li
     assert runmod.main(["--work", str(work), "--model", "m",
                         "--proposer-runs", "1", "--judge-runs", "1"]) == 0
     assert ran == ["t1.json", "t2.json"]
+
+
+def test_resume_refuses_rows_from_rebuilt_traces(traces, tmp_path, monkeypatch):
+    """Seen live at v0.5.3: build.py rebuilt the traces, run.py found the old
+    rows.jsonl and 'resumed' 99 v0.5.2 rows onto them. Every row carries the
+    fingerprint of the trace it was scored on; a mismatch refuses to resume."""
+    import run as runmod
+    work = tmp_path / "work"
+    (work / "traces").mkdir(parents=True)
+    (work / "traces" / "t0.json").write_text(json.dumps(traces[0]), encoding="utf-8")
+    (work / "manifest.json").write_text(json.dumps({"order": ["t0.json"]}))
+    row = {"file": "t0.json", "meta": {}, "truth": [False], "tallystick_runs": [[False]],
+           "trace_sha": "0000000000000000",          # a different build
+           "model": "m", "proposer_runs": 1, "judge_runs": 1,
+           "summary_runs": [[[], []]], "audit_identical": True, "claims_per_sentence": [1.0],
+           "proposal": [{"claims_posted": 1, "credits_posted": 1, "prior_posted": 0}],
+           "one_hop_runs": [[False]], "full_runs": [[False]],
+           "failures": {"proposer": 0, "one_hop": 0, "full": 0}}
+    (work / "rows.jsonl").write_text(json.dumps(row) + "\n", encoding="utf-8")
+
+    class Oracle:
+        name = "oracle"
+
+        def __init__(self, *a, **k):
+            pass
+
+    import tallystick.propose as tp
+    monkeypatch.setattr(tp, "AnthropicProposer", Oracle)
+    ran = []
+    monkeypatch.setattr(runmod, "run_trace",
+                        lambda trace, proposer, args, w, name: ran.append(name))
+    assert runmod.main(["--work", str(work), "--model", "m",
+                        "--proposer-runs", "1", "--judge-runs", "1"]) == 2
+    assert ran == []
+    # rows without any fingerprint (v0.5.2 files) are refused the same way
+    del row["trace_sha"]
+    (work / "rows.jsonl").write_text(json.dumps(row) + "\n", encoding="utf-8")
+    assert runmod.main(["--work", str(work), "--model", "m",
+                        "--proposer-runs", "1", "--judge-runs", "1"]) == 2
 
 
 def test_a_judge_reply_without_a_list_is_a_failure_not_a_clean_sheet(traces):

@@ -35,12 +35,14 @@ index. A trace is scored only if EVERY run on EVERY side succeeded, so all rows
 and all run indices are computed over exactly the same sentences; that count is
 printed once. Each trace's result is appended to rows.jsonl as it finishes, so a
 crash loses at most one trace, and rerunning the same command resumes - with the
-same model and run counts, which are stamped on every row and checked.
+same model and run counts, and the same build of the traces: all three are
+stamped on every row and checked.
 """
 
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import statistics
 import sys
@@ -107,10 +109,20 @@ def summary_claim_eval(posted: Dict[str, Any], balance) -> Tuple[List[bool], Lis
 # --------------------------------------------------------------------------- #
 
 
+def trace_sha(trace: Dict[str, Any]) -> str:
+    """Fingerprint of a built trace. Stamped on every row so that a rows.jsonl
+    from an earlier build cannot be resumed onto rebuilt traces: seen live at
+    v0.5.3, where a resume silently kept 99 v0.5.2 rows and scored one new
+    trace, printing a table that meant nothing."""
+    blob = json.dumps(trace, sort_keys=True, ensure_ascii=False)
+    return hashlib.sha256(blob.encode("utf-8")).hexdigest()[:16]
+
+
 def run_trace(trace: Dict[str, Any], proposer, args, work: Path, name: str) -> Dict[str, Any]:
     from tallystick.propose import post_run
     truth = [s["laundered"] for s in trace["_truth"]["answer_sentences"]]
     row: Dict[str, Any] = {"file": name, "meta": trace["_meta"], "truth": truth,
+                           "trace_sha": trace_sha(trace),
                            "model": args.model, "proposer_runs": args.proposer_runs,
                            "judge_runs": args.judge_runs,
                            "tallystick_runs": [], "summary_runs": [],
@@ -366,8 +378,9 @@ def main(argv=None) -> int:
     proposer = AnthropicProposer(model=args.model)
 
     # Resume: rows already on disk for the traces in this invocation are kept and
-    # their traces skipped. Rows must have been produced with the same model and
-    # run counts, or the table would be labelled with settings it was not run at.
+    # their traces skipped. Rows must carry the same model, run counts and trace
+    # fingerprint, or the table would be labelled with settings (or data) it was
+    # not run at.
     rows_path = work / "rows.jsonl"
     rows: List[Dict[str, Any]] = []
     if rows_path.exists():
@@ -383,7 +396,7 @@ def main(argv=None) -> int:
                           "mid-write); that trace will be rerun", file=sys.stderr)
                     continue
                 raise
-        wanted = {n for n, _ in traces}
+        wanted = {n: trace_sha(t) for n, t in traces}
         rows = [r for r in rows if r["file"] in wanted]
         mismatch = [r["file"] for r in rows if (r.get("model"), r.get("proposer_runs"),
                                                 r.get("judge_runs"))
@@ -392,6 +405,14 @@ def main(argv=None) -> int:
             print(f"rows.jsonl was produced with different --model/--proposer-runs/"
                   f"--judge-runs ({len(mismatch)} row(s)); delete it or rerun with the "
                   f"same settings", file=sys.stderr)
+            return 2
+        stale = [r["file"] for r in rows if r.get("trace_sha") != wanted[r["file"]]]
+        if stale:
+            print(f"rows.jsonl was produced from different traces ({len(stale)} row(s) "
+                  f"do not match the files in {work / 'traces'}; the benchmark was "
+                  f"rebuilt, or the rows predate trace fingerprints). Move rows.jsonl "
+                  f"aside and rerun; posted/ and results.json are rewritten by the run.",
+                  file=sys.stderr)
             return 2
         done = {r["file"] for r in rows}
         traces = [(n, t) for n, t in traces if n not in done]
