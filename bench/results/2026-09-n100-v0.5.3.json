@@ -1,0 +1,12440 @@
+{
+ "rows": [
+  {
+   "file": "14690.json",
+   "meta": {
+    "ragtruth_id": "14690",
+    "source_id": "15369",
+    "task_type": "QA",
+    "model": "mistral-7B-instruct",
+    "n_labels": 2
+   },
+   "truth": [
+    false,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.0,
+    1.0
+   ],
+   "proposal": [
+    {
+     "claims_posted": 13,
+     "credits_posted": 11,
+     "prior_posted": 2
+    },
+    {
+     "claims_posted": 13,
+     "credits_posted": 11,
+     "prior_posted": 2
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "12183.json",
+   "meta": {
+    "ragtruth_id": "12183",
+    "source_id": "14347",
+    "task_type": "QA",
+    "model": "llama-2-7b-chat",
+    "n_labels": 0
+   },
+   "truth": [
+    false,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    0.6666666666666666,
+    0.6666666666666666
+   ],
+   "proposal": [
+    {
+     "claims_posted": 8,
+     "credits_posted": 8,
+     "prior_posted": 1
+    },
+    {
+     "claims_posted": 8,
+     "credits_posted": 7,
+     "prior_posted": 1
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     true
+    ],
+    [
+     false,
+     false,
+     true
+    ],
+    [
+     false,
+     false,
+     true
+    ]
+   ],
+   "full_runs": [
+    [
+     true,
+     false,
+     true
+    ],
+    [
+     true,
+     false,
+     true
+    ],
+    [
+     true,
+     false,
+     true
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "13158.json",
+   "meta": {
+    "ragtruth_id": "13158",
+    "source_id": "15112",
+    "task_type": "QA",
+    "model": "gpt-4-0613",
+    "n_labels": 0
+   },
+   "truth": [
+    false,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.0,
+    1.0
+   ],
+   "proposal": [
+    {
+     "claims_posted": 12,
+     "credits_posted": 12,
+     "prior_posted": 0
+    },
+    {
+     "claims_posted": 12,
+     "credits_posted": 12,
+     "prior_posted": 0
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "1157.json",
+   "meta": {
+    "ragtruth_id": "1157",
+    "source_id": "15786",
+    "task_type": "Summary",
+    "model": "llama-2-70b-chat",
+    "n_labels": 1
+   },
+   "truth": [
+    false,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     true,
+     false
+    ],
+    [
+     false,
+     true,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    2.0,
+    2.0
+   ],
+   "proposal": [
+    {
+     "claims_posted": 18,
+     "credits_posted": 24,
+     "prior_posted": 2
+    },
+    {
+     "claims_posted": 18,
+     "credits_posted": 25,
+     "prior_posted": 2
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "5275.json",
+   "meta": {
+    "ragtruth_id": "5275",
+    "source_id": "13535",
+    "task_type": "Summary",
+    "model": "gpt-3.5-turbo-0613",
+    "n_labels": 0
+   },
+   "truth": [
+    false,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.0,
+    1.0
+   ],
+   "proposal": [
+    {
+     "claims_posted": 9,
+     "credits_posted": 9,
+     "prior_posted": 0
+    },
+    {
+     "claims_posted": 9,
+     "credits_posted": 9,
+     "prior_posted": 0
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "15195.json",
+   "meta": {
+    "ragtruth_id": "15195",
+    "source_id": "15453",
+    "task_type": "QA",
+    "model": "llama-2-7b-chat",
+    "n_labels": 2
+   },
+   "truth": [
+    false,
+    true,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     true,
+     true,
+     true
+    ],
+    [
+     true,
+     true,
+     true
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      true,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false
+     ]
+    ],
+    [
+     [
+      true,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.0,
+    1.0
+   ],
+   "proposal": [
+    {
+     "claims_posted": 10,
+     "credits_posted": 9,
+     "prior_posted": 5
+    },
+    {
+     "claims_posted": 10,
+     "credits_posted": 9,
+     "prior_posted": 5
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     true,
+     false
+    ],
+    [
+     false,
+     true,
+     false
+    ],
+    [
+     false,
+     true,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "3082.json",
+   "meta": {
+    "ragtruth_id": "3082",
+    "source_id": "11979",
+    "task_type": "Summary",
+    "model": "llama-2-13b-chat",
+    "n_labels": 1
+   },
+   "truth": [
+    false,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     true
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      true,
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      true,
+      false,
+      false,
+      false,
+      false,
+      true
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.0,
+    1.3333333333333333
+   ],
+   "proposal": [
+    {
+     "claims_posted": 9,
+     "credits_posted": 9,
+     "prior_posted": 1
+    },
+    {
+     "claims_posted": 10,
+     "credits_posted": 9,
+     "prior_posted": 2
+    }
+   ],
+   "one_hop_runs": [
+    [
+     true,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     true,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     true,
+     false,
+     false
+    ],
+    [
+     true,
+     false,
+     false
+    ],
+    [
+     true,
+     false,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "3608.json",
+   "meta": {
+    "ragtruth_id": "3608",
+    "source_id": "12068",
+    "task_type": "Summary",
+    "model": "mistral-7B-instruct",
+    "n_labels": 2
+   },
+   "truth": [
+    false,
+    false,
+    true
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     true,
+     false,
+     true
+    ],
+    [
+     true,
+     true,
+     true
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      false,
+      true,
+      true
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      true
+     ]
+    ],
+    [
+     [
+      false,
+      true,
+      false,
+      true,
+      true
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      true
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.0,
+    1.0
+   ],
+   "proposal": [
+    {
+     "claims_posted": 8,
+     "credits_posted": 5,
+     "prior_posted": 3
+    },
+    {
+     "claims_posted": 8,
+     "credits_posted": 4,
+     "prior_posted": 4
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     false,
+     true
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     true
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "608.json",
+   "meta": {
+    "ragtruth_id": "608",
+    "source_id": "15694",
+    "task_type": "Summary",
+    "model": "mistral-7B-instruct",
+    "n_labels": 0
+   },
+   "truth": [
+    false,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.3333333333333333,
+    1.3333333333333333
+   ],
+   "proposal": [
+    {
+     "claims_posted": 8,
+     "credits_posted": 9,
+     "prior_posted": 0
+    },
+    {
+     "claims_posted": 8,
+     "credits_posted": 8,
+     "prior_posted": 0
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     true
+    ],
+    [
+     false,
+     false,
+     true
+    ],
+    [
+     false,
+     false,
+     true
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     false,
+     true
+    ],
+    [
+     false,
+     false,
+     true
+    ],
+    [
+     false,
+     false,
+     true
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "14208.json",
+   "meta": {
+    "ragtruth_id": "14208",
+    "source_id": "15288",
+    "task_type": "QA",
+    "model": "gpt-4-0613",
+    "n_labels": 0
+   },
+   "truth": [
+    false,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.0,
+    1.0
+   ],
+   "proposal": [
+    {
+     "claims_posted": 6,
+     "credits_posted": 6,
+     "prior_posted": 0
+    },
+    {
+     "claims_posted": 6,
+     "credits_posted": 6,
+     "prior_posted": 0
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "17116.json",
+   "meta": {
+    "ragtruth_id": "17116",
+    "source_id": "12344",
+    "task_type": "QA",
+    "model": "llama-2-13b-chat",
+    "n_labels": 0
+   },
+   "truth": [
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     false
+    ],
+    [
+     false,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false
+     ],
+     [
+      false
+     ]
+    ],
+    [
+     [
+      false
+     ],
+     [
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    0.5,
+    0.5
+   ],
+   "proposal": [
+    {
+     "claims_posted": 2,
+     "credits_posted": 2,
+     "prior_posted": 0
+    },
+    {
+     "claims_posted": 2,
+     "credits_posted": 2,
+     "prior_posted": 0
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false
+    ],
+    [
+     false,
+     false
+    ],
+    [
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     false
+    ],
+    [
+     false,
+     false
+    ],
+    [
+     false,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "1185.json",
+   "meta": {
+    "ragtruth_id": "1185",
+    "source_id": "15791",
+    "task_type": "Summary",
+    "model": "llama-2-7b-chat",
+    "n_labels": 2
+   },
+   "truth": [
+    false,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     true
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      true,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    0.6666666666666666,
+    0.6666666666666666
+   ],
+   "proposal": [
+    {
+     "claims_posted": 7,
+     "credits_posted": 8,
+     "prior_posted": 0
+    },
+    {
+     "claims_posted": 15,
+     "credits_posted": 14,
+     "prior_posted": 3
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "14753.json",
+   "meta": {
+    "ragtruth_id": "14753",
+    "source_id": "15379",
+    "task_type": "QA",
+    "model": "llama-2-70b-chat",
+    "n_labels": 0
+   },
+   "truth": [
+    false,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.0,
+    1.0
+   ],
+   "proposal": [
+    {
+     "claims_posted": 11,
+     "credits_posted": 11,
+     "prior_posted": 0
+    },
+    {
+     "claims_posted": 11,
+     "credits_posted": 11,
+     "prior_posted": 0
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "16469.json",
+   "meta": {
+    "ragtruth_id": "16469",
+    "source_id": "12236",
+    "task_type": "QA",
+    "model": "llama-2-70b-chat",
+    "n_labels": 1
+   },
+   "truth": [
+    false,
+    false,
+    true
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false
+     ],
+     [
+      false
+     ]
+    ],
+    [
+     [
+      false,
+      false
+     ],
+     [
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    0.3333333333333333,
+    1.0
+   ],
+   "proposal": [
+    {
+     "claims_posted": 2,
+     "credits_posted": 2,
+     "prior_posted": 0
+    },
+    {
+     "claims_posted": 5,
+     "credits_posted": 5,
+     "prior_posted": 0
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     false,
+     true
+    ],
+    [
+     false,
+     false,
+     true
+    ],
+    [
+     false,
+     false,
+     true
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "15734.json",
+   "meta": {
+    "ragtruth_id": "15734",
+    "source_id": "15543",
+    "task_type": "QA",
+    "model": "mistral-7B-instruct",
+    "n_labels": 0
+   },
+   "truth": [
+    false,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     true,
+     false,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      true,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.6666666666666667,
+    1.6666666666666667
+   ],
+   "proposal": [
+    {
+     "claims_posted": 10,
+     "credits_posted": 14,
+     "prior_posted": 0
+    },
+    {
+     "claims_posted": 10,
+     "credits_posted": 13,
+     "prior_posted": 1
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "17199.json",
+   "meta": {
+    "ragtruth_id": "17199",
+    "source_id": "12358",
+    "task_type": "QA",
+    "model": "llama-2-7b-chat",
+    "n_labels": 2
+   },
+   "truth": [
+    true,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     true,
+     false,
+     true
+    ],
+    [
+     true,
+     false,
+     true
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false
+     ],
+     [
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      false,
+      false
+     ],
+     [
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.0,
+    1.0
+   ],
+   "proposal": [
+    {
+     "claims_posted": 5,
+     "credits_posted": 3,
+     "prior_posted": 2
+    },
+    {
+     "claims_posted": 5,
+     "credits_posted": 4,
+     "prior_posted": 2
+    }
+   ],
+   "one_hop_runs": [
+    [
+     true,
+     false,
+     true
+    ],
+    [
+     false,
+     false,
+     true
+    ],
+    [
+     true,
+     false,
+     true
+    ]
+   ],
+   "full_runs": [
+    [
+     true,
+     false,
+     true
+    ],
+    [
+     true,
+     false,
+     true
+    ],
+    [
+     true,
+     false,
+     true
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "1699.json",
+   "meta": {
+    "ragtruth_id": "1699",
+    "source_id": "11395",
+    "task_type": "Summary",
+    "model": "gpt-3.5-turbo-0613",
+    "n_labels": 0
+   },
+   "truth": [
+    false,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.0,
+    1.0
+   ],
+   "proposal": [
+    {
+     "claims_posted": 16,
+     "credits_posted": 17,
+     "prior_posted": 0
+    },
+    {
+     "claims_posted": 15,
+     "credits_posted": 16,
+     "prior_posted": 0
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "434.json",
+   "meta": {
+    "ragtruth_id": "434",
+    "source_id": "15665",
+    "task_type": "Summary",
+    "model": "mistral-7B-instruct",
+    "n_labels": 2
+   },
+   "truth": [
+    false,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      false
+     ],
+     [
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      false
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      false
+     ],
+     [
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.3333333333333333,
+    1.6666666666666667
+   ],
+   "proposal": [
+    {
+     "claims_posted": 11,
+     "credits_posted": 10,
+     "prior_posted": 2
+    },
+    {
+     "claims_posted": 12,
+     "credits_posted": 11,
+     "prior_posted": 2
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     true,
+     false,
+     false
+    ],
+    [
+     true,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "1646.json",
+   "meta": {
+    "ragtruth_id": "1646",
+    "source_id": "11370",
+    "task_type": "Summary",
+    "model": "mistral-7B-instruct",
+    "n_labels": 1
+   },
+   "truth": [
+    false,
+    false,
+    true
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.6666666666666667,
+    1.6666666666666667
+   ],
+   "proposal": [
+    {
+     "claims_posted": 12,
+     "credits_posted": 11,
+     "prior_posted": 1
+    },
+    {
+     "claims_posted": 12,
+     "credits_posted": 11,
+     "prior_posted": 1
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     false,
+     true
+    ],
+    [
+     false,
+     false,
+     true
+    ],
+    [
+     false,
+     false,
+     true
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "15006.json",
+   "meta": {
+    "ragtruth_id": "15006",
+    "source_id": "15422",
+    "task_type": "QA",
+    "model": "gpt-4-0613",
+    "n_labels": 0
+   },
+   "truth": [
+    false,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.3333333333333333,
+    1.3333333333333333
+   ],
+   "proposal": [
+    {
+     "claims_posted": 9,
+     "credits_posted": 9,
+     "prior_posted": 0
+    },
+    {
+     "claims_posted": 9,
+     "credits_posted": 9,
+     "prior_posted": 0
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     false,
+     true
+    ],
+    [
+     false,
+     false,
+     true
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "12331.json",
+   "meta": {
+    "ragtruth_id": "12331",
+    "source_id": "14373",
+    "task_type": "QA",
+    "model": "gpt-3.5-turbo-0613",
+    "n_labels": 0
+   },
+   "truth": [
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     true,
+     false
+    ],
+    [
+     true,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      true,
+      false,
+      true,
+      true,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      true,
+      false,
+      true,
+      true,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    2.5,
+    2.5
+   ],
+   "proposal": [
+    {
+     "claims_posted": 10,
+     "credits_posted": 7,
+     "prior_posted": 3
+    },
+    {
+     "claims_posted": 10,
+     "credits_posted": 7,
+     "prior_posted": 3
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false
+    ],
+    [
+     false,
+     false
+    ],
+    [
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     true,
+     true
+    ],
+    [
+     true,
+     true
+    ],
+    [
+     true,
+     true
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "907.json",
+   "meta": {
+    "ragtruth_id": "907",
+    "source_id": "15744",
+    "task_type": "Summary",
+    "model": "gpt-3.5-turbo-0613",
+    "n_labels": 1
+   },
+   "truth": [
+    false,
+    false,
+    true
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.6666666666666667,
+    1.6666666666666667
+   ],
+   "proposal": [
+    {
+     "claims_posted": 18,
+     "credits_posted": 21,
+     "prior_posted": 0
+    },
+    {
+     "claims_posted": 18,
+     "credits_posted": 21,
+     "prior_posted": 0
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "5082.json",
+   "meta": {
+    "ragtruth_id": "5082",
+    "source_id": "13503",
+    "task_type": "Summary",
+    "model": "gpt-4-0613",
+    "n_labels": 0
+   },
+   "truth": [
+    false,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.0,
+    1.0
+   ],
+   "proposal": [
+    {
+     "claims_posted": 6,
+     "credits_posted": 6,
+     "prior_posted": 0
+    },
+    {
+     "claims_posted": 6,
+     "credits_posted": 6,
+     "prior_posted": 0
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     false,
+     true
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "15782.json",
+   "meta": {
+    "ragtruth_id": "15782",
+    "source_id": "15551",
+    "task_type": "QA",
+    "model": "mistral-7B-instruct",
+    "n_labels": 0
+   },
+   "truth": [
+    false,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     false,
+     true
+    ],
+    [
+     false,
+     false,
+     true
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      false,
+      true
+     ],
+     [
+      false,
+      false,
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      false,
+      true
+     ],
+     [
+      false,
+      false,
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.3333333333333333,
+    1.3333333333333333
+   ],
+   "proposal": [
+    {
+     "claims_posted": 8,
+     "credits_posted": 11,
+     "prior_posted": 1
+    },
+    {
+     "claims_posted": 8,
+     "credits_posted": 11,
+     "prior_posted": 1
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     false,
+     true
+    ],
+    [
+     false,
+     false,
+     true
+    ],
+    [
+     false,
+     false,
+     true
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "1586.json",
+   "meta": {
+    "ragtruth_id": "1586",
+    "source_id": "11353",
+    "task_type": "Summary",
+    "model": "mistral-7B-instruct",
+    "n_labels": 1
+   },
+   "truth": [
+    false,
+    true,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     true,
+     true
+    ],
+    [
+     false,
+     true,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      true,
+      true
+     ],
+     [
+      false,
+      false,
+      true,
+      false
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      true,
+      false
+     ],
+     [
+      false,
+      false,
+      true,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.0,
+    1.0
+   ],
+   "proposal": [
+    {
+     "claims_posted": 7,
+     "credits_posted": 5,
+     "prior_posted": 2
+    },
+    {
+     "claims_posted": 7,
+     "credits_posted": 6,
+     "prior_posted": 1
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     true,
+     true
+    ],
+    [
+     false,
+     true,
+     true
+    ],
+    [
+     false,
+     true,
+     true
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "15927.json",
+   "meta": {
+    "ragtruth_id": "15927",
+    "source_id": "15576",
+    "task_type": "QA",
+    "model": "llama-2-7b-chat",
+    "n_labels": 1
+   },
+   "truth": [
+    false,
+    false,
+    true
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     true,
+     true
+    ],
+    [
+     false,
+     true,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      false,
+      true,
+      true
+     ],
+     [
+      false,
+      false,
+      false,
+      true,
+      true
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      false,
+      true,
+      true
+     ],
+     [
+      false,
+      false,
+      false,
+      true,
+      true
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.0,
+    0.3333333333333333
+   ],
+   "proposal": [
+    {
+     "claims_posted": 8,
+     "credits_posted": 9,
+     "prior_posted": 3
+    },
+    {
+     "claims_posted": 6,
+     "credits_posted": 5,
+     "prior_posted": 3
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     false,
+     true
+    ],
+    [
+     false,
+     false,
+     true
+    ],
+    [
+     false,
+     false,
+     true
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "12347.json",
+   "meta": {
+    "ragtruth_id": "12347",
+    "source_id": "14375",
+    "task_type": "QA",
+    "model": "llama-2-70b-chat",
+    "n_labels": 0
+   },
+   "truth": [
+    false,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     true
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.0,
+    1.0
+   ],
+   "proposal": [
+    {
+     "claims_posted": 12,
+     "credits_posted": 12,
+     "prior_posted": 1
+    },
+    {
+     "claims_posted": 12,
+     "credits_posted": 11,
+     "prior_posted": 2
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "12620.json",
+   "meta": {
+    "ragtruth_id": "12620",
+    "source_id": "14421",
+    "task_type": "QA",
+    "model": "mistral-7B-instruct",
+    "n_labels": 0
+   },
+   "truth": [
+    false,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.0,
+    1.0
+   ],
+   "proposal": [
+    {
+     "claims_posted": 11,
+     "credits_posted": 11,
+     "prior_posted": 1
+    },
+    {
+     "claims_posted": 11,
+     "credits_posted": 11,
+     "prior_posted": 1
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     false,
+     true
+    ],
+    [
+     false,
+     false,
+     true
+    ],
+    [
+     false,
+     false,
+     true
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "2456.json",
+   "meta": {
+    "ragtruth_id": "2456",
+    "source_id": "11875",
+    "task_type": "Summary",
+    "model": "mistral-7B-instruct",
+    "n_labels": 1
+   },
+   "truth": [
+    false,
+    true
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     false
+    ],
+    [
+     false,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      true,
+      false
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      true,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    2.5,
+    2.5
+   ],
+   "proposal": [
+    {
+     "claims_posted": 9,
+     "credits_posted": 12,
+     "prior_posted": 0
+    },
+    {
+     "claims_posted": 9,
+     "credits_posted": 12,
+     "prior_posted": 0
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false
+    ],
+    [
+     false,
+     false
+    ],
+    [
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     true
+    ],
+    [
+     false,
+     true
+    ],
+    [
+     false,
+     true
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "44.json",
+   "meta": {
+    "ragtruth_id": "44",
+    "source_id": "15599",
+    "task_type": "Summary",
+    "model": "mistral-7B-instruct",
+    "n_labels": 1
+   },
+   "truth": [
+    false,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     true,
+     false
+    ],
+    [
+     false,
+     true,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.0,
+    1.0
+   ],
+   "proposal": [
+    {
+     "claims_posted": 12,
+     "credits_posted": 11,
+     "prior_posted": 1
+    },
+    {
+     "claims_posted": 12,
+     "credits_posted": 11,
+     "prior_posted": 1
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "123.json",
+   "meta": {
+    "ragtruth_id": "123",
+    "source_id": "15613",
+    "task_type": "Summary",
+    "model": "llama-2-7b-chat",
+    "n_labels": 1
+   },
+   "truth": [
+    false,
+    true,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     true,
+     false
+    ],
+    [
+     false,
+     true,
+     true
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      false,
+      true,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      true,
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      false,
+      true,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      true,
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    2.0,
+    2.0
+   ],
+   "proposal": [
+    {
+     "claims_posted": 12,
+     "credits_posted": 18,
+     "prior_posted": 1
+    },
+    {
+     "claims_posted": 12,
+     "credits_posted": 14,
+     "prior_posted": 2
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     true,
+     true
+    ],
+    [
+     false,
+     true,
+     true
+    ],
+    [
+     false,
+     true,
+     true
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "2800.json",
+   "meta": {
+    "ragtruth_id": "2800",
+    "source_id": "11932",
+    "task_type": "Summary",
+    "model": "llama-2-13b-chat",
+    "n_labels": 1
+   },
+   "truth": [
+    false,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     true,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      true,
+      false,
+      false,
+      false
+     ],
+     [
+      true,
+      false,
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      true,
+      false
+     ],
+     [
+      true,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.3333333333333333,
+    1.3333333333333333
+   ],
+   "proposal": [
+    {
+     "claims_posted": 8,
+     "credits_posted": 7,
+     "prior_posted": 1
+    },
+    {
+     "claims_posted": 6,
+     "credits_posted": 3,
+     "prior_posted": 3
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     false,
+     true
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     true,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "13469.json",
+   "meta": {
+    "ragtruth_id": "13469",
+    "source_id": "15164",
+    "task_type": "QA",
+    "model": "llama-2-70b-chat",
+    "n_labels": 2
+   },
+   "truth": [
+    true,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     true,
+     false,
+     false
+    ],
+    [
+     true,
+     false,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    2.0,
+    1.0
+   ],
+   "proposal": [
+    {
+     "claims_posted": 16,
+     "credits_posted": 18,
+     "prior_posted": 3
+    },
+    {
+     "claims_posted": 13,
+     "credits_posted": 13,
+     "prior_posted": 3
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     true,
+     false,
+     false
+    ],
+    [
+     true,
+     false,
+     false
+    ],
+    [
+     true,
+     false,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "12044.json",
+   "meta": {
+    "ragtruth_id": "12044",
+    "source_id": "14323",
+    "task_type": "QA",
+    "model": "mistral-7B-instruct",
+    "n_labels": 4
+   },
+   "truth": [
+    false,
+    false,
+    true
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     false,
+     true
+    ],
+    [
+     false,
+     false,
+     true
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.0,
+    1.0
+   ],
+   "proposal": [
+    {
+     "claims_posted": 13,
+     "credits_posted": 11,
+     "prior_posted": 5
+    },
+    {
+     "claims_posted": 13,
+     "credits_posted": 11,
+     "prior_posted": 5
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     false,
+     true
+    ],
+    [
+     false,
+     false,
+     true
+    ],
+    [
+     false,
+     false,
+     true
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "16358.json",
+   "meta": {
+    "ragtruth_id": "16358",
+    "source_id": "12218",
+    "task_type": "QA",
+    "model": "mistral-7B-instruct",
+    "n_labels": 0
+   },
+   "truth": [
+    false,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     true,
+     true
+    ],
+    [
+     false,
+     true,
+     true
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      true,
+      true
+     ],
+     [
+      false,
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      false,
+      true,
+      true
+     ],
+     [
+      false,
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.0,
+    1.0
+   ],
+   "proposal": [
+    {
+     "claims_posted": 6,
+     "credits_posted": 5,
+     "prior_posted": 2
+    },
+    {
+     "claims_posted": 6,
+     "credits_posted": 5,
+     "prior_posted": 2
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     true,
+     true
+    ],
+    [
+     false,
+     true,
+     true
+    ],
+    [
+     false,
+     true,
+     true
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "620.json",
+   "meta": {
+    "ragtruth_id": "620",
+    "source_id": "15696",
+    "task_type": "Summary",
+    "model": "mistral-7B-instruct",
+    "n_labels": 0
+   },
+   "truth": [
+    false,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.0,
+    1.0
+   ],
+   "proposal": [
+    {
+     "claims_posted": 17,
+     "credits_posted": 17,
+     "prior_posted": 0
+    },
+    {
+     "claims_posted": 17,
+     "credits_posted": 17,
+     "prior_posted": 0
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     true,
+     false
+    ],
+    [
+     false,
+     true,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "1520.json",
+   "meta": {
+    "ragtruth_id": "1520",
+    "source_id": "11332",
+    "task_type": "Summary",
+    "model": "mistral-7B-instruct",
+    "n_labels": 1
+   },
+   "truth": [
+    false,
+    false,
+    true
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     false,
+     true
+    ],
+    [
+     false,
+     false,
+     true
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      true
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      true
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      true
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      true
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.0,
+    1.0
+   ],
+   "proposal": [
+    {
+     "claims_posted": 8,
+     "credits_posted": 7,
+     "prior_posted": 1
+    },
+    {
+     "claims_posted": 8,
+     "credits_posted": 7,
+     "prior_posted": 1
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     false,
+     true
+    ],
+    [
+     false,
+     false,
+     true
+    ],
+    [
+     false,
+     false,
+     true
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "409.json",
+   "meta": {
+    "ragtruth_id": "409",
+    "source_id": "15661",
+    "task_type": "Summary",
+    "model": "gpt-3.5-turbo-0613",
+    "n_labels": 0
+   },
+   "truth": [
+    false,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     true,
+     false
+    ],
+    [
+     true,
+     false,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      true,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      true,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.0,
+    1.0
+   ],
+   "proposal": [
+    {
+     "claims_posted": 9,
+     "credits_posted": 7,
+     "prior_posted": 2
+    },
+    {
+     "claims_posted": 9,
+     "credits_posted": 7,
+     "prior_posted": 2
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "927.json",
+   "meta": {
+    "ragtruth_id": "927",
+    "source_id": "15747",
+    "task_type": "Summary",
+    "model": "llama-2-7b-chat",
+    "n_labels": 1
+   },
+   "truth": [
+    false,
+    false,
+    true
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     true,
+     false,
+     false
+    ],
+    [
+     true,
+     false,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.0,
+    1.0
+   ],
+   "proposal": [
+    {
+     "claims_posted": 9,
+     "credits_posted": 10,
+     "prior_posted": 1
+    },
+    {
+     "claims_posted": 9,
+     "credits_posted": 10,
+     "prior_posted": 1
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     false,
+     true
+    ],
+    [
+     false,
+     false,
+     true
+    ],
+    [
+     false,
+     false,
+     true
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "545.json",
+   "meta": {
+    "ragtruth_id": "545",
+    "source_id": "15683",
+    "task_type": "Summary",
+    "model": "llama-2-70b-chat",
+    "n_labels": 1
+   },
+   "truth": [
+    true,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    2.0,
+    2.0
+   ],
+   "proposal": [
+    {
+     "claims_posted": 20,
+     "credits_posted": 25,
+     "prior_posted": 0
+    },
+    {
+     "claims_posted": 20,
+     "credits_posted": 24,
+     "prior_posted": 0
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "3147.json",
+   "meta": {
+    "ragtruth_id": "3147",
+    "source_id": "11991",
+    "task_type": "Summary",
+    "model": "llama-2-7b-chat",
+    "n_labels": 2
+   },
+   "truth": [
+    false,
+    false,
+    true
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     false,
+     true
+    ],
+    [
+     false,
+     false,
+     true
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      true
+     ],
+     [
+      false,
+      false,
+      true,
+      false,
+      true
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      true
+     ],
+     [
+      false,
+      false,
+      true,
+      false,
+      true
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.0,
+    1.0
+   ],
+   "proposal": [
+    {
+     "claims_posted": 8,
+     "credits_posted": 8,
+     "prior_posted": 1
+    },
+    {
+     "claims_posted": 8,
+     "credits_posted": 8,
+     "prior_posted": 1
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     false,
+     true
+    ],
+    [
+     false,
+     false,
+     true
+    ],
+    [
+     false,
+     false,
+     true
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "1571.json",
+   "meta": {
+    "ragtruth_id": "1571",
+    "source_id": "11349",
+    "task_type": "Summary",
+    "model": "llama-2-70b-chat",
+    "n_labels": 0
+   },
+   "truth": [
+    false,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    0.6666666666666666,
+    0.6666666666666666
+   ],
+   "proposal": [
+    {
+     "claims_posted": 6,
+     "credits_posted": 6,
+     "prior_posted": 0
+    },
+    {
+     "claims_posted": 6,
+     "credits_posted": 6,
+     "prior_posted": 0
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "14134.json",
+   "meta": {
+    "ragtruth_id": "14134",
+    "source_id": "15275",
+    "task_type": "QA",
+    "model": "llama-2-13b-chat",
+    "n_labels": 2
+   },
+   "truth": [
+    false,
+    true,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      false,
+      true
+     ],
+     [
+      false,
+      false,
+      true,
+      true
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      true,
+      true
+     ],
+     [
+      false,
+      false,
+      true,
+      true
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    0.0,
+    0.0
+   ],
+   "proposal": [
+    {
+     "claims_posted": 4,
+     "credits_posted": 3,
+     "prior_posted": 1
+    },
+    {
+     "claims_posted": 4,
+     "credits_posted": 2,
+     "prior_posted": 2
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     true,
+     true
+    ],
+    [
+     false,
+     true,
+     true
+    ],
+    [
+     false,
+     true,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "16360.json",
+   "meta": {
+    "ragtruth_id": "16360",
+    "source_id": "12218",
+    "task_type": "QA",
+    "model": "llama-2-13b-chat",
+    "n_labels": 1
+   },
+   "truth": [
+    false,
+    true
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     true
+    ],
+    [
+     false,
+     true
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      true
+     ],
+     [
+      false,
+      true
+     ]
+    ],
+    [
+     [
+      false,
+      true
+     ],
+     [
+      false,
+      true
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.0,
+    1.0
+   ],
+   "proposal": [
+    {
+     "claims_posted": 4,
+     "credits_posted": 4,
+     "prior_posted": 1
+    },
+    {
+     "claims_posted": 4,
+     "credits_posted": 4,
+     "prior_posted": 1
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     true
+    ],
+    [
+     false,
+     true
+    ],
+    [
+     false,
+     true
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     true
+    ],
+    [
+     false,
+     true
+    ],
+    [
+     false,
+     true
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "4018.json",
+   "meta": {
+    "ragtruth_id": "4018",
+    "source_id": "13840",
+    "task_type": "Summary",
+    "model": "llama-2-13b-chat",
+    "n_labels": 1
+   },
+   "truth": [
+    false,
+    false,
+    true
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     false,
+     true
+    ],
+    [
+     false,
+     false,
+     true
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      true,
+      false
+     ],
+     [
+      false,
+      false,
+      true,
+      false
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      true,
+      false
+     ],
+     [
+      false,
+      false,
+      true,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    0.6666666666666666,
+    0.6666666666666666
+   ],
+   "proposal": [
+    {
+     "claims_posted": 6,
+     "credits_posted": 5,
+     "prior_posted": 1
+    },
+    {
+     "claims_posted": 6,
+     "credits_posted": 5,
+     "prior_posted": 1
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     false,
+     true
+    ],
+    [
+     false,
+     false,
+     true
+    ],
+    [
+     false,
+     false,
+     true
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "14323.json",
+   "meta": {
+    "ragtruth_id": "14323",
+    "source_id": "15308",
+    "task_type": "QA",
+    "model": "gpt-3.5-turbo-0613",
+    "n_labels": 1
+   },
+   "truth": [
+    false,
+    false,
+    true
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     false,
+     true
+    ],
+    [
+     false,
+     false,
+     true
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false
+     ],
+     [
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      false,
+      false
+     ],
+     [
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.0,
+    1.0
+   ],
+   "proposal": [
+    {
+     "claims_posted": 5,
+     "credits_posted": 4,
+     "prior_posted": 1
+    },
+    {
+     "claims_posted": 5,
+     "credits_posted": 4,
+     "prior_posted": 1
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     false,
+     true
+    ],
+    [
+     false,
+     false,
+     true
+    ],
+    [
+     false,
+     false,
+     true
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "2459.json",
+   "meta": {
+    "ragtruth_id": "2459",
+    "source_id": "11875",
+    "task_type": "Summary",
+    "model": "llama-2-70b-chat",
+    "n_labels": 0
+   },
+   "truth": [
+    false,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     false,
+     true
+    ],
+    [
+     false,
+     false,
+     true
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.3333333333333333,
+    1.3333333333333333
+   ],
+   "proposal": [
+    {
+     "claims_posted": 12,
+     "credits_posted": 12,
+     "prior_posted": 1
+    },
+    {
+     "claims_posted": 12,
+     "credits_posted": 13,
+     "prior_posted": 1
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     true
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "4576.json",
+   "meta": {
+    "ragtruth_id": "4576",
+    "source_id": "13933",
+    "task_type": "Summary",
+    "model": "llama-2-13b-chat",
+    "n_labels": 0
+   },
+   "truth": [
+    false,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    0.6666666666666666,
+    0.3333333333333333
+   ],
+   "proposal": [
+    {
+     "claims_posted": 7,
+     "credits_posted": 9,
+     "prior_posted": 0
+    },
+    {
+     "claims_posted": 6,
+     "credits_posted": 7,
+     "prior_posted": 0
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     true,
+     false,
+     false
+    ],
+    [
+     true,
+     false,
+     false
+    ],
+    [
+     true,
+     false,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "124.json",
+   "meta": {
+    "ragtruth_id": "124",
+    "source_id": "15613",
+    "task_type": "Summary",
+    "model": "llama-2-13b-chat",
+    "n_labels": 1
+   },
+   "truth": [
+    false,
+    false,
+    true
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      true
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      true
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.0,
+    1.0
+   ],
+   "proposal": [
+    {
+     "claims_posted": 6,
+     "credits_posted": 6,
+     "prior_posted": 0
+    },
+    {
+     "claims_posted": 6,
+     "credits_posted": 6,
+     "prior_posted": 0
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     true,
+     false
+    ],
+    [
+     true,
+     false,
+     true
+    ],
+    [
+     false,
+     true,
+     true
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "13069.json",
+   "meta": {
+    "ragtruth_id": "13069",
+    "source_id": "15097",
+    "task_type": "QA",
+    "model": "gpt-3.5-turbo-0613",
+    "n_labels": 0
+   },
+   "truth": [
+    false,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     true,
+     false,
+     false
+    ],
+    [
+     true,
+     false,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      true,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      true,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.3333333333333333,
+    1.3333333333333333
+   ],
+   "proposal": [
+    {
+     "claims_posted": 8,
+     "credits_posted": 9,
+     "prior_posted": 1
+    },
+    {
+     "claims_posted": 8,
+     "credits_posted": 9,
+     "prior_posted": 1
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "12694.json",
+   "meta": {
+    "ragtruth_id": "12694",
+    "source_id": "14433",
+    "task_type": "QA",
+    "model": "llama-2-13b-chat",
+    "n_labels": 1
+   },
+   "truth": [
+    false,
+    true,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     true,
+     false
+    ],
+    [
+     false,
+     true,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      false,
+      true,
+      false,
+      true,
+      true,
+      false,
+      false,
+      true,
+      false
+     ],
+     [
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      false,
+      true,
+      false,
+      true,
+      true,
+      false,
+      false,
+      true,
+      false
+     ],
+     [
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.0,
+    2.0
+   ],
+   "proposal": [
+    {
+     "claims_posted": 14,
+     "credits_posted": 12,
+     "prior_posted": 4
+    },
+    {
+     "claims_posted": 17,
+     "credits_posted": 17,
+     "prior_posted": 4
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     true,
+     false
+    ],
+    [
+     false,
+     true,
+     false
+    ],
+    [
+     false,
+     true,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "4116.json",
+   "meta": {
+    "ragtruth_id": "4116",
+    "source_id": "13857",
+    "task_type": "Summary",
+    "model": "gpt-4-0613",
+    "n_labels": 0
+   },
+   "truth": [
+    false,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     true,
+     false,
+     false
+    ],
+    [
+     true,
+     false,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.0,
+    1.0
+   ],
+   "proposal": [
+    {
+     "claims_posted": 7,
+     "credits_posted": 8,
+     "prior_posted": 1
+    },
+    {
+     "claims_posted": 7,
+     "credits_posted": 8,
+     "prior_posted": 1
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "208.json",
+   "meta": {
+    "ragtruth_id": "208",
+    "source_id": "15627",
+    "task_type": "Summary",
+    "model": "llama-2-13b-chat",
+    "n_labels": 1
+   },
+   "truth": [
+    false,
+    false,
+    true
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      true,
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.0,
+    1.0
+   ],
+   "proposal": [
+    {
+     "claims_posted": 8,
+     "credits_posted": 8,
+     "prior_posted": 0
+    },
+    {
+     "claims_posted": 9,
+     "credits_posted": 9,
+     "prior_posted": 0
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "13155.json",
+   "meta": {
+    "ragtruth_id": "13155",
+    "source_id": "15111",
+    "task_type": "QA",
+    "model": "llama-2-7b-chat",
+    "n_labels": 4
+   },
+   "truth": [
+    false,
+    true,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     true,
+     false
+    ],
+    [
+     false,
+     true,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      true,
+      false
+     ],
+     [
+      true,
+      false,
+      true
+     ]
+    ],
+    [
+     [
+      false,
+      true,
+      false
+     ],
+     [
+      true,
+      false,
+      true
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    0.3333333333333333,
+    0.3333333333333333
+   ],
+   "proposal": [
+    {
+     "claims_posted": 4,
+     "credits_posted": 2,
+     "prior_posted": 2
+    },
+    {
+     "claims_posted": 4,
+     "credits_posted": 2,
+     "prior_posted": 2
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     true
+    ],
+    [
+     false,
+     false,
+     true
+    ],
+    [
+     false,
+     false,
+     true
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     true,
+     true
+    ],
+    [
+     false,
+     true,
+     true
+    ],
+    [
+     false,
+     true,
+     true
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "909.json",
+   "meta": {
+    "ragtruth_id": "909",
+    "source_id": "15744",
+    "task_type": "Summary",
+    "model": "llama-2-7b-chat",
+    "n_labels": 2
+   },
+   "truth": [
+    true,
+    false,
+    true
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     true,
+     true,
+     false
+    ],
+    [
+     true,
+     true,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      true,
+      false,
+      false,
+      false,
+      true,
+      true
+     ]
+    ],
+    [
+     [
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false
+     ],
+     [
+      false,
+      true,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    0.6666666666666666,
+    0.6666666666666666
+   ],
+   "proposal": [
+    {
+     "claims_posted": 9,
+     "credits_posted": 10,
+     "prior_posted": 2
+    },
+    {
+     "claims_posted": 10,
+     "credits_posted": 10,
+     "prior_posted": 3
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     true,
+     false
+    ],
+    [
+     false,
+     true,
+     false
+    ],
+    [
+     false,
+     true,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "16851.json",
+   "meta": {
+    "ragtruth_id": "16851",
+    "source_id": "12300",
+    "task_type": "QA",
+    "model": "llama-2-7b-chat",
+    "n_labels": 2
+   },
+   "truth": [
+    false,
+    true,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     true,
+     false
+    ],
+    [
+     false,
+     true,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    0.6666666666666666,
+    0.6666666666666666
+   ],
+   "proposal": [
+    {
+     "claims_posted": 11,
+     "credits_posted": 10,
+     "prior_posted": 3
+    },
+    {
+     "claims_posted": 11,
+     "credits_posted": 9,
+     "prior_posted": 3
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     true,
+     false
+    ],
+    [
+     false,
+     true,
+     false
+    ],
+    [
+     false,
+     true,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "15467.json",
+   "meta": {
+    "ragtruth_id": "15467",
+    "source_id": "15498",
+    "task_type": "QA",
+    "model": "llama-2-70b-chat",
+    "n_labels": 0
+   },
+   "truth": [
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     false
+    ],
+    [
+     false,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    0.5,
+    0.5
+   ],
+   "proposal": [
+    {
+     "claims_posted": 6,
+     "credits_posted": 7,
+     "prior_posted": 0
+    },
+    {
+     "claims_posted": 6,
+     "credits_posted": 7,
+     "prior_posted": 0
+    }
+   ],
+   "one_hop_runs": [
+    [
+     true,
+     false
+    ],
+    [
+     true,
+     false
+    ],
+    [
+     true,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     true,
+     false
+    ],
+    [
+     true,
+     false
+    ],
+    [
+     true,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "13532.json",
+   "meta": {
+    "ragtruth_id": "13532",
+    "source_id": "15175",
+    "task_type": "QA",
+    "model": "mistral-7B-instruct",
+    "n_labels": 2
+   },
+   "truth": [
+    false,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     true,
+     false,
+     false
+    ],
+    [
+     true,
+     false,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      true,
+      true,
+      true,
+      false,
+      false,
+      false
+     ],
+     [
+      true,
+      true,
+      false,
+      false,
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      true,
+      true,
+      true,
+      false,
+      false,
+      false
+     ],
+     [
+      true,
+      true,
+      false,
+      false,
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.0,
+    1.0
+   ],
+   "proposal": [
+    {
+     "claims_posted": 9,
+     "credits_posted": 7,
+     "prior_posted": 3
+    },
+    {
+     "claims_posted": 9,
+     "credits_posted": 7,
+     "prior_posted": 3
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "16906.json",
+   "meta": {
+    "ragtruth_id": "16906",
+    "source_id": "12309",
+    "task_type": "QA",
+    "model": "llama-2-13b-chat",
+    "n_labels": 0
+   },
+   "truth": [
+    false,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      true,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      true,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    0.0,
+    0.0
+   ],
+   "proposal": [
+    {
+     "claims_posted": 3,
+     "credits_posted": 2,
+     "prior_posted": 1
+    },
+    {
+     "claims_posted": 3,
+     "credits_posted": 2,
+     "prior_posted": 1
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     true,
+     false,
+     false
+    ],
+    [
+     true,
+     false,
+     false
+    ],
+    [
+     true,
+     false,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "185.json",
+   "meta": {
+    "ragtruth_id": "185",
+    "source_id": "15623",
+    "task_type": "Summary",
+    "model": "llama-2-70b-chat",
+    "n_labels": 1
+   },
+   "truth": [
+    false,
+    true,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.3333333333333333,
+    1.3333333333333333
+   ],
+   "proposal": [
+    {
+     "claims_posted": 13,
+     "credits_posted": 14,
+     "prior_posted": 0
+    },
+    {
+     "claims_posted": 13,
+     "credits_posted": 14,
+     "prior_posted": 0
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     true,
+     true
+    ],
+    [
+     false,
+     true,
+     false
+    ],
+    [
+     false,
+     true,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "4120.json",
+   "meta": {
+    "ragtruth_id": "4120",
+    "source_id": "13857",
+    "task_type": "Summary",
+    "model": "llama-2-13b-chat",
+    "n_labels": 1
+   },
+   "truth": [
+    false,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     false,
+     true
+    ],
+    [
+     false,
+     false,
+     true
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      true,
+      false
+     ],
+     [
+      false,
+      true,
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      true,
+      false
+     ],
+     [
+      false,
+      true,
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.0,
+    0.6666666666666666
+   ],
+   "proposal": [
+    {
+     "claims_posted": 7,
+     "credits_posted": 6,
+     "prior_posted": 1
+    },
+    {
+     "claims_posted": 6,
+     "credits_posted": 5,
+     "prior_posted": 1
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     true,
+     false,
+     false
+    ],
+    [
+     true,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     true,
+     false,
+     true
+    ],
+    [
+     true,
+     false,
+     true
+    ],
+    [
+     true,
+     false,
+     true
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "181.json",
+   "meta": {
+    "ragtruth_id": "181",
+    "source_id": "15623",
+    "task_type": "Summary",
+    "model": "gpt-3.5-turbo-0613",
+    "n_labels": 0
+   },
+   "truth": [
+    false,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.0,
+    1.0
+   ],
+   "proposal": [
+    {
+     "claims_posted": 15,
+     "credits_posted": 15,
+     "prior_posted": 0
+    },
+    {
+     "claims_posted": 15,
+     "credits_posted": 15,
+     "prior_posted": 0
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "4036.json",
+   "meta": {
+    "ragtruth_id": "4036",
+    "source_id": "13843",
+    "task_type": "Summary",
+    "model": "llama-2-13b-chat",
+    "n_labels": 1
+   },
+   "truth": [
+    false,
+    false,
+    true
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     false,
+     true
+    ],
+    [
+     false,
+     false,
+     true
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false
+     ],
+     [
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      false,
+      false
+     ],
+     [
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    0.6666666666666666,
+    0.6666666666666666
+   ],
+   "proposal": [
+    {
+     "claims_posted": 4,
+     "credits_posted": 4,
+     "prior_posted": 1
+    },
+    {
+     "claims_posted": 4,
+     "credits_posted": 5,
+     "prior_posted": 1
+    }
+   ],
+   "one_hop_runs": [
+    [
+     true,
+     false,
+     false
+    ],
+    [
+     true,
+     false,
+     false
+    ],
+    [
+     true,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     true,
+     false,
+     true
+    ],
+    [
+     true,
+     false,
+     true
+    ],
+    [
+     true,
+     false,
+     true
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "14717.json",
+   "meta": {
+    "ragtruth_id": "14717",
+    "source_id": "15373",
+    "task_type": "QA",
+    "model": "llama-2-70b-chat",
+    "n_labels": 1
+   },
+   "truth": [
+    false,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     false,
+     true
+    ],
+    [
+     false,
+     false,
+     true
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      true,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      true,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.0,
+    1.0
+   ],
+   "proposal": [
+    {
+     "claims_posted": 11,
+     "credits_posted": 9,
+     "prior_posted": 2
+    },
+    {
+     "claims_posted": 11,
+     "credits_posted": 9,
+     "prior_posted": 2
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "3937.json",
+   "meta": {
+    "ragtruth_id": "3937",
+    "source_id": "13827",
+    "task_type": "Summary",
+    "model": "gpt-3.5-turbo-0613",
+    "n_labels": 0
+   },
+   "truth": [
+    false,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.3333333333333333,
+    1.3333333333333333
+   ],
+   "proposal": [
+    {
+     "claims_posted": 10,
+     "credits_posted": 13,
+     "prior_posted": 0
+    },
+    {
+     "claims_posted": 10,
+     "credits_posted": 12,
+     "prior_posted": 0
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "1513.json",
+   "meta": {
+    "ragtruth_id": "1513",
+    "source_id": "11323",
+    "task_type": "Summary",
+    "model": "gpt-3.5-turbo-0613",
+    "n_labels": 1
+   },
+   "truth": [
+    false,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.0,
+    2.0
+   ],
+   "proposal": [
+    {
+     "claims_posted": 13,
+     "credits_posted": 13,
+     "prior_posted": 0
+    },
+    {
+     "claims_posted": 17,
+     "credits_posted": 17,
+     "prior_posted": 0
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "12432.json",
+   "meta": {
+    "ragtruth_id": "12432",
+    "source_id": "14390",
+    "task_type": "QA",
+    "model": "gpt-4-0613",
+    "n_labels": 0
+   },
+   "truth": [
+    false,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    3.3333333333333335,
+    3.3333333333333335
+   ],
+   "proposal": [
+    {
+     "claims_posted": 23,
+     "credits_posted": 56,
+     "prior_posted": 0
+    },
+    {
+     "claims_posted": 23,
+     "credits_posted": 54,
+     "prior_posted": 0
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "4797.json",
+   "meta": {
+    "ragtruth_id": "4797",
+    "source_id": "13971",
+    "task_type": "Summary",
+    "model": "llama-2-7b-chat",
+    "n_labels": 1
+   },
+   "truth": [
+    false,
+    true,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     true,
+     true
+    ],
+    [
+     false,
+     true,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      true,
+      true
+     ],
+     [
+      false,
+      false,
+      true,
+      false
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      true,
+      false
+     ],
+     [
+      false,
+      false,
+      true,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.0,
+    1.0
+   ],
+   "proposal": [
+    {
+     "claims_posted": 7,
+     "credits_posted": 5,
+     "prior_posted": 2
+    },
+    {
+     "claims_posted": 7,
+     "credits_posted": 6,
+     "prior_posted": 1
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     true,
+     true,
+     false
+    ],
+    [
+     true,
+     true,
+     false
+    ],
+    [
+     true,
+     true,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "2669.json",
+   "meta": {
+    "ragtruth_id": "2669",
+    "source_id": "11910",
+    "task_type": "Summary",
+    "model": "llama-2-70b-chat",
+    "n_labels": 2
+   },
+   "truth": [
+    true,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     true,
+     true,
+     false
+    ],
+    [
+     true,
+     false,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      true,
+      false
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      true,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    2.0,
+    2.0
+   ],
+   "proposal": [
+    {
+     "claims_posted": 11,
+     "credits_posted": 11,
+     "prior_posted": 3
+    },
+    {
+     "claims_posted": 11,
+     "credits_posted": 12,
+     "prior_posted": 2
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "15273.json",
+   "meta": {
+    "ragtruth_id": "15273",
+    "source_id": "15466",
+    "task_type": "QA",
+    "model": "llama-2-7b-chat",
+    "n_labels": 1
+   },
+   "truth": [
+    false,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     true,
+     true,
+     true
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [],
+     []
+    ],
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      true
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.0,
+    1.0
+   ],
+   "proposal": [
+    {
+     "claims_posted": 3,
+     "credits_posted": 0,
+     "prior_posted": 3
+    },
+    {
+     "claims_posted": 8,
+     "credits_posted": 10,
+     "prior_posted": 0
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     true,
+     false
+    ],
+    [
+     false,
+     true,
+     false
+    ],
+    [
+     false,
+     true,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "3148.json",
+   "meta": {
+    "ragtruth_id": "3148",
+    "source_id": "11991",
+    "task_type": "Summary",
+    "model": "llama-2-13b-chat",
+    "n_labels": 1
+   },
+   "truth": [
+    true,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      true,
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.3333333333333333,
+    1.3333333333333333
+   ],
+   "proposal": [
+    {
+     "claims_posted": 11,
+     "credits_posted": 14,
+     "prior_posted": 0
+    },
+    {
+     "claims_posted": 8,
+     "credits_posted": 10,
+     "prior_posted": 0
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "4478.json",
+   "meta": {
+    "ragtruth_id": "4478",
+    "source_id": "13917",
+    "task_type": "Summary",
+    "model": "mistral-7B-instruct",
+    "n_labels": 0
+   },
+   "truth": [
+    false,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     true,
+     false,
+     false
+    ],
+    [
+     true,
+     false,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false
+     ],
+     [
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      false,
+      false
+     ],
+     [
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    0.6666666666666666,
+    0.6666666666666666
+   ],
+   "proposal": [
+    {
+     "claims_posted": 4,
+     "credits_posted": 3,
+     "prior_posted": 1
+    },
+    {
+     "claims_posted": 4,
+     "credits_posted": 3,
+     "prior_posted": 1
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "122.json",
+   "meta": {
+    "ragtruth_id": "122",
+    "source_id": "15613",
+    "task_type": "Summary",
+    "model": "mistral-7B-instruct",
+    "n_labels": 1
+   },
+   "truth": [
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     false
+    ],
+    [
+     false,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      false
+     ],
+     [
+      true,
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      false
+     ],
+     [
+      true,
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.5,
+    1.5
+   ],
+   "proposal": [
+    {
+     "claims_posted": 6,
+     "credits_posted": 8,
+     "prior_posted": 0
+    },
+    {
+     "claims_posted": 6,
+     "credits_posted": 7,
+     "prior_posted": 0
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false
+    ],
+    [
+     false,
+     false
+    ],
+    [
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     false
+    ],
+    [
+     false,
+     false
+    ],
+    [
+     false,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "14856.json",
+   "meta": {
+    "ragtruth_id": "14856",
+    "source_id": "15397",
+    "task_type": "QA",
+    "model": "gpt-4-0613",
+    "n_labels": 0
+   },
+   "truth": [
+    false,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     true,
+     false
+    ],
+    [
+     false,
+     true,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      false,
+      true,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      false,
+      true,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.0,
+    1.0
+   ],
+   "proposal": [
+    {
+     "claims_posted": 8,
+     "credits_posted": 7,
+     "prior_posted": 1
+    },
+    {
+     "claims_posted": 8,
+     "credits_posted": 7,
+     "prior_posted": 1
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "13911.json",
+   "meta": {
+    "ragtruth_id": "13911",
+    "source_id": "15238",
+    "task_type": "QA",
+    "model": "llama-2-7b-chat",
+    "n_labels": 0
+   },
+   "truth": [
+    false,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     true,
+     true,
+     false
+    ],
+    [
+     true,
+     true,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.0,
+    1.0
+   ],
+   "proposal": [
+    {
+     "claims_posted": 10,
+     "credits_posted": 8,
+     "prior_posted": 2
+    },
+    {
+     "claims_posted": 10,
+     "credits_posted": 8,
+     "prior_posted": 2
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     true,
+     true,
+     false
+    ],
+    [
+     true,
+     false,
+     false
+    ],
+    [
+     true,
+     false,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "15203.json",
+   "meta": {
+    "ragtruth_id": "15203",
+    "source_id": "15454",
+    "task_type": "QA",
+    "model": "llama-2-70b-chat",
+    "n_labels": 0
+   },
+   "truth": [
+    false,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    0.6666666666666666,
+    0.6666666666666666
+   ],
+   "proposal": [
+    {
+     "claims_posted": 6,
+     "credits_posted": 6,
+     "prior_posted": 0
+    },
+    {
+     "claims_posted": 6,
+     "credits_posted": 6,
+     "prior_posted": 0
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     false,
+     true
+    ],
+    [
+     false,
+     false,
+     true
+    ],
+    [
+     false,
+     false,
+     true
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "15719.json",
+   "meta": {
+    "ragtruth_id": "15719",
+    "source_id": "15540",
+    "task_type": "QA",
+    "model": "llama-2-70b-chat",
+    "n_labels": 0
+   },
+   "truth": [
+    false,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     true,
+     true,
+     false
+    ],
+    [
+     true,
+     false,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      true,
+      true
+     ],
+     [
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      true,
+      true,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.0,
+    1.0
+   ],
+   "proposal": [
+    {
+     "claims_posted": 5,
+     "credits_posted": 1,
+     "prior_posted": 4
+    },
+    {
+     "claims_posted": 7,
+     "credits_posted": 5,
+     "prior_posted": 2
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     true,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     false,
+     true
+    ],
+    [
+     false,
+     false,
+     true
+    ],
+    [
+     false,
+     false,
+     true
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "613.json",
+   "meta": {
+    "ragtruth_id": "613",
+    "source_id": "15695",
+    "task_type": "Summary",
+    "model": "gpt-3.5-turbo-0613",
+    "n_labels": 1
+   },
+   "truth": [
+    false,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.0,
+    1.0
+   ],
+   "proposal": [
+    {
+     "claims_posted": 9,
+     "credits_posted": 8,
+     "prior_posted": 1
+    },
+    {
+     "claims_posted": 11,
+     "credits_posted": 11,
+     "prior_posted": 1
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "12219.json",
+   "meta": {
+    "ragtruth_id": "12219",
+    "source_id": "14353",
+    "task_type": "QA",
+    "model": "llama-2-7b-chat",
+    "n_labels": 1
+   },
+   "truth": [
+    false,
+    true,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     true,
+     true
+    ],
+    [
+     false,
+     true,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+     ]
+    ],
+    [
+     [
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.0,
+    0.3333333333333333
+   ],
+   "proposal": [
+    {
+     "claims_posted": 13,
+     "credits_posted": 8,
+     "prior_posted": 5
+    },
+    {
+     "claims_posted": 11,
+     "credits_posted": 7,
+     "prior_posted": 4
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     true,
+     true
+    ],
+    [
+     false,
+     true,
+     true
+    ],
+    [
+     false,
+     true,
+     true
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "17198.json",
+   "meta": {
+    "ragtruth_id": "17198",
+    "source_id": "12358",
+    "task_type": "QA",
+    "model": "mistral-7B-instruct",
+    "n_labels": 0
+   },
+   "truth": [
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     true,
+     false
+    ],
+    [
+     true,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      true,
+      false
+     ],
+     [
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      true,
+      false
+     ],
+     [
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.0,
+    1.0
+   ],
+   "proposal": [
+    {
+     "claims_posted": 4,
+     "credits_posted": 4,
+     "prior_posted": 2
+    },
+    {
+     "claims_posted": 4,
+     "credits_posted": 4,
+     "prior_posted": 2
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false
+    ],
+    [
+     false,
+     false
+    ],
+    [
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     false
+    ],
+    [
+     true,
+     false
+    ],
+    [
+     false,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "13070.json",
+   "meta": {
+    "ragtruth_id": "13070",
+    "source_id": "15097",
+    "task_type": "QA",
+    "model": "mistral-7B-instruct",
+    "n_labels": 1
+   },
+   "truth": [
+    false,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      true,
+      false,
+      false,
+      true,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      true,
+      false
+     ]
+    ],
+    [
+     [
+      true,
+      false,
+      false,
+      true,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      true,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    0.3333333333333333,
+    0.3333333333333333
+   ],
+   "proposal": [
+    {
+     "claims_posted": 6,
+     "credits_posted": 4,
+     "prior_posted": 2
+    },
+    {
+     "claims_posted": 6,
+     "credits_posted": 4,
+     "prior_posted": 2
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     true
+    ],
+    [
+     false,
+     false,
+     true
+    ],
+    [
+     false,
+     false,
+     true
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     false,
+     true
+    ],
+    [
+     false,
+     false,
+     true
+    ],
+    [
+     false,
+     false,
+     true
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "3861.json",
+   "meta": {
+    "ragtruth_id": "3861",
+    "source_id": "13814",
+    "task_type": "Summary",
+    "model": "llama-2-7b-chat",
+    "n_labels": 1
+   },
+   "truth": [
+    false,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     true,
+     false
+    ],
+    [
+     false,
+     true,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    0.6666666666666666,
+    0.6666666666666666
+   ],
+   "proposal": [
+    {
+     "claims_posted": 6,
+     "credits_posted": 6,
+     "prior_posted": 1
+    },
+    {
+     "claims_posted": 9,
+     "credits_posted": 9,
+     "prior_posted": 2
+    }
+   ],
+   "one_hop_runs": [
+    [
+     true,
+     false,
+     false
+    ],
+    [
+     true,
+     true,
+     false
+    ],
+    [
+     true,
+     true,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     true,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "58.json",
+   "meta": {
+    "ragtruth_id": "58",
+    "source_id": "15601",
+    "task_type": "Summary",
+    "model": "llama-2-13b-chat",
+    "n_labels": 1
+   },
+   "truth": [
+    false,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     true,
+     true,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      true,
+      true
+     ],
+     [
+      false,
+      false,
+      true,
+      false
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.0,
+    1.0
+   ],
+   "proposal": [
+    {
+     "claims_posted": 7,
+     "credits_posted": 3,
+     "prior_posted": 4
+    },
+    {
+     "claims_posted": 9,
+     "credits_posted": 8,
+     "prior_posted": 2
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "885.json",
+   "meta": {
+    "ragtruth_id": "885",
+    "source_id": "15740",
+    "task_type": "Summary",
+    "model": "llama-2-7b-chat",
+    "n_labels": 1
+   },
+   "truth": [
+    true,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    null,
+    null
+   ],
+   "summary_runs": [
+    null,
+    null
+   ],
+   "audit_identical": null,
+   "claims_per_sentence": [],
+   "proposal": [],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     true,
+     false,
+     false
+    ],
+    [
+     true,
+     false,
+     true
+    ],
+    [
+     true,
+     false,
+     true
+    ]
+   ],
+   "failures": {
+    "proposer": 2,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "5276.json",
+   "meta": {
+    "ragtruth_id": "5276",
+    "source_id": "13535",
+    "task_type": "Summary",
+    "model": "mistral-7B-instruct",
+    "n_labels": 1
+   },
+   "truth": [
+    false,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      true,
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      true,
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.0,
+    1.0
+   ],
+   "proposal": [
+    {
+     "claims_posted": 8,
+     "credits_posted": 8,
+     "prior_posted": 0
+    },
+    {
+     "claims_posted": 8,
+     "credits_posted": 9,
+     "prior_posted": 0
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     true,
+     false
+    ],
+    [
+     false,
+     true,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "4063.json",
+   "meta": {
+    "ragtruth_id": "4063",
+    "source_id": "13848",
+    "task_type": "Summary",
+    "model": "gpt-3.5-turbo-0613",
+    "n_labels": 0
+   },
+   "truth": [
+    false,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     true,
+     false,
+     false
+    ],
+    [
+     true,
+     false,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      true,
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      true,
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.3333333333333333,
+    1.0
+   ],
+   "proposal": [
+    {
+     "claims_posted": 10,
+     "credits_posted": 9,
+     "prior_posted": 1
+    },
+    {
+     "claims_posted": 9,
+     "credits_posted": 9,
+     "prior_posted": 1
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "777.json",
+   "meta": {
+    "ragtruth_id": "777",
+    "source_id": "15722",
+    "task_type": "Summary",
+    "model": "llama-2-7b-chat",
+    "n_labels": 0
+   },
+   "truth": [
+    false,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     true,
+     true,
+     true
+    ],
+    [
+     true,
+     true,
+     true
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false
+     ],
+     [
+      false
+     ]
+    ],
+    [
+     [
+      false
+     ],
+     [
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.3333333333333333,
+    1.3333333333333333
+   ],
+   "proposal": [
+    {
+     "claims_posted": 5,
+     "credits_posted": 1,
+     "prior_posted": 4
+    },
+    {
+     "claims_posted": 5,
+     "credits_posted": 1,
+     "prior_posted": 4
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "14283.json",
+   "meta": {
+    "ragtruth_id": "14283",
+    "source_id": "15300",
+    "task_type": "QA",
+    "model": "llama-2-7b-chat",
+    "n_labels": 2
+   },
+   "truth": [
+    false,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     true,
+     false
+    ],
+    [
+     false,
+     true,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.0,
+    1.0
+   ],
+   "proposal": [
+    {
+     "claims_posted": 6,
+     "credits_posted": 7,
+     "prior_posted": 1
+    },
+    {
+     "claims_posted": 6,
+     "credits_posted": 6,
+     "prior_posted": 1
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     false,
+     true
+    ],
+    [
+     false,
+     false,
+     true
+    ],
+    [
+     false,
+     false,
+     true
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "1238.json",
+   "meta": {
+    "ragtruth_id": "1238",
+    "source_id": "15800",
+    "task_type": "Summary",
+    "model": "mistral-7B-instruct",
+    "n_labels": 2
+   },
+   "truth": [
+    false,
+    true,
+    true
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     true,
+     true
+    ],
+    [
+     true,
+     false,
+     true
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      true,
+      false,
+      false,
+      true,
+      false
+     ],
+     [
+      false,
+      true,
+      false,
+      false,
+      true,
+      false
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      true
+     ],
+     [
+      true,
+      false,
+      true
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.3333333333333333,
+    1.0
+   ],
+   "proposal": [
+    {
+     "claims_posted": 10,
+     "credits_posted": 9,
+     "prior_posted": 2
+    },
+    {
+     "claims_posted": 6,
+     "credits_posted": 4,
+     "prior_posted": 2
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     true,
+     true
+    ],
+    [
+     false,
+     true,
+     true
+    ],
+    [
+     false,
+     true,
+     true
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "180.json",
+   "meta": {
+    "ragtruth_id": "180",
+    "source_id": "15623",
+    "task_type": "Summary",
+    "model": "gpt-4-0613",
+    "n_labels": 1
+   },
+   "truth": [
+    true,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.3333333333333333,
+    1.3333333333333333
+   ],
+   "proposal": [
+    {
+     "claims_posted": 15,
+     "credits_posted": 18,
+     "prior_posted": 0
+    },
+    {
+     "claims_posted": 15,
+     "credits_posted": 18,
+     "prior_posted": 0
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     true,
+     true,
+     false
+    ],
+    [
+     true,
+     false,
+     false
+    ],
+    [
+     true,
+     true,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "4588.json",
+   "meta": {
+    "ragtruth_id": "4588",
+    "source_id": "13935",
+    "task_type": "Summary",
+    "model": "llama-2-13b-chat",
+    "n_labels": 1
+   },
+   "truth": [
+    false,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     true,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      true,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      true
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      true
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    0.6666666666666666,
+    0.6666666666666666
+   ],
+   "proposal": [
+    {
+     "claims_posted": 7,
+     "credits_posted": 7,
+     "prior_posted": 1
+    },
+    {
+     "claims_posted": 5,
+     "credits_posted": 5,
+     "prior_posted": 1
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     true,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     true,
+     false,
+     false
+    ],
+    [
+     true,
+     false,
+     false
+    ],
+    [
+     true,
+     false,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "12344.json",
+   "meta": {
+    "ragtruth_id": "12344",
+    "source_id": "14375",
+    "task_type": "QA",
+    "model": "mistral-7B-instruct",
+    "n_labels": 0
+   },
+   "truth": [
+    false,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.0,
+    1.0
+   ],
+   "proposal": [
+    {
+     "claims_posted": 10,
+     "credits_posted": 10,
+     "prior_posted": 1
+    },
+    {
+     "claims_posted": 10,
+     "credits_posted": 10,
+     "prior_posted": 1
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "1000.json",
+   "meta": {
+    "ragtruth_id": "1000",
+    "source_id": "15759",
+    "task_type": "Summary",
+    "model": "llama-2-13b-chat",
+    "n_labels": 1
+   },
+   "truth": [
+    false,
+    true,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     true,
+     false
+    ],
+    [
+     false,
+     true,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      true,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      true,
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      true,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      true,
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    0.6666666666666666,
+    0.6666666666666666
+   ],
+   "proposal": [
+    {
+     "claims_posted": 7,
+     "credits_posted": 7,
+     "prior_posted": 1
+    },
+    {
+     "claims_posted": 7,
+     "credits_posted": 6,
+     "prior_posted": 1
+    }
+   ],
+   "one_hop_runs": [
+    [
+     true,
+     false,
+     false
+    ],
+    [
+     true,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     true,
+     false
+    ],
+    [
+     false,
+     true,
+     false
+    ],
+    [
+     false,
+     true,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "5480.json",
+   "meta": {
+    "ragtruth_id": "5480",
+    "source_id": "13569",
+    "task_type": "Summary",
+    "model": "mistral-7B-instruct",
+    "n_labels": 1
+   },
+   "truth": [
+    false,
+    true,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     true,
+     false
+    ],
+    [
+     false,
+     true,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      true,
+      false,
+      false,
+      false,
+      true
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+     ]
+    ],
+    [
+     [
+      false,
+      true,
+      false,
+      false,
+      false,
+      true
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    0.6666666666666666,
+    0.3333333333333333
+   ],
+   "proposal": [
+    {
+     "claims_posted": 8,
+     "credits_posted": 8,
+     "prior_posted": 2
+    },
+    {
+     "claims_posted": 7,
+     "credits_posted": 6,
+     "prior_posted": 2
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     true,
+     false
+    ],
+    [
+     false,
+     true,
+     true
+    ],
+    [
+     false,
+     true,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "12842.json",
+   "meta": {
+    "ragtruth_id": "12842",
+    "source_id": "14458",
+    "task_type": "QA",
+    "model": "mistral-7B-instruct",
+    "n_labels": 1
+   },
+   "truth": [
+    false,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+     ]
+    ],
+    [
+     [
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.0,
+    1.0
+   ],
+   "proposal": [
+    {
+     "claims_posted": 19,
+     "credits_posted": 18,
+     "prior_posted": 2
+    },
+    {
+     "claims_posted": 19,
+     "credits_posted": 18,
+     "prior_posted": 2
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "2741.json",
+   "meta": {
+    "ragtruth_id": "2741",
+    "source_id": "11922",
+    "task_type": "Summary",
+    "model": "llama-2-70b-chat",
+    "n_labels": 0
+   },
+   "truth": [
+    false,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.0,
+    1.0
+   ],
+   "proposal": [
+    {
+     "claims_posted": 9,
+     "credits_posted": 9,
+     "prior_posted": 0
+    },
+    {
+     "claims_posted": 9,
+     "credits_posted": 9,
+     "prior_posted": 0
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "2169.json",
+   "meta": {
+    "ragtruth_id": "2169",
+    "source_id": "11826",
+    "task_type": "Summary",
+    "model": "llama-2-7b-chat",
+    "n_labels": 0
+   },
+   "truth": [
+    false,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     true,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      false,
+      false
+     ],
+     [
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.0,
+    1.3333333333333333
+   ],
+   "proposal": [
+    {
+     "claims_posted": 6,
+     "credits_posted": 6,
+     "prior_posted": 0
+    },
+    {
+     "claims_posted": 6,
+     "credits_posted": 4,
+     "prior_posted": 2
+    }
+   ],
+   "one_hop_runs": [
+    [
+     true,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     true,
+     false,
+     false
+    ],
+    [
+     true,
+     false,
+     false
+    ],
+    [
+     true,
+     false,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "13136.json",
+   "meta": {
+    "ragtruth_id": "13136",
+    "source_id": "15108",
+    "task_type": "QA",
+    "model": "mistral-7B-instruct",
+    "n_labels": 2
+   },
+   "truth": [
+    false,
+    true,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     true,
+     true
+    ],
+    [
+     false,
+     true,
+     true
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      true,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      true,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.0,
+    1.0
+   ],
+   "proposal": [
+    {
+     "claims_posted": 12,
+     "credits_posted": 9,
+     "prior_posted": 3
+    },
+    {
+     "claims_posted": 12,
+     "credits_posted": 9,
+     "prior_posted": 3
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     true,
+     false
+    ],
+    [
+     false,
+     true,
+     true
+    ],
+    [
+     false,
+     true,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "623.json",
+   "meta": {
+    "ragtruth_id": "623",
+    "source_id": "15696",
+    "task_type": "Summary",
+    "model": "llama-2-70b-chat",
+    "n_labels": 0
+   },
+   "truth": [
+    false,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.0,
+    1.0
+   ],
+   "proposal": [
+    {
+     "claims_posted": 9,
+     "credits_posted": 9,
+     "prior_posted": 0
+    },
+    {
+     "claims_posted": 9,
+     "credits_posted": 9,
+     "prior_posted": 0
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  },
+  {
+   "file": "13910.json",
+   "meta": {
+    "ragtruth_id": "13910",
+    "source_id": "15238",
+    "task_type": "QA",
+    "model": "mistral-7B-instruct",
+    "n_labels": 1
+   },
+   "truth": [
+    true,
+    false,
+    false
+   ],
+   "model": "claude-sonnet-4-6",
+   "proposer_runs": 2,
+   "judge_runs": 3,
+   "tallystick_runs": [
+    [
+     true,
+     false,
+     false
+    ],
+    [
+     true,
+     false,
+     false
+    ]
+   ],
+   "summary_runs": [
+    [
+     [
+      true,
+      false,
+      false
+     ],
+     [
+      true,
+      false,
+      false
+     ]
+    ],
+    [
+     [
+      true,
+      false,
+      false
+     ],
+     [
+      true,
+      false,
+      false
+     ]
+    ]
+   ],
+   "audit_identical": true,
+   "claims_per_sentence": [
+    1.0,
+    1.0
+   ],
+   "proposal": [
+    {
+     "claims_posted": 6,
+     "credits_posted": 5,
+     "prior_posted": 1
+    },
+    {
+     "claims_posted": 6,
+     "credits_posted": 5,
+     "prior_posted": 1
+    }
+   ],
+   "one_hop_runs": [
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ],
+    [
+     false,
+     false,
+     false
+    ]
+   ],
+   "full_runs": [
+    [
+     true,
+     true,
+     false
+    ],
+    [
+     true,
+     true,
+     false
+    ],
+    [
+     true,
+     true,
+     false
+    ]
+   ],
+   "failures": {
+    "proposer": 0,
+    "one_hop": 0,
+    "full": 0
+   }
+  }
+ ],
+ "summary": {
+  "model": "claude-sonnet-4-6",
+  "traces": 99,
+  "dropped_traces": 1,
+  "answer_sentences": 290,
+  "laundered_truth": 40,
+  "elapsed_s": 9622,
+  "prevalence": {
+   "constructed": 0.13793103448275862,
+   "natural": 0.05801452784503632
+  },
+  "tallystick": {
+   "runs": [
+    {
+     "precision": 0.38571428571428573,
+     "recall": 0.675,
+     "f1": 0.49090909090909096,
+     "fpr": 0.172,
+     "tp": 27,
+     "fp": 43,
+     "fn": 13,
+     "tn": 207,
+     "n": 290
+    },
+    {
+     "precision": 0.36764705882352944,
+     "recall": 0.625,
+     "f1": 0.46296296296296297,
+     "fpr": 0.172,
+     "tp": 25,
+     "fp": 43,
+     "fn": 15,
+     "tn": 207,
+     "n": 290
+    }
+   ],
+   "f1_spread": 0.027946127946127997,
+   "flip_rate": 0.08275862068965517,
+   "audit_identical": true
+  },
+  "one_hop": {
+   "runs": [
+    {
+     "precision": 0.15384615384615385,
+     "recall": 0.05,
+     "f1": 0.07547169811320756,
+     "fpr": 0.044,
+     "tp": 2,
+     "fp": 11,
+     "fn": 38,
+     "tn": 239,
+     "n": 290
+    },
+    {
+     "precision": 0.07692307692307693,
+     "recall": 0.025,
+     "f1": 0.03773584905660378,
+     "fpr": 0.048,
+     "tp": 1,
+     "fp": 12,
+     "fn": 39,
+     "tn": 238,
+     "n": 290
+    },
+    {
+     "precision": 0.14285714285714285,
+     "recall": 0.05,
+     "f1": 0.07407407407407408,
+     "fpr": 0.048,
+     "tp": 2,
+     "fp": 12,
+     "fn": 38,
+     "tn": 238,
+     "n": 290
+    }
+   ],
+   "f1_spread": 0.03773584905660378,
+   "flip_rate": 0.027586206896551724
+  },
+  "full": {
+   "runs": [
+    {
+     "precision": 0.4266666666666667,
+     "recall": 0.8,
+     "f1": 0.5565217391304348,
+     "fpr": 0.172,
+     "tp": 32,
+     "fp": 43,
+     "fn": 8,
+     "tn": 207,
+     "n": 290
+    },
+    {
+     "precision": 0.4383561643835616,
+     "recall": 0.8,
+     "f1": 0.5663716814159292,
+     "fpr": 0.164,
+     "tp": 32,
+     "fp": 41,
+     "fn": 8,
+     "tn": 209,
+     "n": 290
+    },
+    {
+     "precision": 0.4714285714285714,
+     "recall": 0.825,
+     "f1": 0.6000000000000001,
+     "fpr": 0.148,
+     "tp": 33,
+     "fp": 37,
+     "fn": 7,
+     "tn": 213,
+     "n": 290
+    }
+   ],
+   "f1_spread": 0.0434782608695653,
+   "flip_rate": 0.06896551724137931
+  },
+  "summary_step": {
+   "precision": 0.4946236559139785,
+   "recall": 0.6216216216216216,
+   "f1": 0.5508982035928145,
+   "fpr": 0.09108527131782945,
+   "tp": 46,
+   "fp": 47,
+   "fn": 28,
+   "tn": 469,
+   "n": 590
+  },
+  "granularity": {
+   "claims_per_answer_sentence": 1.0774410774410774
+  },
+  "proposer": {
+   "claims_posted": 1815,
+   "credits_posted": 1836,
+   "prior_posted": 252
+  },
+  "failures": {
+   "proposer": 2,
+   "one_hop": 0,
+   "full": 0
+  },
+  "proposer_runs": 2,
+  "judge_runs": 3
+ }
+}
