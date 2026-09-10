@@ -158,7 +158,7 @@ The trace format is plain JSON — artifacts, steps with inputs/outputs, claims 
 
 ## Benchmark
 
-There is no dataset of laundered claims, because every hallucination dataset is one hop. So `bench/build.py` constructs two-hop traces from RAGTruth (test split, Summary and QA tasks, human-annotated hallucinated spans; MIT) without any model: the RAGTruth response becomes the intermediate summary, and a final answer is built by quoting up to three of its sentences, chosen uniformly at random, verbatim. Ground truth follows from the annotations alone — a quoted sentence that overlaps an annotated span is laundered, one that overlaps none is grounded.
+There is no dataset of laundered claims, because every hallucination dataset is one hop. So `bench/build.py` constructs two-hop traces from RAGTruth (test split, Summary and QA tasks, human-annotated hallucinated spans; MIT) without any model: the RAGTruth response becomes the intermediate summary, and a final answer is built by quoting up to three of its sentences, chosen uniformly at random, verbatim. Selection and quoting are seeded (`--seed`, default 7): the item shuffle takes the seed, and each trace's sentence choice is seeded per item, so a trace is byte-identical whatever `--limit` built it, and `--limit N` takes a random prefix of one fixed order rather than a different sample. The seed is recorded in `manifest.json`. Ground truth follows from the annotations alone — a quoted sentence that overlaps an annotated span is laundered, one that overlaps none is grounded.
 
 Four things the reader should know before the number (the first two, and the per-side failure counts behind the fourth, are also printed in the report):
 
@@ -204,7 +204,7 @@ What the table says, in order of importance:
 The traces are plain JSON and the labels are in them, so anything that flags sentences can be scored on the same construction without running tallystick:
 
 ```bash
-python bench/build.py --limit 100     # bench/work/traces/<id>.json + manifest.json
+python bench/build.py --limit 100   # seed 7 by default; same seed, same files, byte for byte
 ```
 
 Each trace has `artifacts` (root documents, an `intermediate` summary, a `final_answer`), `steps` (retrieve → summarize → answer, with inputs and outputs), and a `_truth` block: `answer_sentences` is a list of `{start, end, text, laundered}` over the answer text, and `summary_hallucinated_spans` are the RAGTruth annotations over the summary. Run your detector on the answer, produce one boolean per entry of `answer_sentences` in order, and score with `prf` from `bench/run.py` (from the repo root; the import needs no SDK):
