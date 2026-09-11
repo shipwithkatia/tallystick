@@ -36,6 +36,7 @@ class ProposalLog:
     dropped_claims: List[Dict[str, str]] = field(default_factory=list)
     dropped_credits: List[Dict[str, str]] = field(default_factory=list)
     warnings: List[str] = field(default_factory=list)
+    unasked_claims: int = 0       # on_demand: claims no chain reached, never asked
     coverage_claims: int = 0      # sentences the segmenter skipped, posted anyway
     tolerant_locates: int = 0     # texts found only by the tolerant locate
     self_evident_credits: int = 0  # credits posted because the claim text is in a source
@@ -475,8 +476,16 @@ def propose_credits(claim: Dict[str, Any], claim_text: str, sources: List[Artifa
     return entries
 
 
-def post_run(run: Run, proposer: Proposer) -> Dict[str, Any]:
-    """Segment and post every derived artifact. Returns a posted-trace dict."""
+def post_run(run: Run, proposer: Proposer, *, on_demand: bool = False) -> Dict[str, Any]:
+    """Segment and post every derived artifact. Returns a posted-trace dict.
+
+    With `on_demand`, credits are proposed only for claims a chain from the
+    final answer reaches: the answer's claims first, then every claim under a
+    span one of their credits cites, and so on. A claim nothing reaches is
+    posted without entries - the audit reports it as unsupported, "no entry
+    posted", which is literally true and never touches a final claim's verdict.
+    On a long agent trace this is the difference between one credit call per
+    claim the answer rests on and one per sentence the agent ever wrote."""
     log = ProposalLog(proposer=getattr(proposer, "name", type(proposer).__name__))
     claims: List[Dict[str, Any]] = []
     entries: List[Dict[str, Any]] = []
@@ -514,13 +523,46 @@ def post_run(run: Run, proposer: Proposer) -> Dict[str, Any]:
         claims.extend(art_claims)
         claim_spans[art.artifact_id] = [(c["start"], c["end"]) for c in art_claims]
 
-    for art in ordered:
+    def sources_of(art: Artifact) -> List[Artifact]:
         step = run.producing_step(art.artifact_id)
-        sources = [run.artifacts[i] for i in (step.inputs if step else ())]
-        for c in per_artifact[art.artifact_id]:
+        return [run.artifacts[i] for i in (step.inputs if step else ())]
+
+    if not on_demand:
+        for art in ordered:
+            sources = sources_of(art)
+            for c in per_artifact[art.artifact_id]:
+                text = art.content[c["start"]:c["end"]]
+                entries.extend(
+                    propose_credits(c, text, sources, claim_spans, proposer, log))
+    else:
+        by_id = {a.artifact_id: a for a in ordered}
+        queue = [c for a in ordered if a.kind is ArtifactKind.FINAL_ANSWER
+                 for c in per_artifact[a.artifact_id]]
+        asked: set = set()
+        while queue:
+            c = queue.pop(0)
+            if c["claim_id"] in asked:
+                continue
+            asked.add(c["claim_id"])
+            art = by_id[c["artifact_id"]]
             text = art.content[c["start"]:c["end"]]
-            entries.extend(
-                propose_credits(c, text, sources, claim_spans, proposer, log))
+            new = propose_credits(c, text, sources_of(art), claim_spans, proposer, log)
+            entries.extend(new)
+            for e in new:
+                acct = e["account"]
+                if not acct.startswith("EVIDENCE:"):
+                    continue
+                aid, _, span = acct[len("EVIDENCE:"):].rpartition("#")
+                if aid not in by_id:
+                    continue  # a root: the chain stops there
+                a, b = (int(x) for x in span.split("-"))
+                queue.extend(cc for cc in per_artifact[aid]
+                             if cc["start"] < b and a < cc["end"])
+        log.unasked_claims = len(claims) - len(asked)
+        if log.unasked_claims:
+            log.warnings.append(
+                f"{log.unasked_claims} claim(s) no chain from the final answer "
+                "reached were posted without entries (on_demand)")
 
     return {
         "artifacts": [

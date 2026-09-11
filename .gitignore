@@ -34,3 +34,6 @@ build/
 raw_langchain.json
 posted.json
 bench/work/
+
+# AgentHallu benchmark work dir (clone + posted files)
+bench/work-agenthallu/
