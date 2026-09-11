@@ -1,0 +1,18 @@
+# Bucket counts transcribed from bench/diagnose.py's output over the v0.5.3
+# posted files (198 files, two proposer runs). The posted files are gone, so
+# this cannot be regenerated; the per-bucket examples are omitted. Posted files
+# are not committed (bench/work/ is gitignored).
+
+198 posted files, 580 answer sentences: 52 true flags, 86 false flags, 28 misses
+
+False flags by cause (answer_hop: broke at the answer's own citation; group_member: broke in a neighbouring clause the same quote covered):
+  answer_hop:quote_straddles_claims        26  (30%)
+  answer_hop:no_credit_offered             18  (21%)
+  no_credit_offered                        18  (21%)
+  quote_near_verbatim                      11  (13%)
+  group_member:no_credit_offered            9  (10%)
+  group_member:quote_near_verbatim          4  (5%)
+
+Misses by how the sentence closed:
+  closed_as_grounded_depth2                21
+  no_claim_over_sentence                    7
