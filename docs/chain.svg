@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="250" viewBox="0 0 760 250" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="14">
+  <rect width="760" height="250" fill="#ffffff"/>
+  <!-- step labels -->
+  <text x="110" y="28" text-anchor="middle" fill="#6b7280" font-size="12">retrieve</text>
+  <text x="380" y="28" text-anchor="middle" fill="#6b7280" font-size="12">summarise</text>
+  <text x="650" y="28" text-anchor="middle" fill="#6b7280" font-size="12">answer</text>
+
+  <!-- documents (root) -->
+  <rect x="30" y="44" width="160" height="150" rx="8" fill="#f3f4f6" stroke="#9ca3af"/>
+  <text x="110" y="68" text-anchor="middle" font-weight="600" fill="#111827">documents</text>
+  <text x="110" y="86" text-anchor="middle" fill="#6b7280" font-size="12">root · external text</text>
+  <rect x="44" y="102" width="132" height="20" rx="4" fill="#d1fae5"/>
+  <text x="110" y="116" text-anchor="middle" font-size="12" fill="#065f46">"Revenue grew 14%"</text>
+  <rect x="44" y="130" width="132" height="20" rx="4" fill="#d1fae5"/>
+  <text x="110" y="144" text-anchor="middle" font-size="12" fill="#065f46">"Costs fell 3%"</text>
+
+  <!-- summary (derived) -->
+  <rect x="300" y="44" width="160" height="150" rx="8" fill="#ffffff" stroke="#9ca3af"/>
+  <text x="380" y="68" text-anchor="middle" font-weight="600" fill="#111827">summary</text>
+  <text x="380" y="86" text-anchor="middle" fill="#6b7280" font-size="12">model-written</text>
+  <rect x="314" y="102" width="132" height="20" rx="4" fill="#d1fae5"/>
+  <text x="380" y="116" text-anchor="middle" font-size="12" fill="#065f46">Revenue grew 14%.</text>
+  <rect x="314" y="130" width="132" height="20" rx="4" fill="#d1fae5"/>
+  <text x="380" y="144" text-anchor="middle" font-size="12" fill="#065f46">Costs fell 3%.</text>
+  <rect x="314" y="158" width="132" height="20" rx="4" fill="#fee2e2" stroke="#dc2626"/>
+  <text x="380" y="172" text-anchor="middle" font-size="12" fill="#991b1b">Q4 will be a record.</text>
+
+  <!-- answer (derived) -->
+  <rect x="570" y="44" width="160" height="150" rx="8" fill="#ffffff" stroke="#9ca3af"/>
+  <text x="650" y="68" text-anchor="middle" font-weight="600" fill="#111827">answer</text>
+  <text x="650" y="86" text-anchor="middle" fill="#6b7280" font-size="12">quotes the summary</text>
+  <rect x="584" y="102" width="132" height="20" rx="4" fill="#d1fae5"/>
+  <text x="650" y="116" text-anchor="middle" font-size="12" fill="#065f46">Revenue grew 14%.</text>
+  <rect x="584" y="158" width="132" height="20" rx="4" fill="#fee2e2" stroke="#dc2626"/>
+  <text x="650" y="172" text-anchor="middle" font-size="12" fill="#991b1b">Q4 will be a record.</text>
+
+  <!-- credits (arrows point from claim back to its evidence) -->
+  <defs>
+    <marker id="ok" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#059669"/></marker>
+    <marker id="bad" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#dc2626"/></marker>
+  </defs>
+  <line x1="584" y1="112" x2="448" y2="112" stroke="#059669" stroke-width="2" marker-end="url(#ok)"/>
+  <line x1="314" y1="112" x2="178" y2="112" stroke="#059669" stroke-width="2" marker-end="url(#ok)"/>
+  <line x1="314" y1="140" x2="178" y2="140" stroke="#059669" stroke-width="2" marker-end="url(#ok)"/>
+  <line x1="584" y1="168" x2="448" y2="168" stroke="#059669" stroke-width="2" marker-end="url(#ok)"/>
+  <line x1="314" y1="168" x2="230" y2="168" stroke="#dc2626" stroke-width="2" stroke-dasharray="5,4" marker-end="url(#bad)"/>
+  <text x="204" y="172" text-anchor="end" font-size="12" fill="#991b1b" font-weight="600">nothing</text>
+
+  <!-- caption -->
+  <text x="380" y="222" text-anchor="middle" fill="#111827" font-size="13">A one-hop check passes every answer sentence: each one really is in the summary.</text>
+  <text x="380" y="240" text-anchor="middle" fill="#991b1b" font-size="13" font-weight="600">tallystick walks one hop further and names the summarise step: "Q4 will be a record" rests on nothing.</text>
+</svg>
