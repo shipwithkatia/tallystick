@@ -13,11 +13,11 @@ Reasons for a false positive, in the order they are tested:
 
   quote_near_verbatim   the summary claim went prior-only because every quote the
                         proposer offered was dropped as "not a verbatim substring",
-                        but one of them is found by normalize() plus the verifier's
-                        2% edit tolerance (case, whitespace, quote and dash
-                        variants, a one-character typo, punctuation the model wrapped
-                        around the quote). A locate that forgives exactly what
-                        verify.py forgives would recover these.
+                        but one of them is found by the word-level locate the
+                        pipeline uses since v0.6 (case, spacing, punctuation and
+                        quote or dash variants forgiven; never a changed letter,
+                        digit or symbol). On a run from before v0.6 this bucket is
+                        what v0.6 recovers.
   quote_edited          not recoverable that way, but >= 90% of the quote's words
                         line up in order with the source: one word changed, a
                         negation, a flipped number, words elided. Look at these
@@ -60,8 +60,8 @@ from typing import Any, Dict, List, Tuple
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from tallystick import audit, load_run  # noqa: E402
 from tallystick.ledger import FAILING, ClaimStatus  # noqa: E402
-from tallystick.normalize import levenshtein, normalize  # noqa: E402
-from tallystick.verify import SPAN_TOLERANCE  # noqa: E402
+from tallystick.normalize import normalize  # noqa: E402
+from tallystick.propose.pipeline import _locate_tolerant  # noqa: E402
 
 
 _WORD = re.compile(r"[^\W_]+")
@@ -91,40 +91,25 @@ def match_quality(quote: str, source: str) -> float:
 
 
 def recoverable(quote: str, source: str) -> bool:
-    """Would a locate that forgives exactly what verify.py forgives find it?
-    normalize() (case, whitespace, quote and dash variants) plus SPAN_TOLERANCE
-    edits against the best-aligned substring. Nothing semantic."""
-    # The pipeline strips whitespace only; a quote wrapped in punctuation the
-    # model added (quotation marks, a trailing period) is the same locate fix.
-    q, s = normalize(quote).strip(" \"'.,;:()[]"), normalize(source)
-    if not q:
-        return False
-    if q in s:
-        return True
-    cap = int(len(q) * SPAN_TOLERANCE)
-    if not cap:
-        return False
-    m = difflib.SequenceMatcher(None, s, q, autojunk=False).find_longest_match(0, len(s), 0, len(q))
-    if m.size == 0:
-        return False
-    start = m.a - m.b
-    for d in range(-cap, cap + 1):
-        for e in range(-cap, cap + 1):
-            a, b = start + d, start + d + len(q) + e
-            if 0 <= a < b <= len(s) and levenshtein(s[a:b], q, cap) <= cap:
-                return True
-    return False
+    """Would the pipeline's own tolerant locate (v0.6) find it? The same
+    function, so this diagnostic cannot drift from the implementation."""
+    return _locate_tolerant(source, quote, []) is not None
 
 
 def drop_bucket(posted: Dict[str, Any], claim_id: str,
                 artifacts: Dict[str, str]) -> Tuple[str, str]:
     """Why every credit the proposer offered for `claim_id` was dropped, as a
     bucket name and a detail string. Only meaningful for a PRIOR_ONLY claim:
-    there, everything offered is in dropped_credits."""
+    there, everything the model offered is in dropped_credits."""
     dropped = posted.get("_proposal", {}).get("dropped_credits", [])
-    offered = [d for d in dropped if d["claim_id"] == claim_id]
+    mine = [d for d in dropped if d["claim_id"] == claim_id]
+    # A self-evident credit (v0.6) the pipeline itself found and then refused
+    # is not something the model offered.
+    offered = [d for d in mine if d.get("proposed_by") != "verbatim"]
     if not offered:
-        return "no_credit_offered", "proposer returned no credits"
+        found = "; ".join(sorted({d["reason"].split(" claim ")[0] for d in mine}))
+        return "no_credit_offered", ("proposer returned no credits"
+                                     + (f"; self-evident credit refused: {found}" if found else ""))
     best, rec, one_word = None, False, False
     for d in offered:
         if "verbatim" in d["reason"]:

@@ -61,12 +61,14 @@ def test_a_paraphrased_claim_is_dropped_not_guessed(raw_run):
         "Operating margin fell to 11.2%.",
     ]}
     seg_answer = GOOD_SCRIPT[1]
-    # one located summary claim -> one credit call, then the three answer claims
-    script = [seg_summary, seg_answer, GOOD_SCRIPT[3]] + GOOD_SCRIPT[6:]
-    posted = post_run(raw_run, FakeProposer(script))
+    # The skipped sentences come back as coverage claims, each with its own
+    # credit call; the number of calls is not the point here.
+    posted = post_run(raw_run, FakeProposer([seg_summary, seg_answer], pad={"credits": []}))
     dropped = posted["_proposal"]["dropped_claims"]
     assert len(dropped) == 1 and dropped[0]["text"].startswith("Revenue grew")
     assert all("Revenue grew" not in json.dumps(c) for c in posted["claims"])
+    # 2% of 27 characters is 0 edits: a paraphrase is not a tolerant-locate case
+    assert posted["_proposal"]["tolerant_locates"] == 0
 
 
 def test_a_fabricated_quote_is_dropped_and_the_claim_becomes_prior(raw_run):
@@ -168,16 +170,24 @@ def test_malformed_model_output_is_logged_not_crashed():
     posted = post_run(_tiny_run(), FakeProposer([
         {"claims": "revenue rose 14 percent."},          # a string, not a list
         {"claims": None},
-    ]))
-    assert posted["claims"] == []
-    assert len(posted["_proposal"]["warnings"]) == 2
+    ], pad={"credits": []}))
+    # Nothing from the model was posted; the summary's sentence came back as a
+    # coverage claim ("That is good." is under the 15-character floor; the
+    # final answer gets no coverage), and neither warning is about a claim
+    # per character.
+    assert posted["_proposal"]["coverage_claims"] == len(posted["claims"]) == 1
+    assert posted["claims"][0]["artifact_id"] == "s"
+    assert sum("expected a list" in w for w in posted["_proposal"]["warnings"]) == 2
     posted = post_run(_tiny_run(), FakeProposer([
         {"claims": ["revenue rose 14 percent."]},
         {"claims": []},
         {"credits": [None, ["d", "x"], "d", {"artifact_id": "d", "quote": "Revenue rose"}]},
-    ]))
+    ], pad={"credits": []}))
     entries = [e for e in posted["entries"] if e["claim_id"] == "s.c1"]
-    assert [e["account"] for e in entries] == ["EVIDENCE:d#0-12"]
+    # The self-evident credit (claim text found in the document) comes first,
+    # then the one usable credit the model offered; the three junk ones dropped.
+    assert [e["account"] for e in entries] == ["EVIDENCE:d#0-23", "EVIDENCE:d#0-12"]
+    assert [e["proposed_by"] for e in entries] == ["verbatim", "fake"]
     assert len(posted["_proposal"]["dropped_credits"]) == 3
 
 
@@ -185,20 +195,21 @@ def test_duplicate_credits_are_posted_once_and_duplicate_claims_get_an_honest_re
     posted = post_run(_tiny_run(), FakeProposer([
         {"claims": ["That is good.", "That is good."]},
         {"claims": []},
+        {"credits": []},                                  # coverage: "In summary, revenue rose 14 percent."
         {"credits": [{"artifact_id": "d", "quote": "Revenue"},
                      {"artifact_id": "d", "quote": "Revenue"}]},
-    ]))
+    ], pad={"credits": []}))
     assert posted["_proposal"]["dropped_claims"][0]["reason"] == "overlaps a claim already located"
-    assert posted["_proposal"]["credits_posted"] == 1
+    good = [e for e in posted["entries"] if e["claim_id"] == "s.c2" and e["account"] != "PRIOR:model"]
+    assert len(good) == 1
 
 
 def test_claim_ids_follow_text_order_not_model_order():
     posted = post_run(_tiny_run(), FakeProposer([
         {"claims": ["That is good.", "revenue rose 14 percent."]},
         {"claims": []},
-        {"credits": []}, {"credits": []},
-    ]))
-    ids = [(c["claim_id"], c["start"]) for c in posted["claims"]]
+    ], pad={"credits": []}))
+    ids = [(c["claim_id"], c["start"]) for c in posted["claims"] if c["artifact_id"] == "s"]
     assert ids == [("s.c1", 12), ("s.c2", 37)]
 
 
@@ -208,8 +219,7 @@ def test_an_artifact_with_no_producing_step_is_still_segmented_and_warned():
     posted = post_run(run, FakeProposer([
         {"claims": []},
         {"claims": ["Revenue rose 14 percent."]},
-        {"credits": []},
-    ]))
+    ], pad={"credits": []}))
     assert any("no producing step" in w for w in posted["_proposal"]["warnings"])
     assert audit(posted).books_balance is False
 
@@ -239,11 +249,10 @@ def test_cli_proposer_failure_is_exit_2_not_1(tmp_path):
 # --------------------------------------------------------------------------- #
 
 
-def _two_claim_run(summary_text):
+def _two_claim_run(summary_text, doc="Revenue grew 14%. Costs fell 3%."):
     return load_run({
         "artifacts": [
-            {"artifact_id": "d", "kind": "document",
-             "content": "Revenue grew 14%. Costs fell 3%."},
+            {"artifact_id": "d", "kind": "document", "content": doc},
             {"artifact_id": "s", "kind": "intermediate", "content": summary_text},
             {"artifact_id": "f", "kind": "final_answer",
              "content": "Revenue grew 14% and costs fell 3%."},
@@ -275,16 +284,16 @@ def test_a_quote_spanning_two_claims_with_meta_text_between_them_funds_both():
     assert any("lie outside any claim" in w for w in posted["_proposal"]["warnings"])
 
 
-def test_a_quote_that_clips_two_characters_of_a_claim_is_refused_not_trimmed():
+def test_a_quote_that_clips_one_word_of_a_claim_is_refused_not_trimmed():
     """The worse direction: a mostly-unvouched quote must not be rewritten into
-    the two vouched characters it happens to touch and then count as evidence."""
-    run = _two_claim_run("Nothing vouched for here at all. Revenue grew 14%.")
+    the one vouched word it happens to touch and then count as evidence."""
+    # The unvouched text is under 15 characters, so coverage leaves it alone.
+    run = _two_claim_run("Not vouched. Revenue grew 14%.")
     posted = post_run(run, FakeProposer([
         {"claims": ["Revenue grew 14%."]},
         {"claims": ["Revenue grew 14% and costs fell 3%."]},
         {"credits": [{"artifact_id": "d", "quote": "Revenue grew 14%."}]},
-        {"credits": [{"artifact_id": "s",
-                      "quote": "Nothing vouched for here at all. Re"}]},
+        {"credits": [{"artifact_id": "s", "quote": "Not vouched. Revenue"}]},
     ]))
     balance = audit(posted)
     assert balance.audits["f.c1"].status.value != "grounded"
@@ -308,12 +317,32 @@ def test_a_quote_inside_a_single_claim_is_kept_as_is():
     assert audit(posted).audits["f.c1"].status.value == "grounded"
 
 
-def test_a_quote_into_a_derived_artifact_with_no_claims_is_dropped():
+def test_a_sentence_the_segmenter_skipped_is_posted_by_coverage():
+    """At v0.5.3 a segmenter that returned nothing for a summary left every
+    answer quote into it citing text nobody vouched for. The sentence is now
+    posted as a claim anyway and gets its own credit call."""
     run = _two_claim_run("Revenue grew 14%.")
     posted = post_run(run, FakeProposer([
-        {"claims": []},
+        {"claims": []},                                       # segmenter: nothing
         {"claims": ["Revenue grew 14% and costs fell 3%."]},
+        {"credits": [{"artifact_id": "d", "quote": "Revenue grew 14%."}]},   # for the coverage claim
         {"credits": [{"artifact_id": "s", "quote": "Revenue grew 14%."}]},
+    ]))
+    assert posted["_proposal"]["coverage_claims"] == 1
+    assert [c["claim_id"] for c in posted["claims"] if c["artifact_id"] == "s"] == ["s.c1"]
+    assert posted["_proposal"]["dropped_credits"] == []
+    assert audit(posted).audits["f.c1"].status.value == "grounded"
+
+
+def test_a_quote_into_unclaimed_text_is_still_dropped():
+    """Coverage only posts sentences; a fragment under 15 characters stays
+    unclaimed, and a quote into it is refused as before."""
+    run = _two_claim_run("Short bit. Revenue grew 14%.")
+    posted = post_run(run, FakeProposer([
+        {"claims": ["Revenue grew 14%."]},
+        {"claims": ["Revenue grew 14% and costs fell 3%."]},
+        {"credits": [{"artifact_id": "d", "quote": "Revenue grew 14%."}]},
+        {"credits": [{"artifact_id": "s", "quote": "Short bit."}]},
     ]))
     reasons = [d["reason"] for d in posted["_proposal"]["dropped_credits"]]
     assert reasons == ["quote covers no whole claim of the cited artifact"]
@@ -377,7 +406,7 @@ def test_a_quote_covering_a_true_and_an_invented_claim_is_laundered_not_grounded
     quote. The proposer snaps that quote into two entries, and the claim used
     to close on the grounded one. The two entries now share a group and the
     group closes on its worst member."""
-    run = _two_claim_run("Revenue grew 14%. Costs fell 3%.")
+    run = _two_claim_run("Revenue grew 14%. Costs fell 3%.", doc="Revenue grew 14%. Nothing about costs.")
     posted = post_run(run, FakeProposer([
         {"claims": ["Revenue grew 14%.", "Costs fell 3%."]},
         {"claims": ["Revenue grew 14% and costs fell 3%."]},
@@ -419,8 +448,190 @@ def test_an_unparseable_reply_is_asked_for_once_more_then_fails():
         {"claims": ["revenue rose 14 percent."]},       # retry succeeds
         {"claims": []},
         {"credits": [{"artifact_id": "d", "quote": "Revenue rose"}]},
-    ]))
-    assert [e["account"] for e in posted["entries"] if e["claim_id"] == "s.c1"] == ["EVIDENCE:d#0-12"]
+    ], pad={"credits": []}))
+    accounts = [e["account"] for e in posted["entries"] if e["claim_id"] == "s.c1"]
+    assert accounts == ["EVIDENCE:d#0-23", "EVIDENCE:d#0-12"]  # self-evident, then the model's
     assert any("asked again" in w for w in posted["_proposal"]["warnings"])
     with pytest.raises(ValueError):
         post_run(_tiny_run(), FakeProposer(["{not json", "{still not json"]))
+
+
+# --- v0.6: tolerant locate, self-evident credits, coverage scope -------------
+
+from tallystick.propose.pipeline import _locate_tolerant, _split_to_claims  # noqa: E402
+
+
+def test_tolerant_locate_forgives_punctuation_and_case_only():
+    src = 'Revenue grew 14% in 2024 (Passage 1). Costs, however, fell 3%.'
+    find = lambda needle: _locate_tolerant(src, needle, [])  # noqa: E731
+    # A full stop the source does not have; a "(Passage 1)" tail left out.
+    assert find("Revenue grew 14% in 2024.") == (0, 24)
+    # Wrapped in quotation marks, different case, a comma dropped.
+    assert find('"revenue grew 14% in 2024"') == (0, 24)
+    assert find("Costs however fell 3%.") == (38, 61)
+    # A changed digit or word is not punctuation: still not found.
+    assert find("Revenue grew 15% in 2024.") is None
+    assert find("Revenue fell 14% in 2024.") is None
+    # "%" and "$" belong to the number: "14" is not "14%".
+    assert find("Revenue grew 14 in 2024.") is None
+    assert _locate_tolerant("It cost $100.", "100%", []) is None
+    # Hyphens and quotation-mark variants are separators; NFC is applied.
+    assert _locate_tolerant("A well-known fact.", "well known", []) == (2, 12)
+    assert _locate_tolerant("caf\u00e9 au lait", "cafe\u0301 au lait", []) == (0, 12)
+    # Words are never merged or split to make a match.
+    assert _locate_tolerant("The therapist arrived.", "the rapist", []) is None
+    assert _locate_tolerant("a b c", "ab c", []) is None
+    # Nothing to match on.
+    assert find("...") is None
+    # `taken` is respected: the first free occurrence wins, or nothing.
+    assert _locate_tolerant("x. x.", "x", [(0, 1)]) == (3, 4)
+    assert _locate_tolerant("x. x.", "x", [(0, 1), (3, 4)]) is None
+
+
+def test_a_claim_with_an_added_full_stop_is_located_not_dropped():
+    """The commonest drop at v0.5.3: the summary says "... (Passage 1, Passage
+    3)." and the segmenter returns the sentence with a plain full stop. Every
+    claim of that summary was dropped and every answer sentence citing it
+    flagged."""
+    run = _two_claim_run("Revenue grew 14% (Passage 1). Costs fell 3% (Passage 2).")
+    posted = post_run(run, FakeProposer([
+        {"claims": ["Revenue grew 14%.", "Costs fell 3%."]},
+        {"claims": ["Revenue grew 14% and costs fell 3%."]},
+    ], pad={"credits": []}))
+    assert posted["_proposal"]["dropped_claims"] == []
+    assert posted["_proposal"]["tolerant_locates"] == 2
+    texts = [posted["artifacts"][1]["content"][c["start"]:c["end"]]
+             for c in posted["claims"] if c["artifact_id"] == "s"]
+    assert texts == ["Revenue grew 14%", "Costs fell 3%"]
+    # No coverage claim: the two located spans overlap both sentences.
+    assert posted["_proposal"]["coverage_claims"] == 0
+
+
+def test_a_claim_found_word_for_word_in_a_source_is_credited_without_the_model():
+    """18 of 86 false flags at v0.5.3 were a claim sitting verbatim in a source
+    the model returned no credit for. That credit is now posted first, marked
+    as found by search, not proposed by a model."""
+    run = _two_claim_run("Revenue grew 14%. Costs fell 3%.")
+    posted = post_run(run, FakeProposer([
+        {"claims": ["Revenue grew 14%.", "Costs fell 3%."]},
+        {"claims": ["Revenue grew 14% and costs fell 3%."]},
+        {"credits": []},                                   # model: nothing, twice
+        {"credits": []},
+        {"credits": [{"artifact_id": "s", "quote": "Revenue grew 14%. Costs fell 3%."}]},
+    ]))
+    for cid in ("s.c1", "s.c2"):
+        es = [e for e in posted["entries"] if e["claim_id"] == cid]
+        assert [e["proposed_by"] for e in es] == ["verbatim"]
+        assert es[0]["account"].startswith("EVIDENCE:d#")
+        assert audit(posted).audits[cid].status.value == "grounded"
+    assert posted["_proposal"]["self_evident_credits"] == 2
+    assert audit(posted).audits["f.c1"].status.value == "grounded"
+
+
+def test_a_self_evident_credit_does_not_rescue_a_changed_number():
+    """The search forgives punctuation, never a digit: a summary that turned
+    14% into 15% gets no credit it did not earn."""
+    run = _two_claim_run("Revenue grew 15%. Costs fell 3%.")
+    posted = post_run(run, FakeProposer([
+        {"claims": ["Revenue grew 15%.", "Costs fell 3%."]},
+        {"claims": ["Revenue grew 14% and costs fell 3%."]},
+    ], pad={"credits": []}))
+    assert audit(posted).audits["s.c1"].status.value == "prior_only"
+    assert audit(posted).audits["s.c2"].status.value == "grounded"
+    assert posted["_proposal"]["self_evident_credits"] == 1
+
+
+def test_the_final_answer_gets_no_coverage_claims():
+    """A hedge the answer's segmenter skipped ("it is difficult to say") is
+    not a claim to fund; only intermediate artifacts are covered."""
+    run = load_run({
+        "artifacts": [
+            {"artifact_id": "d", "kind": "document", "content": "Revenue grew 14%."},
+            {"artifact_id": "s", "kind": "intermediate",
+             "content": "Revenue grew 14%. It is difficult to say more than that."},
+            {"artifact_id": "f", "kind": "final_answer",
+             "content": "Revenue grew 14%. It is difficult to say more than that."},
+        ],
+        "steps": [
+            {"step_id": "s1", "kind": "retrieve", "inputs": [], "outputs": ["d"]},
+            {"step_id": "s2", "kind": "summarize", "inputs": ["d"], "outputs": ["s"]},
+            {"step_id": "s3", "kind": "answer", "inputs": ["s"], "outputs": ["f"]},
+        ],
+    })
+    posted = post_run(run, FakeProposer([
+        {"claims": ["Revenue grew 14%."]},
+        {"claims": ["Revenue grew 14%."]},
+    ], pad={"credits": []}))
+    assert [c["artifact_id"] for c in posted["claims"]] == ["s", "s", "f"]
+    assert posted["_proposal"]["coverage_claims"] == 1
+    bal = audit(posted)
+    assert bal.audits["s.c2"].status.value == "prior_only"   # the hedge, in the summary
+    assert bal.audits["f.c1"].status.value == "grounded"
+    assert bal.laundering_rate == 0.0
+
+
+def test_a_quote_missing_the_claims_final_full_stop_is_not_a_straddle():
+    """Segmenter and credit prompt disagree about trailing punctuation all the
+    time. Containment is judged on letters and digits; the kept span still
+    lies inside the claim, so the ledger accounts for every character."""
+    content = "Revenue grew 14%. Costs fell 3%."
+    claims = [(0, 17), (18, 32)]
+    kept, refused = _split_to_claims(content, (0, 31), claims)   # no final "."
+    assert (kept, refused) == ([(0, 17), (18, 32)], [])
+    kept, refused = _split_to_claims(content, (0, 16), claims)   # inside claim 1
+    assert (kept, refused) == ([(0, 16)], [])
+    kept, refused = _split_to_claims(content, (0, 20), claims)   # clips "Co"
+    assert (kept, refused) == ([(0, 17)], [(18, 32)])
+    # Claim posted without its full stop, quote with it: kept inside the claim.
+    kept, refused = _split_to_claims(content, (0, 17), [(0, 16), (18, 32)])
+    assert (kept, refused) == ([(0, 16)], [])
+
+
+def test_a_sign_or_bracket_on_a_number_is_part_of_the_number():
+    """Review of v0.6 found "-5%" located by "5%" and "(5%)" by "5%" - a
+    dash and a bracket are separators everywhere else. Not around a number."""
+    assert _locate_tolerant("Revenue grew -5% in Q1.", "Revenue grew 5% in Q1.", []) is None
+    assert _locate_tolerant("Revenue grew 5% in Q1.", "Revenue grew -5% in Q1.", []) is None
+    assert _locate_tolerant("Net margin (5%) in Q1.", "Net margin 5% in Q1.", []) is None
+    assert _locate_tolerant("Net margin (5%) in Q1.", "net margin (5%) in q1", []) == (0, 21)
+    # A mark between two digits is part of the number; a citation tail is words.
+    assert _locate_tolerant("from 10-20 people", "from 10 20 people", []) is None
+    assert _locate_tolerant("takes 3.5 days", "takes 3-5 days", []) is None
+    assert _locate_tolerant("costs 1,000 dollars", "costs 1000 dollars", []) is None
+    assert _locate_tolerant("costs 1,000 dollars", "costs 1,000 dollars.", []) == (0, 19)
+    # An exact substring that cuts a word is not a hit either.
+    assert _locate_tolerant("Revenue fell -5% this year", "5% this year", []) is None
+    assert _locate_tolerant("Revenue grew 14.5% in Q2", "Revenue grew 14", []) is None
+    assert _locate_tolerant("The 14% growth was recorded", "4% growth was recorded", []) is None
+    assert _locate_tolerant("grew in 2024 (Passage 1).", "grew in 2024", []) == (0, 12)
+
+
+def test_coverage_sentences_start_where_the_last_one_ended():
+    """v0.6 review: the sentence regex let a sentence begin after any full
+    stop, so "3.5%" produced the claim "5% compared to last year." and the
+    self-evident credit grounded it with "Revenue grew 3" vouched for by
+    nobody. Rules, headings and table rows are not sentences either."""
+    from tallystick.propose.pipeline import _sentences
+    text = ("Revenue grew 3.5% compared to last year. The U.S. economy grew.\n"
+            "----------------\n## Key findings\n| a | b |\nDr. Smith said revenue rose by 14 percent.")
+    assert [text[a:b] for a, b in _sentences(text)] == [
+        "Revenue grew 3.5% compared to last year.",
+        "The U.S. economy grew.",
+        "Dr. Smith said revenue rose by 14 percent.",
+    ]
+    assert _sentences("Fold the corner. Then press.") == [(0, 16)]   # "Then press." < 15 chars
+
+
+def test_a_refused_self_evident_credit_is_marked_in_the_log():
+    """diagnose.py must not count a credit the pipeline found itself as one
+    the model offered."""
+    run = _two_claim_run("Revenue grew 14% and costs fell 3%. Costs fell 3% in Q1.")
+    posted = post_run(run, FakeProposer([
+        {"claims": ["Revenue grew 14% and", "costs fell 3%. Costs fell 3% in Q1."]},
+        {"claims": ["Revenue grew 14% and costs fell 3%."]},
+    ], pad={"credits": []}))
+    # The answer sentence is found in the summary; it straddles the second claim.
+    dropped = [d for d in posted["_proposal"]["dropped_credits"] if d["claim_id"] == "f.c1"]
+    assert len(dropped) == 1 and dropped[0]["proposed_by"] == "verbatim"
+    assert "partially overlaps" in dropped[0]["reason"]
+    assert [e["proposed_by"] for e in posted["entries"] if e["claim_id"] == "f.c1"] == ["verbatim"]

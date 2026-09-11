@@ -54,7 +54,22 @@ from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
 RAGTRUTH_REPO = "https://github.com/ParticleMedia/RAGTruth"
-_SENT = re.compile(r"[^.!?]+[.!?]+(?=\s|$)|[^.!?]+$")
+_SENT_END = re.compile(r"[.!?]+(?=\s|$)")
+_ABBREV_RE = re.compile(
+    r"(?:^|\s)(?:(?:[A-Za-z]\.)+[A-Za-z]"
+    r"|Dr|Mr|Mrs|Ms|Prof|Sr|Jr|St|Inc|Ltd|Co|Corp|No|Fig|vs|approx)$")
+
+
+def _ends_sentence(line: str, m: "re.Match[str]") -> bool:
+    """A lone full stop after an initialism ("U.S.", "e.g.") or a listed
+    abbreviation ("Dr.", "Inc.", "No.") is not a boundary. Runs ("...",
+    "?!") always end a sentence. Only the token before the stop is read."""
+    if m.group(0) != ".":
+        return True
+    start = max(0, m.start() - 24)
+    while start > 0 and not line[start - 1].isspace():
+        start -= 1
+    return not _ABBREV_RE.search(line[start:m.start()])
 _LINE = re.compile(r"[^\n]+")
 
 
@@ -64,15 +79,26 @@ def sentences(text: str) -> List[Tuple[int, int]]:
     A line break is a boundary too: RAGTruth responses are full of numbered
     lists and headings without terminal punctuation ("(Passage 3)"), and v0.5.2
     glued such a line to the sentence after it. Fragments under 15 characters
-    are dropped. Measured on the eligible test pool that leaves ~4% of response
-    text and ~2% of annotated spans (10 of 479) outside every sentence; they can never
-    be quoted, never scored, and are excluded from the natural prevalence too,
-    so the two sides stay consistent."""
+    are dropped. Measured at v0.5.3 (before the abbreviation guard) on the
+    eligible test pool that left ~4% of response text and ~2% of annotated
+    spans (10 of 479) outside every sentence; they can never be quoted, never
+    scored, and are excluded from the natural prevalence too, so the two
+    sides stay consistent."""
     out = []
     for line in _LINE.finditer(text):
-        base = line.start()
-        for m in _SENT.finditer(line.group(0)):
-            s, e = base + m.start(), base + m.end()
+        base, ln = line.start(), line.group(0)
+        # Each sentence starts where the previous one ended: a boundary is a
+        # run of .!? followed by whitespace, not after an abbreviation, so
+        # "3.5%" and "U.S." do not start a sentence (v0.5.3's regex let a
+        # match begin after any full stop). tallystick/propose/pipeline.py
+        # uses the same boundaries for coverage claims; a test keeps them equal.
+        ends = [m.end() for m in _SENT_END.finditer(ln) if _ends_sentence(ln, m)]
+        if not ends or ends[-1] < len(ln):
+            ends.append(len(ln))
+        pos = 0
+        for end in ends:
+            s, e = base + pos, base + end
+            pos = end
             while s < e and text[s].isspace():
                 s += 1
             if e - s >= 15:
@@ -225,6 +251,7 @@ def main(argv=None) -> int:
             n_bad += t["laundered"]
     manifest = {
         "seed": args.seed, "order": order,
+        "splitter": 2,  # 1: v0.5.3 regex; 2: anchored, abbreviation guard (v0.6)
         "natural_sentence_prevalence": natural_rate(resp, src),
         "constructed_sentence_prevalence": n_bad / n_sent if n_sent else 0.0,
         "task_types": ["Summary", "QA"], "excluded": ["Data2txt"],

@@ -3,7 +3,7 @@
 Both prompts have one non-negotiable property: every string the model returns must
 be a verbatim, contiguous substring of text it was given. That is what lets the
 pipeline *locate* the model's output deterministically instead of trusting it. A
-claim that is not a substring is dropped; a quote that is not a substring is
+claim or quote that cannot be found word for word (punctuation and case aside) is
 dropped. The model is never asked for an opinion, only for a pointer.
 """
 

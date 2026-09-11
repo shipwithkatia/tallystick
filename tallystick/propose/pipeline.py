@@ -2,9 +2,10 @@
 
 Two model calls per derived artifact's worth of text: one to segment it into
 claims, then one per claim to propose credits from the inputs of the step that
-produced it. Everything the model returns is *located* in the real text by exact
-substring search before it is allowed into the run. What cannot be located is
-logged and dropped, never guessed.
+produced it. Everything the model returns is *located* in the real text - exact substring
+search, then a match on words that forgives punctuation and case and never a
+changed character - before it is allowed into the run. What cannot be located
+is logged and dropped, never guessed.
 
 The result is a plain dict in the same on-disk format `io.load_run` reads, plus a
 `_proposal` block recording what the proposer was and what was dropped. Write it
@@ -13,10 +14,12 @@ to a file; audit the file. The proposer is not part of the verdict.
 
 from __future__ import annotations
 
+import re
+import unicodedata
 from dataclasses import asdict, dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 
-from ..types import Artifact, Run
+from ..types import Artifact, ArtifactKind, Run
 from .base import Proposer, parse_json
 from .prompts import (
     CREDIT_SYSTEM, CREDIT_USER, SEGMENT_SYSTEM, SEGMENT_USER, fence_for,
@@ -33,6 +36,9 @@ class ProposalLog:
     dropped_claims: List[Dict[str, str]] = field(default_factory=list)
     dropped_credits: List[Dict[str, str]] = field(default_factory=list)
     warnings: List[str] = field(default_factory=list)
+    coverage_claims: int = 0      # sentences the segmenter skipped, posted anyway
+    tolerant_locates: int = 0     # texts found only by the tolerant locate
+    self_evident_credits: int = 0  # credits posted because the claim text is in a source
 
 
 def _as_list(value: Any, what: str, log: ProposalLog) -> List[Any]:
@@ -47,7 +53,72 @@ def _as_list(value: Any, what: str, log: ProposalLog) -> List[Any]:
     return []
 
 
-def _split_to_claims(span: Tuple[int, int], claims: List[Tuple[int, int]],
+_SEP_CATS = frozenset({"Pd", "Ps", "Pe", "Pi", "Pf", "Pc", "Zs", "Zl", "Zp"})
+_SEP_CHARS = frozenset(".,;:!?'\"`\u2026\u00a1\u00bf\u00b7")
+
+
+def _is_sep(ch: str) -> bool:
+    """Characters a word match may disagree on: whitespace, dashes, brackets,
+    quotation marks, connectors and sentence punctuation. Everything else is
+    part of a word - a "%" or "$" changes what a number means and is kept."""
+    return ch.isspace() or unicodedata.category(ch) in _SEP_CATS or ch in _SEP_CHARS
+
+
+def _words(text: str) -> List[Tuple[int, int, str]]:
+    """(start, end, folded word) for every maximal run of non-separator
+    characters in `text`, with three extensions for numbers: a mark between
+    two digits ("3.5", "1,000"), a dash directly before a number that starts
+    a word ("-5%") and a bracket pair hugging a single token with a digit in
+    it ("(5%)", "(2024)") belong to the word. "-5%" and "(5%)" are not "5%",
+    and "3-5" is not "3.5". Folding is NFC + casefold of the word
+    alone, so the span is still read from the original text whatever the fold
+    does to the word's length."""
+    n = len(text)
+
+    def sep(k: int) -> bool:
+        # "3.5", "1,000", "10:30", "2020-2021": a mark between two digits is
+        # part of the number, not a place where "3-5" may stand in for "3.5".
+        ch = text[k]
+        if not _is_sep(ch):
+            return False
+        return ch.isspace() or not (
+            0 < k < n - 1 and text[k - 1].isdigit() and text[k + 1].isdigit())
+
+    out: List[Tuple[int, int, str]] = []
+    i = 0
+    while i < n:
+        if sep(i):
+            i += 1
+            continue
+        j = i
+        while j < n and not sep(j):
+            j += 1
+        a, b = i, j
+        if text[a].isdigit() and a > 0 and unicodedata.category(text[a - 1]) == "Pd" \
+                and (a == 1 or _is_sep(text[a - 2])):
+            a -= 1
+        if any(ch.isdigit() for ch in text[i:j]) and a > 0 and b < n \
+                and text[a - 1] == "(" and text[b] == ")" \
+                and (a == 1 or _is_sep(text[a - 2])) and (b + 1 == n or _is_sep(text[b + 1])):
+            a, b = a - 1, b + 1
+        out.append((a, b, unicodedata.normalize("NFC", text[a:b]).casefold()))
+        i = j
+    return out
+
+
+def _core(content: str, span: Tuple[int, int]) -> Tuple[int, int]:
+    """`span` shrunk to its first and last word character. Punctuation and
+    spacing at the edges are not text anybody vouched for or quoted."""
+    a, b = span
+    while a < b and _is_sep(content[a]):
+        a += 1
+    while b > a and _is_sep(content[b - 1]):
+        b -= 1
+    return a, b
+
+
+def _split_to_claims(content: str, span: Tuple[int, int],
+                     claims: List[Tuple[int, int]],
                      ) -> Tuple[List[Tuple[int, int]], List[Tuple[int, int]]]:
     """Resolve a credit span into a derived artifact against that artifact's claims.
 
@@ -57,9 +128,11 @@ def _split_to_claims(span: Tuple[int, int], claims: List[Tuple[int, int]],
     clips two characters of a real claim must not be rewritten into those two
     characters and counted.
 
-    So the rule uses containment only, no thresholds. For each claim the quote
-    touches:
+    So the rule uses containment only, no thresholds, and it looks at letters and
+    digits: a full stop the segmenter left out of a claim, or the model left out
+    of a quote, is not a straddle. For each claim the quote touches:
       * quote inside the claim  -> the model quoted part of a vouched sentence: keep
+                                   the quote, clipped to the claim (punctuation only)
       * claim inside the quote  -> the model quoted a whole vouched sentence, maybe
                                    with meta text around it: keep the claim
       * neither                 -> a partial straddle; ambiguous, refused
@@ -68,14 +141,16 @@ def _split_to_claims(span: Tuple[int, int], claims: List[Tuple[int, int]],
     never silent.
     """
     lo, hi = span
+    ql, qh = _core(content, span)
     kept: List[Tuple[int, int]] = []
     refused: List[Tuple[int, int]] = []
     for a, b in claims:
-        if not (a < hi and lo < b):
+        ca, cb = _core(content, (a, b))
+        if ql >= qh or ca >= cb or not (ca < qh and ql < cb):
             continue
-        if a <= lo and hi <= b:          # quote inside claim
-            kept.append((lo, hi))
-        elif lo <= a and b <= hi:        # claim inside quote
+        if ca <= ql and qh <= cb:        # quote inside claim
+            kept.append((max(a, lo), min(b, hi)))
+        elif ql <= ca and cb <= qh:      # claim inside quote
             kept.append((a, b))
         else:
             refused.append((a, b))
@@ -87,7 +162,8 @@ def _locate(haystack: str, needle: str, taken: List[Tuple[int, int]],
     """Find `needle` verbatim in `haystack`, skipping regions already claimed.
 
     Exact match first; then a casefolded match, which forgives capitalisation
-    only. No fuzzier than that - fuzziness here would be a way for the model to
+    only. _locate_tolerant adds one more step, on words; nothing forgives a
+    changed letter or digit - fuzziness here would be a way for the model to
     "find" text that is not there.
     """
     needle = needle.strip()
@@ -112,12 +188,108 @@ def _locate(haystack: str, needle: str, taken: List[Tuple[int, int]],
     return None
 
 
+_SENT_END_RE = re.compile(r"[.!?]+(?=\s|$)")
+_ABBREV_RE = re.compile(
+    r"(?:^|\s)(?:(?:[A-Za-z]\.)+[A-Za-z]"
+    r"|Dr|Mr|Mrs|Ms|Prof|Sr|Jr|St|Inc|Ltd|Co|Corp|No|Fig|vs|approx)$")
+
+
+def _ends_sentence(line: str, m: "re.Match[str]") -> bool:
+    """A lone full stop after an initialism ("U.S.", "e.g.") or a listed
+    abbreviation ("Dr.", "Inc.", "No.") is not a boundary. Runs ("...",
+    "?!") always end a sentence. Only the token before the stop is read."""
+    if m.group(0) != ".":
+        return True
+    start = max(0, m.start() - 24)
+    while start > 0 and not line[start - 1].isspace():
+        start -= 1
+    return not _ABBREV_RE.search(line[start:m.start()])
+def _locate_tolerant(haystack: str, needle: str, taken: List[Tuple[int, int]],
+                     ) -> Optional[Tuple[int, int]]:
+    """`_locate` on word boundaries, then a match on the words alone.
+
+    Models add a full stop the source does not have, wrap a quote in quotation
+    marks, drop a comma, or leave out a "(Passage 1)" tail. Every one of those
+    was a dropped claim or credit at the v0.5.3 run and a false flag downstream.
+    The fallback compares the sequence of words (runs of anything but
+    separators, case-folded) and returns the span from the first matched word to the last.
+    Punctuation, spacing, case and quote or dash variants are forgiven; a
+    changed letter or digit is not, and words are never merged or split. That
+    is stricter than the verifier's 2% edit tolerance on purpose: a locate
+    that forgave one character would let "14" find "15".
+    """
+    ndl = [w for _, _, w in _words(needle)]
+    if not ndl:
+        return None
+    hay = _words(haystack)
+    span = _locate(haystack, needle, taken)
+    if span is not None:
+        # An exact hit that cuts a word ("5%" inside "-5%", "14" inside
+        # "14.5%") is not the text the model was shown; it is a smaller one.
+        a, b = _core(haystack, span)
+        starts = {x for x, _, _ in hay}
+        ends = {y for _, y, _ in hay}
+        if a in starts and b in ends:
+            return span
+        span = None
+    n = len(ndl)
+    for i in range(len(hay) - n + 1):
+        if hay[i][2] != ndl[0]:
+            continue
+        if [w for _, _, w in hay[i:i + n]] != ndl:
+            continue
+        span = (hay[i][0], hay[i + n - 1][1])
+        if not any(x < span[1] and span[0] < y for x, y in taken):
+            return span
+    return None
+
+
+def _find(haystack: str, needle: str, taken: List[Tuple[int, int]],
+          log: "ProposalLog") -> Optional[Tuple[int, int]]:
+    """_locate_tolerant, counting in `log` the finds the strict locate missed."""
+    span = _locate_tolerant(haystack, needle, taken)
+    if span is not None and _locate(haystack, needle, taken) != span:
+        log.tolerant_locates += 1
+    return span
+
+
+def _sentences(text: str) -> List[Tuple[int, int]]:
+    """Deterministic sentence spans: a line break is a boundary, then a run of
+    .!? followed by whitespace or the end of the line, except a lone full stop
+    after an abbreviation ("U.S.", "Dr."). Each sentence starts where the
+    previous one ended, so "3.5%" does not start one.
+    Fragments under 15 characters or under two words (list numbers, rules,
+    one-word headings) and markdown headings or table rows are dropped. The same boundaries bench/build.py uses,
+    so a benchmark answer sentence and a coverage claim over the same text
+    get the same span."""
+    out = []
+    for line in re.finditer(r"[^\n]+", text):
+        base, s = line.start(), line.group(0)
+        if s.lstrip()[:1] in ("#", "|"):
+            continue  # a markdown heading or table row is not a sentence
+        ends = [m.end() for m in _SENT_END_RE.finditer(s) if _ends_sentence(s, m)]
+        if not ends or ends[-1] < len(s):
+            ends.append(len(s))
+        pos = 0
+        for end in ends:
+            a, b = base + pos, base + end
+            pos = end
+            while a < b and text[a].isspace():
+                a += 1
+            if b - a >= 15 and len(_words(text[a:b])) >= 2:
+                out.append((a, b))
+    return out
+
+
 def _chars_outside(content: str, span: Tuple[int, int],
                    kept: List[Tuple[int, int]]) -> int:
-    """Letters and digits of `span` not inside any kept span. Only alphanumerics count: a live run showed the segmenter returning claims without their final full stop while the credit quote included it; that punctuation is not unvouched text."""
+    """Word characters of `span` not inside any kept span. Separators do not
+    count: a live run showed the segmenter returning claims without their
+    final full stop while the credit quote included it; that punctuation is
+    not unvouched text."""
     n = 0
     for i in range(span[0], span[1]):
-        if not content[i].isalnum():
+        if _is_sep(content[i]):
             continue
         if not any(a <= i < b for a, b in kept):
             n += 1
@@ -151,15 +323,36 @@ def segment_artifact(art: Artifact, proposer: Proposer, log: ProposalLog,
     spans: List[Tuple[int, int]] = []
     for text in proposed:
         text = str(text)
-        span = _locate(art.content, text, spans)
+        span = _find(art.content, text, spans, log)
         if span is None:
             reason = ("overlaps a claim already located"
-                      if _locate(art.content, text, [])
+                      if _locate_tolerant(art.content, text, [])
                       else "not a verbatim substring")
             log.dropped_claims.append(
                 {"artifact_id": art.artifact_id, "text": text, "reason": reason})
             continue
         spans.append(span)
+
+    # Coverage: a sentence of an intermediate artifact the segmenter did not
+    # return is posted as a claim anyway. At the v0.5.3 run the segmenter
+    # skipped whole sentences of a summary (a generic closing line, the tail of
+    # a list) and every answer sentence quoting them was flagged for citing
+    # text nobody vouched for. A sentence a later step may quote must have an
+    # account; whether it is funded is the credit step's job, not the
+    # segmenter's silence. The final answer is left alone on purpose: its
+    # segmenter decides what the audit checks, and a hedge it skipped ("it is
+    # difficult to give an exact answer") is not a claim to fund.
+    added = 0
+    for a, b in (_sentences(art.content) if art.kind is ArtifactKind.INTERMEDIATE else []):
+        if any(x < b and a < y for x, y in spans):
+            continue
+        spans.append((a, b))
+        added += 1
+    if added:
+        log.coverage_claims += added
+        log.warnings.append(
+            f"{art.artifact_id}: {added} sentence(s) the segmenter did not return "
+            "were posted as claims (coverage)")
 
     # Ids follow text order, not the order the model happened to answer in, so
     # `summary.c3` is always the third claim a reader meets in the summary.
@@ -187,24 +380,39 @@ def propose_credits(claim: Dict[str, Any], claim_text: str, sources: List[Artifa
         log, f"credits for {claim['claim_id']}")
     credits = _as_list(reply.get("credits", []), "credits", log)
 
+    # Self-evident credits first: if the claim's own text sits word for word
+    # in a source the step received, that is the strongest
+    # support there is, and at the v0.5.3 run the model returned no credit at
+    # all for a fifth of such claims. Posting it is a substring search, not a
+    # judgement. The model's credits are still asked for and added after.
+    self_evident = [
+        {"artifact_id": src.artifact_id, "quote": claim_text, "_self_evident": True}
+        for src in sources
+        if _locate_tolerant(src.content, claim_text, []) is not None
+    ]
+    credits = self_evident + credits
+
     entries: List[Dict[str, Any]] = []
     seen_quotes: set = set()
     cid = claim["claim_id"]
 
-    def drop(aid: str, quote: str, reason: str) -> None:
-        log.dropped_credits.append(
-            {"claim_id": cid, "artifact_id": aid, "quote": quote, "reason": reason})
+    def drop(aid: str, quote: str, reason: str, verbatim: bool = False) -> None:
+        rec = {"claim_id": cid, "artifact_id": aid, "quote": quote, "reason": reason}
+        if verbatim:
+            rec["proposed_by"] = "verbatim"
+        log.dropped_credits.append(rec)
 
     for cr in credits:
         if not isinstance(cr, dict):
             drop("", str(cr), "credit is not an object")
             continue
+        verbatim = bool(cr.get("_self_evident"))
         aid, quote = str(cr.get("artifact_id", "")), str(cr.get("quote", ""))
         art = by_id.get(aid)
         if art is None:
             drop(aid, quote, "artifact not among the step's inputs")
             continue
-        span = _locate(art.content, quote, [])
+        span = _find(art.content, quote, [], log)
         if span is None:
             drop(aid, quote, "quote is not a verbatim substring of the artifact")
             continue
@@ -212,26 +420,31 @@ def propose_credits(claim: Dict[str, Any], claim_text: str, sources: List[Artifa
         if art.kind.is_root:
             spans = [span]
         else:
-            spans, refused = _split_to_claims(span, claim_spans.get(aid, []))
+            spans, refused = _split_to_claims(art.content, span, claim_spans.get(aid, []))
             for a, b in refused:
                 drop(aid, quote, "quote only partially overlaps claim "
-                     f"{aid}#{a}-{b}; refused as ambiguous")
+                     f"{aid}#{a}-{b}; refused as ambiguous", verbatim)
+            if not spans:
+                drop(aid, quote, "quote covers no whole claim of the cited artifact",
+                     verbatim)
+                continue
+
+        key = (aid, tuple(spans))
+        if key in seen_quotes:
+            continue  # same credit twice adds nothing to the books
+        seen_quotes.add(key)
+        if not art.kind.is_root:
             outside = _chars_outside(art.content, span, spans)
             if outside:
                 log.warnings.append(
                     f"{cid}: {outside} characters of a quote into {aid} lie outside "
                     "any claim and were not credited")
-            if not spans:
-                drop(aid, quote, "quote covers no whole claim of the cited artifact")
-                continue
 
         # One quote that covers several claims becomes several entries that share
         # a group: the ledger closes a group only if every member closes, so the
         # quote inherits the worst claim it covered - as one wide entry would.
-        key = (aid, tuple(spans))
-        if key in seen_quotes:
-            continue  # same credit twice adds nothing to the books
-        seen_quotes.add(key)
+        if cr.get("_self_evident"):
+            log.self_evident_credits += 1
         group = f"{cid}.g{len(entries) + 1}" if len(spans) > 1 else ""
         for a, b in spans:
             account = f"EVIDENCE:{aid}#{a}-{b}"
@@ -240,7 +453,7 @@ def propose_credits(claim: Dict[str, Any], claim_text: str, sources: List[Artifa
                 "claim_id": cid,
                 "account": account,
                 "quoted_span": art.content[a:b],
-                "proposed_by": proposer.name,
+                "proposed_by": "verbatim" if cr.get("_self_evident") else proposer.name,
             }
             if group:
                 entry["group"] = group

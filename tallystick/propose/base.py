@@ -54,12 +54,20 @@ class FakeProposer:
 
     name = "fake"
 
-    def __init__(self, responses: List[Any]):
+    def __init__(self, responses: List[Any], pad: Any = None):
         self._responses = [
             r if isinstance(r, str) else json.dumps(r) for r in responses
         ]
+        # Optional: what to answer once the list is spent. Off by default so a
+        # test that miscounts calls fails loudly; on for tests where the number
+        # of credit calls is not the point (coverage claims add calls).
+        self._pad = None if pad is None else (pad if isinstance(pad, str) else json.dumps(pad))
+        self.calls = 0
 
     def complete(self, system: str, user: str) -> str:
+        self.calls += 1
         if not self._responses:
+            if self._pad is not None:
+                return self._pad
             raise RuntimeError("FakeProposer ran out of canned responses")
         return self._responses.pop(0)

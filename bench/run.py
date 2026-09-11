@@ -53,7 +53,7 @@ from typing import Any, Dict, List, Optional, Tuple
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from judge import JudgeFailed, judge_full_history, judge_one_hop  # noqa: E402
 
-from tallystick import audit, load_run  # noqa: E402
+from tallystick import __version__ as TALLYSTICK_VERSION, audit, load_run  # noqa: E402
 from tallystick.ledger import FAILING  # noqa: E402
 
 
@@ -123,6 +123,7 @@ def run_trace(trace: Dict[str, Any], proposer, args, work: Path, name: str) -> D
     truth = [s["laundered"] for s in trace["_truth"]["answer_sentences"]]
     row: Dict[str, Any] = {"file": name, "meta": trace["_meta"], "truth": truth,
                            "trace_sha": trace_sha(trace),
+                           "tallystick_version": TALLYSTICK_VERSION,
                            "model": args.model, "proposer_runs": args.proposer_runs,
                            "judge_runs": args.judge_runs,
                            "tallystick_runs": [], "summary_runs": [],
@@ -157,8 +158,10 @@ def run_trace(trace: Dict[str, Any], proposer, args, work: Path, name: str) -> D
         row["summary_runs"].append(summary_claim_eval(posted, balance))
         n_ans = sum(1 for c in posted["claims"] if c["artifact_id"] == "answer")
         row["claims_per_sentence"].append(n_ans / max(1, len(truth)))
-        row["proposal"].append({k2: posted["_proposal"][k2] for k2 in
-                                ("claims_posted", "credits_posted", "prior_posted")})
+        row["proposal"].append({k2: posted["_proposal"].get(k2, 0) for k2 in
+                                ("claims_posted", "credits_posted", "prior_posted",
+                                 "coverage_claims", "tolerant_locates",
+                                 "self_evident_credits")})
 
     if not args.skip_judge:
         for _ in range(args.judge_runs):
@@ -254,6 +257,10 @@ def summarise(all_rows, args, elapsed, manifest) -> Dict[str, Any]:
             "claims_posted": sum(p["claims_posted"] for p in props),
             "credits_posted": sum(p["credits_posted"] for p in props),
             "prior_posted": sum(p["prior_posted"] for p in props),
+            # v0.6: how much of the posting was search rather than the model.
+            "coverage_claims": sum(p.get("coverage_claims", 0) for p in props),
+            "tolerant_locates": sum(p.get("tolerant_locates", 0) for p in props),
+            "self_evident_credits": sum(p.get("self_evident_credits", 0) for p in props),
         },
         "failures": {k: sum(r["failures"][k] for r in all_rows)
                      for k in ("proposer", "one_hop", "full")},
@@ -325,7 +332,10 @@ def render(s: Dict[str, Any]) -> str:
         "",
         f"Granularity: {gran_s} tallystick claims per answer sentence. Proposer totals: {s['proposer']['claims_posted']} "
         f"claims, {s['proposer']['credits_posted']} credits, {s['proposer']['prior_posted']} "
-        f"prior-only. Failures excluded from metrics: proposer {s['failures']['proposer']}, "
+        f"prior-only (of which, by search not model: {s['proposer']['coverage_claims']} coverage "
+        f"claims, {s['proposer']['tolerant_locates']} tolerant locates, "
+        f"{s['proposer']['self_evident_credits']} self-evident credits). "
+        f"Failures excluded from metrics: proposer {s['failures']['proposer']}, "
         f"one-hop judge {s['failures']['one_hop']}, full-history judge {s['failures']['full']}.",
         "",
         "Reproduce: `python bench/build.py --limit N && python bench/run.py --limit N`.",
@@ -413,6 +423,13 @@ def main(argv=None) -> int:
                   f"rebuilt, or the rows predate trace fingerprints). Move rows.jsonl "
                   f"aside and rerun; posted/ and results.json are rewritten by the run.",
                   file=sys.stderr)
+            return 2
+        old = [r["file"] for r in rows if r.get("tallystick_version") != TALLYSTICK_VERSION]
+        if old:
+            print(f"rows.jsonl was produced by a different tallystick version "
+                  f"({len(old)} row(s); this is {TALLYSTICK_VERSION}). The traces are the "
+                  f"same but the code that scores them is not; a resumed table would mix "
+                  f"the two. Move rows.jsonl aside and rerun.", file=sys.stderr)
             return 2
         done = {r["file"] for r in rows}
         traces = [(n, t) for n, t in traces if n not in done]

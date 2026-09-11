@@ -92,7 +92,7 @@ def _oracle_script(t):
         bad = any(s < le and ls < e for ls, le in spans)
         script.append({"credits": [] if bad else
                        [{"artifact_id": docs[0]["artifact_id"],
-                         "quote": docs[0]["content"][:60]}]})
+                         "quote": docs[0]["content"][:60].rsplit(" ", 1)[0]}]})
     for a in asents:
         script.append({"credits": [{"artifact_id": "summary", "quote": a}]})
     return script
@@ -219,6 +219,7 @@ def test_rows_file_enables_resume(traces, tmp_path, monkeypatch):
         row = {"file": name, "meta": {}, "truth": [False], "tallystick_runs": [[False]],
                "trace_sha": runmod.trace_sha(trace),
                "model": args.model, "proposer_runs": args.proposer_runs,
+               "tallystick_version": runmod.TALLYSTICK_VERSION,
                "judge_runs": args.judge_runs,
                "summary_runs": [([], [])], "audit_identical": True,
                "claims_per_sentence": [1.0],
@@ -251,6 +252,7 @@ def test_resume_refuses_rows_from_different_settings_and_survives_a_truncated_li
     good = {"file": "t0.json", "meta": {}, "truth": [False], "tallystick_runs": [[False]],
             "trace_sha": runmod.trace_sha(traces[0]),
             "model": "m", "proposer_runs": 1, "judge_runs": 1,
+            "tallystick_version": runmod.TALLYSTICK_VERSION,
             "summary_runs": [[[], []]], "audit_identical": True, "claims_per_sentence": [1.0],
             "proposal": [{"claims_posted": 1, "credits_posted": 1, "prior_posted": 0}],
             "one_hop_runs": [[False]], "full_runs": [[False]],
@@ -269,6 +271,7 @@ def test_resume_refuses_rows_from_different_settings_and_survives_a_truncated_li
     def fake_run_trace(trace, proposer, args, w, name):
         ran.append(name)
         return dict(good, file=name, model=args.model, proposer_runs=args.proposer_runs,
+                    tallystick_version=runmod.TALLYSTICK_VERSION,
                     judge_runs=args.judge_runs, trace_sha=runmod.trace_sha(trace))
 
     import tallystick.propose as tp
@@ -321,6 +324,14 @@ def test_resume_refuses_rows_from_rebuilt_traces(traces, tmp_path, monkeypatch):
     (work / "rows.jsonl").write_text(json.dumps(row) + "\n", encoding="utf-8")
     assert runmod.main(["--work", str(work), "--model", "m",
                         "--proposer-runs", "1", "--judge-runs", "1"]) == 2
+    # Same traces, older tallystick (the v0.6 rerun is on v0.5.3's traces):
+    # the code that scores them changed, so the rows are refused too.
+    row["trace_sha"] = runmod.trace_sha(traces[0])
+    row["tallystick_version"] = "0.5.3"
+    (work / "rows.jsonl").write_text(json.dumps(row) + "\n", encoding="utf-8")
+    assert runmod.main(["--work", str(work), "--model", "m",
+                        "--proposer-runs", "1", "--judge-runs", "1"]) == 2
+    assert ran == []
 
 
 def test_a_judge_reply_without_a_list_is_a_failure_not_a_clean_sheet(traces):
@@ -420,3 +431,22 @@ def test_ci_reproduces_the_table_and_bootstraps_over_traces(traces, tmp_path, ca
     lo, hi = boot["f1_ci"]["tallystick_runs"]
     assert lo <= 1.0 <= hi
     assert boot["diff_full_minus_tallystick"]["ci"] == (0.0, 0.0)  # oracle on both sides
+
+
+def test_bench_and_pipeline_sentence_boundaries_agree():
+    """Coverage claims (pipeline) and answer sentences (bench) must land on
+    the same spans, or a benchmark sentence and its claim drift apart. The
+    pipeline additionally drops headings, table rows and one-word lines."""
+    from tallystick.propose.pipeline import _sentences
+    text = ("Revenue grew 3.5% compared to last year. The U.S. economy grew strongly.\n"
+            "Dr. Smith said revenue rose by 14 percent... Costs fell?! Nobody knows why.\n"
+            "1. First point without a full stop\n2. Second point (Passage 3).")
+    assert build.sentences(text) == _sentences(text)
+    assert [text[a:b] for a, b in build.sentences(text)] == [
+        "Revenue grew 3.5% compared to last year.",
+        "The U.S. economy grew strongly.",
+        "Dr. Smith said revenue rose by 14 percent...",
+        "Nobody knows why.",
+        "First point without a full stop",      # "1." is its own fragment, dropped
+        "Second point (Passage 3).",
+    ]
