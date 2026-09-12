@@ -356,6 +356,10 @@ def segment_artifact(art: Artifact, proposer: Proposer, log: ProposalLog,
     proposed = _as_list(reply.get("claims", []), "claims", log)
 
     spans: List[Tuple[int, int]] = []
+    by: Dict[Tuple[int, int], str] = {}   # span -> who proposed it
+    # A proposer that replays an earlier run's file can say so (`claim_tag`)
+    # when it cannot tell which of the replayed claims the model returned.
+    tag = getattr(proposer, "claim_tag", None) or proposer.name
     for text in proposed:
         text = str(text)
         span = _find(art.content, text, spans, log)
@@ -367,6 +371,7 @@ def segment_artifact(art: Artifact, proposer: Proposer, log: ProposalLog,
                 {"artifact_id": art.artifact_id, "text": text, "reason": reason})
             continue
         spans.append(span)
+        by[span] = tag
 
     # Coverage: a sentence of an intermediate artifact the segmenter did not
     # return is posted as a claim anyway. At the v0.5.3 run the segmenter
@@ -382,6 +387,7 @@ def segment_artifact(art: Artifact, proposer: Proposer, log: ProposalLog,
         if any(x < b and a < y for x, y in spans):
             continue
         spans.append((a, b))
+        by[(a, b)] = "coverage"
         added += 1
     if added:
         log.coverage_claims += added
@@ -391,10 +397,13 @@ def segment_artifact(art: Artifact, proposer: Proposer, log: ProposalLog,
 
     # Ids follow text order, not the order the model happened to answer in, so
     # `summary.c3` is always the third claim a reader meets in the summary.
+    # `proposed_by` says whether the segmenter returned the claim or coverage
+    # added it: a reader, and a rerun replaying this file, can tell them apart
+    # (`replay`: an earlier untagged file was replayed and could not say).
     spans.sort()
     claims = [
         {"claim_id": f"{art.artifact_id}.c{i + 1}", "artifact_id": art.artifact_id,
-         "start": a, "end": b}
+         "start": a, "end": b, "proposed_by": by[(a, b)]}
         for i, (a, b) in enumerate(spans)
     ]
     log.claims_posted += len(claims)

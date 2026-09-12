@@ -347,9 +347,160 @@ def test_reuse_credits_offer_a_straddling_quote_once_and_nothing_for_a_prior_onl
     (tmp_path / "X__1.json").write_text(json.dumps(old), encoding="utf-8")
     reuse = harness.ReuseProposer(_Counting(), tmp_path)
     reuse.start("X/1.json")
-    assert reuse._credits_of("f.c1") == [{"artifact_id": "s", "quote": "Revenue grew 14%."},
-                                         {"artifact_id": "s", "quote": "nowhere in the text"}]
-    assert reuse._credits_of("f.c2") == []
+    old = reuse._olds[0]
+    assert reuse._credits_of(old, "f.c1") == [{"artifact_id": "s", "quote": "Revenue grew 14%."},
+                                              {"artifact_id": "s", "quote": "nowhere in the text"}]
+    assert reuse._credits_of(old, "f.c2") == []
+
+
+def _twin_run():
+    """A last step and a final answer with the same text, as OpenManus and the
+    SmolAgents `final_answer` echo produce: the step gets coverage claims, the
+    answer by design does not."""
+    text = "Revenue grew 14%. I will now terminate the interaction."
+    return load_run({
+        "artifacts": [{"artifact_id": "d", "kind": "document", "content": "Revenue grew 14%."},
+                      {"artifact_id": "s6", "kind": "intermediate", "content": text},
+                      {"artifact_id": "answer", "kind": "final_answer", "content": text}],
+        "steps": [{"step_id": "s6", "kind": "generate", "inputs": ["d"], "outputs": ["s6"]},
+                  {"step_id": "answer", "kind": "answer", "inputs": ["d", "s6"], "outputs": ["answer"]}],
+    })
+
+
+class _Segmenter(_Counting):
+    """Returns one claim per artifact: the first sentence. Credits it to `d`."""
+    def complete(self, system, user):
+        if user.startswith("TEXT:"):
+            return json.dumps({"claims": ["Revenue grew 14%."]})
+        self.credit_calls.append(user)
+        return json.dumps({"credits": [{"artifact_id": "d", "quote": "Revenue grew 14%."}]})
+
+
+def test_posted_claims_say_who_proposed_them():
+    posted = post_run(_twin_run(), _Segmenter(), on_demand=True)
+    by = {c["claim_id"]: c["proposed_by"] for c in posted["claims"]}
+    assert by["s6.c1"] == "counting" and by["s6.c2"] == "coverage"
+    assert [c for c in posted["claims"] if c["artifact_id"] == "answer"] and all(
+        by[c["claim_id"]] == "counting" for c in posted["claims"] if c["artifact_id"] == "answer")
+
+
+def test_reuse_does_not_replay_coverage_claims_onto_a_twin_final_answer(tmp_path):
+    """The v0.7.1 AgentHallu run did: the segment call for the answer matched
+    the last step's text, and the step's coverage claims ("I will now
+    terminate the interaction.") came back as if the segmenter had returned
+    them for the answer - a claim to fund that the answer never had."""
+    run = _twin_run()
+    first = post_run(run, _Segmenter(), on_demand=True)
+    (tmp_path / "X__1.json").write_text(json.dumps(first), encoding="utf-8")
+    inner = _Segmenter()
+    reuse = harness.ReuseProposer(inner, tmp_path)
+    reuse.start("X/1.json")
+    second = post_run(run, reuse, on_demand=True)
+    assert inner.credit_calls == [] and reuse.calls["model"] == 0
+    answer_claims = [c for c in second["claims"] if c["artifact_id"] == "answer"]
+    assert [c["end"] - c["start"] for c in answer_claims] == [17]
+    assert [c["claim_id"] for c in second["claims"]] == [c["claim_id"] for c in first["claims"]]
+    # an untagged file (written before 0.7.2) is read the same way: the final
+    # answer is preferred among artifacts with the same text
+    untagged = json.loads(json.dumps(first))
+    for c in untagged["claims"]:
+        c.pop("proposed_by")
+    (tmp_path / "X__2.json").write_text(json.dumps(untagged), encoding="utf-8")
+    reuse.start("X/2.json")
+    third = post_run(run, reuse, on_demand=True)
+    assert [c["claim_id"] for c in third["claims"]] == [c["claim_id"] for c in first["claims"]]
+
+
+def test_reuse_replays_the_segmenter_not_coverage_on_a_lone_step(tmp_path):
+    """A tagged file: only the claim the model returned comes back for a step;
+    the pipeline adds coverage again itself, and says so. An untagged file
+    cannot tell the two apart, so its replayed claims are tagged `replay`."""
+    run = load_run({
+        "artifacts": [{"artifact_id": "d", "kind": "document", "content": "Revenue grew 14%."},
+                      {"artifact_id": "s6", "kind": "intermediate",
+                       "content": "Revenue grew 14%. I will now terminate the interaction."},
+                      {"artifact_id": "answer", "kind": "final_answer", "content": "Revenue grew 14%."}],
+        "steps": [{"step_id": "s6", "kind": "generate", "inputs": ["d"], "outputs": ["s6"]},
+                  {"step_id": "answer", "kind": "answer", "inputs": ["d", "s6"], "outputs": ["answer"]}],
+    })
+    first = post_run(run, _Segmenter(), on_demand=True)
+    assert {c["proposed_by"] for c in first["claims"] if c["artifact_id"] == "s6"} == {"counting", "coverage"}
+    (tmp_path / "X__1.json").write_text(json.dumps(first), encoding="utf-8")
+    reuse = harness.ReuseProposer(_Segmenter(), tmp_path)
+    reuse.start("X/1.json")
+    second = post_run(run, reuse, on_demand=True)
+    by = {c["claim_id"]: c["proposed_by"] for c in second["claims"]}
+    assert by == {c["claim_id"]: c["proposed_by"] for c in first["claims"]}
+    assert by["s6.c2"] == "coverage" and second["_proposal"]["coverage_claims"] == 1
+    untagged = json.loads(json.dumps(first))
+    for c in untagged["claims"]:
+        c.pop("proposed_by")
+    (tmp_path / "X__2.json").write_text(json.dumps(untagged), encoding="utf-8")
+    reuse.start("X/2.json")
+    third = post_run(run, reuse, on_demand=True)
+    assert [c["claim_id"] for c in third["claims"]] == [c["claim_id"] for c in first["claims"]]
+    by = {c["claim_id"]: c["proposed_by"] for c in third["claims"]}
+    # the step's claims cannot be told from coverage; the answer's can (a
+    # final answer never carries coverage), so they stay the model's
+    assert by["s6.c1"] == by["s6.c2"] == "replay" and by["answer.c1"] == "counting"
+    # and a run that replays that run's file does not promote them to the model's
+    handed_on = tmp_path / "again" / "posted"
+    handed_on.mkdir(parents=True)
+    (handed_on / "X__2.json").write_text(json.dumps(third), encoding="utf-8")
+    reuse = harness.ReuseProposer(_Segmenter(), handed_on)
+    reuse.start("X/2.json")
+    fifth = post_run(run, reuse, on_demand=True)
+    assert reuse.calls["model"] == 0
+    assert {c["claim_id"]: c["proposed_by"] for c in fifth["claims"]} == by
+    # a root with the same text is not an answer to a segment question
+    rooty = json.loads(json.dumps(first))
+    rooty["artifacts"].insert(0, {"artifact_id": "t", "kind": "tool_result", "content": "Revenue grew 14%."})
+    (tmp_path / "X__3.json").write_text(json.dumps(rooty), encoding="utf-8")
+    reuse.start("X/3.json")
+    fourth = post_run(run, reuse, on_demand=True)
+    assert [c["claim_id"] for c in fourth["claims"] if c["artifact_id"] == "answer"] == ["answer.c1"]
+
+
+def test_reuse_searches_directories_in_order_and_skips_segments_of_a_reuse_run(tmp_path):
+    run = _twin_run()
+    first = post_run(run, _Segmenter(), on_demand=True)
+    fresh = tmp_path / "fresh" / "posted"
+    fresh.mkdir(parents=True)
+    (fresh / "X__1.json").write_text(json.dumps(first), encoding="utf-8")
+    # a directory written by a reuse run, untagged: its answer may carry
+    # replayed coverage, so it answers credit questions only
+    polluted = json.loads(json.dumps(first))
+    for c in polluted["claims"]:
+        c.pop("proposed_by")
+    later = tmp_path / "later" / "posted"
+    later.mkdir(parents=True)
+    (later / "X__1.json").write_text(json.dumps(polluted), encoding="utf-8")
+    (later / "X__9.json").write_text(json.dumps(polluted), encoding="utf-8")
+    (tmp_path / "later" / "rows.meta.json").write_text(json.dumps({"reuse": [str(fresh)]}))
+
+    inner = _Segmenter()
+    reuse = harness.ReuseProposer(inner, [later, fresh])
+    reuse.start("X/1.json")
+    second = post_run(run, reuse, on_demand=True)
+    assert [c["claim_id"] for c in second["claims"]] == [c["claim_id"] for c in first["claims"]]
+    assert reuse.calls["model"] == 0 and reuse.calls["segment_reused"] == 2
+    # a file only the reuse-run directory has: segments go to the model,
+    # credits are still read from the file
+    reuse.start("X/9.json")
+    inner.credit_calls.clear()
+    third = post_run(run, reuse, on_demand=True)
+    assert reuse.calls["model"] == 2 and inner.credit_calls == []
+    assert [c["claim_id"] for c in third["claims"]] == [c["claim_id"] for c in first["claims"]]
+    # a file that records its own reuse is recognised without the meta file
+    marked = json.loads(json.dumps(polluted))
+    marked["_proposal"]["reused_from"] = [str(fresh)]
+    alone = tmp_path / "alone" / "posted"
+    alone.mkdir(parents=True)
+    (alone / "X__1.json").write_text(json.dumps(marked), encoding="utf-8")
+    reuse = harness.ReuseProposer(_Segmenter(), alone)
+    reuse.start("X/1.json")
+    post_run(run, reuse, on_demand=True)
+    assert reuse.calls["segment_reused"] == 0 and reuse.calls["credits_reused"] > 0
 
 
 def test_resume_redoes_trajectories_that_failed_last_time(tmp_path, monkeypatch):

@@ -47,7 +47,7 @@ import re
 import sys
 from collections import Counter, defaultdict
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from tallystick import __version__ as TALLYSTICK_VERSION, audit, load_run  # noqa: E402
@@ -98,7 +98,7 @@ def select(data: Path, which: str, seed: int, limit: Optional[int],
 
 
 class ReuseProposer:
-    """Answer from a previous run's posted file where the same question was
+    """Answer from previous runs' posted files where the same question was
     asked; send only new questions to the real proposer.
 
     A posted file records everything the model returned for a trajectory:
@@ -110,70 +110,142 @@ class ReuseProposer:
     no information. So a segment call for an artifact whose text matches the
     old file is answered from it, and a credit call for a claim the old run
     asked about (it has entries, a PRIOR:model entry counts) is answered from
-    it. A claim the old run never reached, or a trajectory with no old file,
-    goes to `inner`. `calls` counts what went where."""
+    it. A claim no old run reached, or a trajectory with no old file, goes to
+    `inner`. Several directories are searched in the order given; the first
+    that can answer does. `calls` counts what went where.
 
-    def __init__(self, inner, posted_dir: Path):
+    Only what the model said is replayed. A claim the pipeline added itself
+    (`proposed_by: "coverage"`, a sentence of a model step the segmenter did
+    not return) is left out: the pipeline adds coverage again on its own, and
+    replaying it as the segmenter's word would post it on any artifact with
+    the same text - in AgentHallu the final answer usually repeats the last
+    step word for word, and a final answer gets no coverage by design. Files
+    written before claims were tagged (tallystick < 0.7.2) cannot be told
+    apart that way, so for them the artifact of kind `final_answer` is
+    preferred among those with the same text (it never carried coverage),
+    and a directory that was itself written by a reuse run (its
+    rows.meta.json says so) is used for credits only, never for segments:
+    such files may carry replayed coverage on the answer already. Claims
+    replayed from an untagged file are posted as `proposed_by: "replay"`, not
+    as the model's, since which of them were coverage cannot be told; the
+    `coverage_claims` counter of such a rerun counts only what the pipeline
+    added on top, and is not comparable with a fresh run's."""
+
+    def __init__(self, inner, posted_dirs):
         self.inner = inner
         self.name = getattr(inner, "name", type(inner).__name__)
-        self.posted_dir = posted_dir
+        if isinstance(posted_dirs, (str, Path)):
+            posted_dirs = [posted_dirs]
+        self.posted_dirs = [Path(d) for d in posted_dirs]
         self.calls = Counter()
-        self._old: Optional[Dict[str, Any]] = None
-        self._claim_text: Dict[str, str] = {}
-        self._used: set = set()
+        self.claim_tag: Optional[str] = None       # read by the pipeline after each segment reply
+        self._olds: List[Dict[str, Any]] = []      # one per directory that has the file
+        self._used: set = set()                     # (directory index, claim_id)
+
+    @staticmethod
+    def _written_by_reuse(posted_dir: Path, old: Dict[str, Any]) -> bool:
+        if old["_proposal"].get("reused_from"):
+            return True
+        meta = posted_dir.parent / "rows.meta.json"
+        if not meta.exists():
+            return False
+        try:
+            return bool(json.loads(meta.read_text(encoding="utf-8")).get("reuse"))
+        except (ValueError, OSError):
+            return False
 
     def start(self, name: str) -> None:
-        path = self.posted_dir / name.replace("/", "__")
-        self._old = json.loads(path.read_text(encoding="utf-8")) if path.exists() else None
+        self._olds = []
         self._used = set()
-        if self._old:
-            arts = {a["artifact_id"]: a["content"] for a in self._old["artifacts"]}
-            self._claim_text = {c["claim_id"]: arts[c["artifact_id"]][c["start"]:c["end"]]
-                                for c in self._old["claims"]}
+        for i, d in enumerate(self.posted_dirs):
+            path = d / name.replace("/", "__")
+            if not path.exists():
+                continue
+            old = json.loads(path.read_text(encoding="utf-8"))
+            arts = {a["artifact_id"]: a["content"] for a in old["artifacts"]}
+            old["_claim_text"] = {c["claim_id"]: arts[c["artifact_id"]][c["start"]:c["end"]]
+                                  for c in old["claims"]}
+            old["_tagged"] = bool(old["claims"]) and all("proposed_by" in c for c in old["claims"])
+            old["_segments_ok"] = old["_tagged"] or not self._written_by_reuse(d, old)
+            old["_index"] = i
+            self._olds.append(old)
 
     def complete(self, system: str, user: str) -> str:
-        if self._old is not None:
-            m = re.search(r"(<+)\n(.*?)\n>+\n", user, re.S)
-            body = m.group(2) if m else None
-            if body is not None and user.startswith("TEXT:"):
-                arts = {a["artifact_id"]: a["content"] for a in self._old["artifacts"]}
-                aid = next((a for a, c in arts.items() if c == body), None)
-                if aid is not None:
-                    claims = [self._claim_text[c["claim_id"]] for c in self._old["claims"]
-                              if c["artifact_id"] == aid]
-                    claims += [d["text"] for d in self._old["_proposal"]["dropped_claims"]
-                               if d["artifact_id"] == aid]
+        m = re.search(r"(<+)\n(.*?)\n>+\n", user, re.S)
+        body = m.group(2) if m else None
+        self.claim_tag = None
+        if body is not None and user.startswith("TEXT:"):
+            for old in self._olds:
+                if not old["_segments_ok"]:
+                    continue
+                found = self._segment_of(old, body)
+                if found is not None:
+                    claims, replayed, from_answer = found
                     self.calls["segment_reused"] += 1
+                    # An untagged file that passed `_segments_ok` is a fresh
+                    # run's; its final answer never carried coverage, so those
+                    # claims are the model's. Elsewhere in it they may not be.
+                    self.claim_tag = ("replay" if replayed or not (old["_tagged"] or from_answer)
+                                      else None)
                     return json.dumps({"claims": claims}, ensure_ascii=False)
-            elif body is not None:
-                cid = self._asked_claim(body, user)
+        elif body is not None:
+            for old in self._olds:
+                cid = self._asked_claim(old, body, user)
                 if cid is not None:
                     self.calls["credits_reused"] += 1
-                    return json.dumps({"credits": self._credits_of(cid)}, ensure_ascii=False)
+                    return json.dumps({"credits": self._credits_of(old, cid)}, ensure_ascii=False)
         self.calls["model"] += 1
-        return self.inner.complete(system, user)
+        reply = self.inner.complete(system, user)
+        self.claim_tag = getattr(self.inner, "claim_tag", None)
+        return reply
 
-    def _asked_claim(self, text: str, user: str) -> Optional[str]:
+    @staticmethod
+    def _segment_of(old: Dict[str, Any], body: str) -> Optional[Tuple[List[str], bool, bool]]:
+        """The segmenter's claims for an artifact with this text; whether any
+        of them was itself replayed from an untagged file (then the model is
+        not known to have said them, and they stay `replay`); and whether they
+        were read from the final answer."""
+        # A root with the same text (OpenManus copies a `browser_use` digest
+        # into its answer) has no claims and is not an answer to the question.
+        twins = [a for a in old["artifacts"] if a["content"] == body
+                 and a["kind"] in ("intermediate", "final_answer")]
+        if not twins:
+            return None
+        # The segment prompt is the text alone, so any twin's answer is the
+        # model's answer to this question; the final answer never carries
+        # coverage, so it is the safe one to read in an untagged file.
+        art = next((a for a in twins if a["kind"] == "final_answer"), twins[0])
+        aid = art["artifact_id"]
+        mine = [c for c in old["claims"] if c["artifact_id"] == aid and c.get("proposed_by") != "coverage"]
+        claims = [old["_claim_text"][c["claim_id"]] for c in mine]
+        claims += [d["text"] for d in old["_proposal"]["dropped_claims"]
+                   if d["artifact_id"] == aid]
+        return (claims, any(c.get("proposed_by") == "replay" for c in mine),
+                art["kind"] == "final_answer")
+
+    def _asked_claim(self, old: Dict[str, Any], text: str, user: str) -> Optional[str]:
         srcs = set(re.findall(r"\[artifact_id: ([^\]]+)\]", user))
         inputs: Dict[str, set] = {}
-        for st in self._old["steps"]:
+        for st in old["steps"]:
             for o in st["outputs"]:
                 inputs[o] = set(st["inputs"])
-        asked = {e["claim_id"] for e in self._old["entries"]}
-        for c in self._old["claims"]:
+        asked = {e["claim_id"] for e in old["entries"]}
+        for c in old["claims"]:
             cid = c["claim_id"]
-            if cid in self._used or cid not in asked or self._claim_text[cid] != text:
+            key = (old["_index"], cid)
+            if key in self._used or cid not in asked or old["_claim_text"][cid] != text:
                 continue
             if inputs.get(c["artifact_id"]) == srcs:
-                self._used.add(cid)
+                self._used.add(key)
                 return cid
         return None
 
-    def _credits_of(self, cid: str) -> List[Dict[str, str]]:
-        arts = {a["artifact_id"]: a["content"] for a in self._old["artifacts"]}
+    @staticmethod
+    def _credits_of(old: Dict[str, Any], cid: str) -> List[Dict[str, str]]:
+        arts = {a["artifact_id"]: a["content"] for a in old["artifacts"]}
         out: List[Dict[str, str]] = []
         groups: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
-        for e in self._old["entries"]:
+        for e in old["entries"]:
             if e["claim_id"] != cid or not e["account"].startswith("EVIDENCE:"):
                 continue
             if e.get("proposed_by") == "verbatim":
@@ -185,7 +257,7 @@ class ReuseProposer:
             lo, hi = min(a for a, _ in spans), max(b for _, b in spans)
             out.append({"artifact_id": aid, "quote": arts[aid][lo:hi]})
         seen = {(c["artifact_id"], c["quote"]) for c in out}
-        for d in self._old["_proposal"]["dropped_credits"]:
+        for d in old["_proposal"]["dropped_credits"]:
             if d["claim_id"] != cid or d.get("proposed_by") == "verbatim" or not d.get("artifact_id"):
                 continue
             key = (d["artifact_id"], d["quote"])
@@ -268,6 +340,12 @@ def summarise(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
         "beyond_tool_boundary": block(beyond),
         "by_subcategory_reachable": by_sub,
         "clean": {"n": len(clean), "flagged": sum(r["score"]["flagged"] for r in clean)},
+        # A trajectory whose final answer got no claim (the segmenter returned
+        # none, or none it returned was in the text) cannot be flagged; it is
+        # counted as not flagged above and named here so the reader can see it.
+        "no_final_claim": {"reachable": sum(1 for r in reach if r["score"].get("final_claims") == 0),
+                           "beyond_tool_boundary": sum(1 for r in beyond if r["score"].get("final_claims") == 0),
+                           "clean": sum(1 for r in clean if r["score"].get("final_claims") == 0)},
         "failures": sum(1 for r in rows if r.get("error")),
     }
 
@@ -309,6 +387,12 @@ def render(s: Dict[str, Any], model: str, which: str) -> str:
         "categories (Liu et al., 2026); that figure is over a different set and is not "
         "comparable to any cell above without that caveat.",
     ]
+    nfc = s.get("no_final_claim") or {}
+    if any(nfc.values()):
+        lines.append(f"\n{sum(nfc.values())} trajectory(ies) had no final-answer claim posted (the "
+                     f"segmenter returned none, or none it returned was in the text) and count as not "
+                     f"flagged: {nfc['reachable']} reachable, {nfc['beyond_tool_boundary']} beyond the "
+                     f"boundary, {nfc['clean']} clean.")
     if s["failures"]:
         lines.append(f"\n{s['failures']} trajectory(ies) failed in the proposer and are excluded.")
     return "\n".join(lines) + "\n"
@@ -324,9 +408,11 @@ def main(argv=None) -> int:
     ap.add_argument("--seed", type=int, default=7)
     ap.add_argument("--model", default="claude-sonnet-4-6")
     ap.add_argument("--max-tool-chars", type=int, default=DEFAULT_MAX_TOOL_CHARS)
-    ap.add_argument("--reuse", default=None, metavar="POSTED_DIR",
+    ap.add_argument("--reuse", action="append", default=[], metavar="POSTED_DIR",
                     help="answer from a previous run's posted files where the same "
-                         "question was asked; only new questions go to the model")
+                         "question was asked; only new questions go to the model. "
+                         "May be given more than once; the first directory that "
+                         "can answer does")
     ap.add_argument("--include-codeact", action="store_true",
                     help="keep CodeAct trajectories (tool boundary inside the execution log)")
     ap.add_argument("--dry-run", action="store_true")
@@ -371,19 +457,36 @@ def main(argv=None) -> int:
     from tallystick.propose import AnthropicProposer, post_run
     proposer = AnthropicProposer(model=args.model)
     reuse: Optional[ReuseProposer] = None
+    work = Path(args.work)
     if args.reuse:
-        if not Path(args.reuse).is_dir():
-            print(f"not a directory: {args.reuse}", file=sys.stderr)
-            return 2
-        reuse = ReuseProposer(proposer, Path(args.reuse))
+        for d in args.reuse:
+            if not Path(d).is_dir():
+                print(f"not a directory: {d}", file=sys.stderr)
+                return 2
+            if Path(d).resolve() == (work / "posted").resolve():
+                print(f"--reuse {d} is this run's own posted directory; move the earlier "
+                      f"run into a subdirectory (rows.jsonl, rows.meta.json, posted/ "
+                      f"together) and point --reuse there", file=sys.stderr)
+                return 2
+            # Whether a run used --reuse is recorded beside its posted files
+            # (rows.meta.json) and, from 0.7.2, inside them. An untagged file
+            # with neither cannot be told from one whose answer already carries
+            # replayed coverage, and the reuse would replay it again, silently.
+            untagged = [f for f in Path(d).glob("*.json") if not all(
+                "proposed_by" in c for c in json.loads(f.read_text(encoding="utf-8")).get("claims", []))]
+            if untagged and not (Path(d).parent / "rows.meta.json").exists():
+                print(f"--reuse {d}: {len(untagged)} file(s) written before claims were tagged and no "
+                      f"rows.meta.json beside the directory to say whether that run used --reuse; "
+                      f"move the run's rows.meta.json next to posted/ and rerun", file=sys.stderr)
+                return 2
+        reuse = ReuseProposer(proposer, [Path(d) for d in args.reuse])
         proposer = reuse
 
-    work = Path(args.work)
     (work / "posted").mkdir(parents=True, exist_ok=True)
     params = {"select": args.select, "seed": args.seed, "limit": args.limit,
               "include_codeact": args.include_codeact, "max_tool_chars": args.max_tool_chars,
               "model": args.model, "tallystick_version": TALLYSTICK_VERSION,
-              "reuse": str(Path(args.reuse).resolve()) if args.reuse else None}
+              "reuse": [str(Path(d).resolve()) for d in args.reuse] or None}
     meta_path = work / "rows.meta.json"
     if meta_path.exists():
         before = json.loads(meta_path.read_text(encoding="utf-8"))
@@ -396,6 +499,15 @@ def main(argv=None) -> int:
         meta_path.write_text(json.dumps(params, indent=1), encoding="utf-8")
     rows_path = work / "rows.jsonl"
     rows: List[Dict[str, Any]] = []
+    stray = [] if rows_path.exists() else list((work / "posted").glob("*.json"))
+    if stray:
+        # An earlier run's posted files with no rows.jsonl beside them would be
+        # overwritten one by one, and nothing would say so.
+        print(f"{work / 'posted'} holds {len(stray)} file(s) from an earlier run but there is no "
+              f"rows.jsonl beside them; move that run into a subdirectory (rows.jsonl, "
+              f"rows.meta.json, results.json, RESULTS.md and posted/ together) and rerun",
+              file=sys.stderr)
+        return 2
     if rows_path.exists():
         for line in rows_path.read_text(encoding="utf-8").splitlines():
             if line.strip():
@@ -437,6 +549,8 @@ def main(argv=None) -> int:
                 run = load_run({k: trace[k] for k in ("artifacts", "steps")})
                 posted = post_run(run, proposer, on_demand=True)
                 posted["_meta"] = trace["_meta"]
+                if reuse is not None:
+                    posted["_proposal"]["reused_from"] = params["reuse"]
                 out = work / "posted" / (name.replace("/", "__"))
                 out.write_text(json.dumps(posted, ensure_ascii=False, indent=1), encoding="utf-8")
                 row["score"] = score(trace, posted)
