@@ -144,8 +144,8 @@ a fact about the recording: of the artifacts a chain passes through or stops at,
 many hold the model's own words rather than a tool's output. It is counted over
 artifacts, not steps, because a step-based fraction measures the recorder — one
 agent turn logged as a single step and the same turn logged as two score
-differently, while the artifact count is identical for all 693 AgentHallu traces
-under that same re-splitting. It decides nothing unless you ask with `--min-reachable`, because a run
+differently, while the artifact count cannot change: artifacts are texts, and
+how turns are grouped into steps does not change how many there are. It decides nothing unless you ask with `--min-reachable`, because a run
 that leans on tools is not broken; it is a run whose clean audit means less. The
 **defects** decide the verdict and each names something a recorder can fix: model
 text from a step that declares no inputs (nothing it wrote can ever be funded), text
@@ -171,15 +171,26 @@ AgentHallu rather than the subset a paid run could afford —
 Of the 443 labelled trajectories, those at or above 80% have the hallucination beyond
 the audit's reach in 24 of 84 runs (29%); those below it, in 212 of 359 (59%).
 
-**That is arithmetic, not prediction, and the script proves it against itself.** Swap
+Three things are true about that table and they belong together.
+
+The share itself is counting: it says how much of a run the audit cannot look at.
+
+**The banding is mostly arithmetic, and the script proves that against itself.** Swap
 the human label for a step drawn at random from the same trajectory — a label that
-knows nothing about where the hallucination is — and the same association comes back
-just as strongly. It has to: a trace with more tool-only steps makes *any* step more
-likely to be tool-only. So the table says what it says and no more: a thin recording
-has more of itself out of reach, and therefore more of whatever went wrong in it. The
+knows nothing about where the hallucination is — and the same ordering appears, 11%
+against 45%, because a trace with more tool-only steps makes *any* step more likely to
+be tool-only. So "below the line, more hallucinations are out of reach" is largely a
+restatement of "below the line, more of everything is out of reach", and the
 significance test the script prints rejects for the placebo too, which is why it is
-printed next to it rather than quoted on its own. The cut is not held out either, and
-it decides nothing unless you pass `--min-reachable`.
+printed beside it rather than quoted alone.
+
+**But the real labels are not the placebo.** They sit at a tool boundary 236 times
+where each trace's own composition predicts 172 — 1.37×, within-trace permutation
+p &lt; 0.0001 — and the enrichment is largest in the traces with the *highest* share
+(24 against 8.8, 2.7×). Real hallucinations do land at tool boundaries more often than
+chance puts them. That is a fact about agents rather than about this number, and it is
+why the boundary is worth measuring at all. The cut is not held out, and it decides
+nothing unless you pass `--min-reachable`.
 
 [`docs/auditable-traces.md`](docs/auditable-traces.md) is the specification behind
 it: what a trace has to contain, in the order it matters, framework-agnostic and
@@ -316,7 +327,7 @@ Read the first row as: where the hallucination was stated in the agent's own pro
 
 **What the numbers mean, three readings.**
 
-- **The boundary is the finding, not the footnote.** 61 of the 115 labelled runs — 53% — are labelled at a step whose only artifacts are tool results. No post-hoc audit of the file can reach them: the page the digest came from is not in the file. That is a statement about what a trace has to contain for provenance to be checkable at all, and it is measured, not argued. It also tracks something the file carries without any label, and `tallystick check-trace` reports that quantity. Measured on all 443 labelled trajectories in the dataset — which costs nothing, since that check reads the file and calls no model: where at least 80% of the artifacts a chain passes through hold the model's own words rather than a tool's output, the hallucination is beyond the boundary in 24 of 84 runs (29%); below that line, in 212 of 359 (59%). The relation is arithmetic rather than predictive — a placebo label, a step picked at random from the same run, reproduces it — so read it as "a thin recording has more of itself out of reach", which is exactly what makes a clean audit of one worth less.
+- **The boundary is the finding, not the footnote.** 61 of the 115 labelled runs — 53% — are labelled at a step whose only artifacts are tool results. No post-hoc audit of the file can reach them: the page the digest came from is not in the file. That is a statement about what a trace has to contain for provenance to be checkable at all, and it is measured, not argued. It also tracks something the file carries without any label, and `tallystick check-trace` reports that quantity. Measured on all 443 labelled trajectories in the dataset — which costs nothing, since that check reads the file and calls no model: where at least 80% of the artifacts a chain passes through hold the model's own words rather than a tool's output, the hallucination is beyond the boundary in 24 of 84 runs (29%); below that line, in 212 of 359 (59%). Most of that gap is arithmetic rather than prediction — a placebo label, a step picked at random from the same run, reproduces the ordering — so read it first as "a thin recording has more of itself out of reach", which is what makes a clean audit of one worth less. Real labels do sit at tool boundaries more often than the placebo (236 against an expected 172), which is a fact about agents rather than about the share.
 - **23 reachable misses, and they are not one failure.** 16 of the 23 are labelled at step 1 — the plan. The agent read the question wrong or chose the wrong rule before doing anything, and everything after it, the answer included, is faithfully derived from that choice. The chain to a root is intact and the audit is right to close it; the error is in the reasoning, which a provenance audit does not judge. Five more are misreadings of a real source (1946 taken for 1937; the wrong actor from a cast list): the words are in the source, the meaning is not, and those need a check of *whether* a span supports a claim — the v0.8 question. The last two had no claim to check. The three groups do not overlap.
 - **35% false alarms, with one cause dominating.** `bench/diagnose_agenthallu.py` sorts them: a paraphrase of a source, most of its words or some of them, is 20 of 38; a quote the proposer offered that is not verbatim in the source, 7; a computation or formula the agent derived, 6; something the agent stated from its own knowledge, 5. Only the last is the audit working as designed on a claim with no external support — and AgentHallu calls those runs clean because the answer was *true*, which is the other question. The rest is the cost of verbatim verification against agents that paraphrase what they read and compute what they report.
 

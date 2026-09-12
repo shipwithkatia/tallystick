@@ -51,7 +51,8 @@ def test_a_step_that_recorded_only_a_tool_result_is_opaque_but_not_a_defect():
     assert a.derived == 2 and a.tool_results == 1 and a.judged_artifacts == 3
     assert a.verdict == "auditable"          # a boundary is not a defect
     text = report(a)
-    assert "only a tool result: s2" in text and "ends on trust" in text
+    assert "Record the model's own text for each of:" in text and "\n    s2" in text
+    assert "on trust" in text
 
 
 def test_the_share_gates_the_verdict_only_when_it_is_asked_for():
@@ -427,6 +428,44 @@ def test_the_thin_warning_follows_the_line_the_caller_asked_for():
              {"step_id": "tl", "kind": "tool", "inputs": ["s"], "outputs": ["t"]},
              {"step_id": "a", "kind": "answer", "inputs": ["s", "t"], "outputs": ["f"]}]
     a = check(_run(arts, steps), min_reachable=0.5)      # share 0.75, above the line asked
-    assert a.verdict == "auditable" and "audit's reach" not in report(a)
-    b = check(_run(arts, steps))                          # no line: the 80% default warns
-    assert "audit's reach" in report(b)
+    assert a.verdict == "auditable" and "Below the" not in report(a)
+    # the AgentHallu paragraph is a fact about being under 80%, so it stays tied
+    # to 80% whatever line the caller passed - a 90% trace gated at 95% must not
+    # be told what happens below 80%
+    assert "443 labelled" in report(a)                    # 75%: still under 80%
+    thick = [dict(SUM, artifact_id=f"s{i}", content=f"Sentence {i} here.") for i in range(9)]
+    thick_steps = [{"step_id": "g", "kind": "generate", "inputs": [],
+                    "outputs": [x["artifact_id"] for x in thick]},
+                   {"step_id": "tl", "kind": "tool", "inputs": ["s0"], "outputs": ["t"]},
+                   {"step_id": "an", "kind": "answer", "inputs": ["s0", "t"], "outputs": ["f"]}]
+    c = check(_run(thick + [TOOL, ANS], thick_steps), min_reachable=0.95)   # share 10/11 = 90%
+    text = report(c)
+    assert "443 labelled" not in text and "Below the 95%" in text
+
+
+def test_a_trace_with_only_one_of_the_two_keys_still_loads():
+    """The guard refuses a file with NEITHER key. A trace that is all roots and
+    has no steps yet, or a skeleton with steps and no artifacts, is still our
+    format and must load - the verdict, not the loader, says what is wrong."""
+    assert len(load_run({"artifacts": [DOC]}).artifacts) == 1
+    assert load_run({"steps": []}).steps == []
+
+
+def test_an_unconsumed_root_is_measured_the_way_a_recorder_measures_it():
+    """`TraceRecorder` normalises whitespace before its 20-character floor, so
+    a root padded with newlines is short to it and long to len(). Measuring it
+    the other way would report exactly the roots it is right to skip."""
+    from tallystick.auditability import _MATCHABLE_ROOT_CHARS
+    padded = {"artifact_id": "t", "kind": "tool_result",
+              "content": "abc" + "\n" * 10 + "defghij"}          # 20 raw, 11 normalised
+    steps = [{"step_id": "s1", "kind": "tool", "inputs": [], "outputs": ["t"]},
+             {"step_id": "s2", "kind": "summarize", "inputs": [], "outputs": ["s"]},
+             {"step_id": "s3", "kind": "answer", "inputs": ["s"], "outputs": ["f"]}]
+    assert len(padded["content"].strip()) >= _MATCHABLE_ROOT_CHARS
+    assert "orphan_root" not in {f.code for f in check(_run([padded, SUM, ANS], steps)).findings}
+    # exactly at the floor once normalised, it is reported
+    at_floor = dict(padded, content="a b c d e f g h i j k")      # 21 normalised
+    assert [f.subject for f in check(_run([at_floor, SUM, ANS], steps)).findings
+            if f.code == "orphan_root"] == ["t"]
+    just_under = dict(padded, content="a b c d e f g h i j")       # 19 normalised
+    assert "orphan_root" not in {f.code for f in check(_run([just_under, SUM, ANS], steps)).findings}

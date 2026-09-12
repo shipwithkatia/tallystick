@@ -34,16 +34,23 @@ all (`bench/auditability_agenthallu.py`, output in `bench/results/`): of the 443
 that carry a human label, those at or above 80% have the label beyond the
 audit's reach in 24 of 84 runs (29%), and those below it in 212 of 359 (59%).
 
-That is a useful table and a modest claim, so here is what it is not. Replace
-the human label with a step drawn at random from the same trajectory - a label
-that knows nothing about the hallucination - and the association comes back
-just as strongly. It has to: a trace with more tool-only steps makes *any* step
-more likely to be tool-only. The relation is arithmetic, not a signal about
-where the hallucination sits, and the same goes for the significance test the
-script prints, which rejects for the placebo too. What the share tells you is
-how much of your run is out of the audit's reach. What follows from that is
-only what follows arithmetically: in a thin recording, more of what can go
-wrong goes wrong where nothing can check it.
+Three things are true about that table and they have to be said together.
+
+The share itself is counting: it says how much of this run the audit cannot
+look at. Nothing about it is in doubt.
+
+The banding is mostly arithmetic. Replace the human label with a step drawn at
+random from the same trajectory and the same ordering appears - 11% against
+45% - because a trace with more tool-only steps makes any step more likely to
+be tool-only. So "below the line, more hallucinations are out of reach" is
+largely a restatement of "below the line, more of everything is out of reach".
+
+But the real labels are not the placebo. They sit at a tool boundary 236 times
+where composition alone predicts 172 (1.37x, within-trace permutation
+p < 0.0001), and the enrichment is largest exactly in the traces with the
+highest share (24 against 8.8, 2.7x). Real hallucinations do land at tool
+boundaries more often than chance puts them - which is a fact about agents,
+not about this number, and it is the reason the boundary matters at all.
 
 The 80% line is chosen on this data and not held out, and one corpus is one
 corpus. So it decides nothing unless `--min-reachable` asks.
@@ -73,6 +80,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 
+from .normalize import normalize
 from .types import ArtifactKind, Run
 
 #: The share `--min-reachable` defaults to when it is asked for. Read off the
@@ -80,10 +88,13 @@ from .types import ArtifactKind, Run
 #: nothing unless the caller passes it.
 DEFAULT_MIN_REACHABLE = 0.8
 
-#: A root shorter than this is not reported as unconsumed. `adapters/langchain.py`
-#: deliberately refuses to match such a root into a prompt - a "4" in a prompt is
-#: no evidence that this tool result is what put it there - so an unconsumed short
-#: root is that rule working, not a recorder's mistake.
+#: A root shorter than this, measured the way a recorder measures it, is not
+#: reported as unconsumed. The number is `TraceRecorder.min_chars`'s default in
+#: `adapters/langchain.py`: that recorder deliberately refuses to match such a
+#: root into a prompt - a "4" in a prompt is no evidence that this tool result
+#: is what put it there - so an unconsumed short root is that rule working, not
+#: a mistake. A recorder with a higher `min_chars` will see false reports here;
+#: there is no way to know its setting from the trace.
 _MATCHABLE_ROOT_CHARS = 20
 
 
@@ -279,8 +290,12 @@ def check_trace(run: Run, *, min_reachable: Optional[float] = None,
         # 20 characters, on purpose: a "4" appearing in a prompt is not evidence
         # that this tool result is what put it there. Flagging those would blame
         # a recorder for a rule it is right to have.
+        # Measured the way the recorder measures it - `normalize` collapses
+        # whitespace runs, so "abc\n\n\n\n\n\n\n\n\n\ndefghij" is 11 characters to
+        # `TraceRecorder` and 20 to `len().strip()`. Using the other one would
+        # report exactly the roots the recorder is right to have skipped.
         if (art.kind.is_root and aid not in consumed and run.steps
-                and len(art.content.strip()) >= _MATCHABLE_ROOT_CHARS):
+                and len(normalize(art.content)) >= _MATCHABLE_ROOT_CHARS):
             findings.append(Finding(
                 "orphan_root", aid,
                 "recorded but no step declares it as an input, so nothing can ever be "
@@ -361,46 +376,49 @@ def _group(items: Tuple[Finding, ...], title: str, examples: int) -> List[str]:
 
 
 def report(a: Auditability, *, examples: int = 5) -> str:
-    """The human-readable view. One screen; `as_dict` has everything."""
+    """The human-readable view. Written for someone who has not read the docs:
+    every number says what it is counted over, which direction is better, and
+    what to do about it. `as_dict` has the rest."""
     share = a.reachable_share
-    # floored, not rounded: 79.6% must not print as "80%" on the line above a
-    # "below the 80% you asked for".
     pct = "n/a" if share is None else f"{int(share * 100)}%"
-    line = a.min_reachable if a.min_reachable is not None else DEFAULT_MIN_REACHABLE
-    thin = share is not None and share < line
-    headline = _HEADLINE[a.verdict]
-    if thin and a.verdict == "auditable":
-        headline = (f"AUDITABLE - no defect stands in the audit's way, but only {pct} "
-                    "of what a chain passes through is the model's own.")
+    below_default = share is not None and share < DEFAULT_MIN_REACHABLE
+    line = a.min_reachable
     lines = [
         f"Auditability - {a.steps} step(s), {a.artifacts} artifact(s)",
-        "-" * 64,
-        f"  model text           {a.derived - a.empty_derived}/{a.judged_artifacts}  {pct:>4}   "
-        "of what a chain passes through is the model's own",
-        f"  tool results         {a.tool_results:<5}          roots the audit cannot see behind",
-        f"  documents            {a.documents:<5}          external text stored verbatim, "
-        "not in the share",
-        f"  taken on trust       {a.root_chars} character(s) of root text, "
-        f"{a.tool_result_chars} of it from tools",
+        "-" * 66,
+        f"  What a chain can pass through   {a.judged_artifacts} piece(s) of text",
+        f"    written by the model          {a.derived - a.empty_derived:<4} {pct:>5}  "
+        "checkable: the audit can ask what it rests on",
+        f"    returned by a tool            {a.tool_results - a.empty_tool_results:<4}        "
+        "not checkable: a chain stops here, on trust",
+        f"  Stored from outside             {a.documents} document(s), "
+        f"{a.root_chars} character(s) of root text in all",
         "",
-        headline,
+        "  Higher is better: the more of a run the model wrote down, the more of it",
+        "  an audit can follow.",
+        "",
     ]
-    if a.tool_results:
-        if a.opaque_steps:
-            shown = ", ".join(a.opaque_steps[:examples])
-            more = f" (+{len(a.opaque_steps) - examples} more)" if len(a.opaque_steps) > examples else ""
-            lines.append(f"  Steps that recorded only a tool result: {shown}{more}.")
-        if thin:
-            lines += [
-                "  A chain that ends in a tool result ends on trust. Across AgentHallu's",
-                "  443 labelled trajectories, those below 80% had the hallucination beyond",
-                "  the audit's reach in 59% of runs, against 29% above it - arithmetic",
-                "  rather than prediction, since more of the run is out of reach to begin",
-                "  with. Read a clean audit of a thin recording as 'nothing found here',",
-                "  not as 'nothing there'.",
-            ]
-    if a.min_reachable is not None and share is not None and share < a.min_reachable:
-        lines.append(f"  Below the {a.min_reachable:.0%} you asked for.")
+    if a.verdict == "auditable" and below_default:
+        lines.append(f"AUDITABLE - no defect stands in the audit's way, but only {pct} of "
+                     "what a chain\npasses through is the model's own.")
+    else:
+        lines.append(_HEADLINE[a.verdict])
+    if a.opaque_steps:
+        lines += [
+            f"  {len(a.opaque_steps)} step(s) recorded a tool result and nothing the model "
+            "wrote, so the audit",
+            "  cannot ask what happened there. Record the model's own text for each of:",
+            "    " + ", ".join(a.opaque_steps),
+        ]
+    if below_default:
+        lines += [
+            "  Across AgentHallu's 443 labelled trajectories, runs below 80% had the",
+            "  hallucination beyond the audit's reach 59% of the time, against 29% above",
+            "  it - mostly because there is more out of reach to begin with. Read a clean",
+            "  audit of a thin recording as 'nothing found here', not 'nothing there'.",
+        ]
+    if line is not None and share is not None and share < line:
+        lines.append(f"  Below the {line:.0%} you asked for.")
     lines += _group(a.findings, "Defects a recorder can fix:", examples)
     lines += _group(a.notes, "Worth knowing (does not decide the verdict):", examples)
     return "\n".join(lines)

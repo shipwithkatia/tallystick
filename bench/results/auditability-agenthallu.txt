@@ -15,11 +15,13 @@ nothing about the hallucination:
   draw 2        12/84    14%             161/359   45%
   draw 3        12/84    14%             165/359   46%
   draw 4        11/84    13%             166/359   46%
-The placebo reproduces the association. It has to: a trace with more
-tool-only steps makes ANY step more likely to be tool-only. So the table
-above is arithmetic about this recording, not a signal about where the
-hallucination is - useful for 'how much of my run is out of reach', and
-not evidence of anything beyond that.
+The placebo reproduces the ORDERING, not the rates: a trace with more
+tool-only steps makes ANY step more likely to be tool-only, so most of the
+banding above is arithmetic. But the real labels sit at a tool boundary
+more often than the placebo does, in both bands - hallucinations really do
+land at tool boundaries more than chance puts them, which is a fact about
+agents rather than about the share. The table is 'how much of my run is
+out of reach'; it is not a predictor of where the hallucination is.
 
 At the 80% cut, by framework (only those with traces on both sides):
   Magentic-One               at or above 4/35   below 7/19
