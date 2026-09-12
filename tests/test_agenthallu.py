@@ -350,3 +350,28 @@ def test_reuse_credits_offer_a_straddling_quote_once_and_nothing_for_a_prior_onl
     assert reuse._credits_of("f.c1") == [{"artifact_id": "s", "quote": "Revenue grew 14%."},
                                          {"artifact_id": "s", "quote": "nowhere in the text"}]
     assert reuse._credits_of("f.c2") == []
+
+
+def test_resume_redoes_trajectories_that_failed_last_time(tmp_path, monkeypatch):
+    """The v0.7.1 rerun lost 19 trajectories to an exhausted API balance;
+    a resume must redo them, not count them as done."""
+    import tallystick.propose as tp
+
+    class Flaky(_Counting):
+        def __init__(self, *a, **k):
+            super().__init__()
+
+    monkeypatch.setattr(tp, "AnthropicProposer", Flaky)
+    work = tmp_path / "w"
+    args = ["--data", str(SAMPLE), "--work", str(work), "--select", "all"]
+    assert harness.main(args) == 0
+    rows = [json.loads(l) for l in (work / "rows.jsonl").read_text().splitlines()]
+    assert len(rows) == 3 and not any(r.get("error") for r in rows)
+    # fake a failure on one row and resume
+    rows[1] = {k: v for k, v in rows[1].items() if k not in ("score", "proposal")}
+    rows[1]["error"] = "BadRequestError: credit balance is too low"
+    (work / "rows.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
+    assert harness.main(args) == 0
+    again = [json.loads(l) for l in (work / "rows.jsonl").read_text().splitlines()]
+    assert len(again) == 3 and not any(r.get("error") for r in again)
+    assert {r["file"] for r in again} == {r["file"] for r in rows}

@@ -408,10 +408,19 @@ def main(argv=None) -> int:
             return 2
         wanted = {n: trace_sha(t) for n, t in traces}
         rows = [r for r in rows if r["file"] in wanted and r.get("trace_sha") == wanted[r["file"]]]
+        # A row that failed (a proposer error, an exhausted API balance) is
+        # not done: it is dropped here and redone, and the rows file is
+        # rewritten without it so the failure is not kept beside the result.
+        failed = [r for r in rows if r.get("error")]
+        rows = [r for r in rows if not r.get("error")]
+        if failed:
+            rows_path.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows),
+                                 encoding="utf-8")
         done = {r["file"] for r in rows}
         todo = [(n, t) for n, t in traces if n not in done]
-        if done:
-            print(f"resuming: {len(done)} done, {len(todo)} to go")
+        if done or failed:
+            print(f"resuming: {len(done)} done, {len(failed)} failed last time and will be "
+                  f"redone, {len(todo)} to go")
     else:
         todo = traces
 
