@@ -31,7 +31,7 @@ import sys
 from pathlib import Path
 
 from .auditability import DEFAULT_MIN_REACHABLE, check_trace, report
-from .io import load_run_file
+from .io import load_run, load_run_file
 from .ledger import close_books
 from .report import chain_view, summary
 
@@ -99,15 +99,18 @@ def _check_trace(args: argparse.Namespace) -> int:
     all, 2 when it cannot be read. Same shape as `audit`: 1 is a verdict about
     the trace, 2 is a failure to run - so a CI job can fail a build on a
     recording that has stopped keeping what an audit needs."""
-    try:
-        raw = json.loads(Path(args.trace).read_text(encoding="utf-8"))
-        run = load_run_file(args.trace)
-    except (OSError, ValueError) as exc:
-        print(f"tallystick: cannot read this trace: {exc}", file=sys.stderr)
-        return 2
+    # Checked before the file is touched: a bad flag is not worth reading a
+    # 700 MB trace to discover. `nan` fails every comparison, so it would be a
+    # gate the caller asked for that silently never fires.
     if args.min_reachable is not None and not 0.0 <= args.min_reachable <= 1.0:
         print(f"tallystick: --min-reachable must be a share between 0 and 1, "
               f"got {args.min_reachable}", file=sys.stderr)
+        return 2
+    try:
+        raw = json.loads(Path(args.trace).read_text(encoding="utf-8"))
+        run = load_run(raw)          # one read, one parse; `_meta` comes from `raw`
+    except (OSError, ValueError) as exc:
+        print(f"tallystick: cannot read this trace: {exc}", file=sys.stderr)
         return 2
     meta = raw.get("_meta") if isinstance(raw, dict) else None
     result = check_trace(run, min_reachable=args.min_reachable,
@@ -197,11 +200,11 @@ def build_parser() -> argparse.ArgumentParser:
     c.add_argument("trace", help="path to a raw run JSON (artifacts + steps)")
     c.add_argument("--min-reachable", type=float, nargs="?", default=None,
                    const=DEFAULT_MIN_REACHABLE, metavar="SHARE",
-                   help="also fail when fewer than this share of judged steps record "
-                        f"the model's own text (bare flag means {DEFAULT_MIN_REACHABLE:g}, "
-                        "read off the AgentHallu run, not a constant). Off by default: "
-                        "the share is reported either way, but only defects decide the "
-                        "verdict")
+                   help="also fail when fewer than this share of the artifacts a chain "
+                        "passes through hold the model's own text rather than a tool's "
+                        f"output (bare flag means {DEFAULT_MIN_REACHABLE:g}, read off the "
+                        "AgentHallu run, not a constant). Off by default: the share is "
+                        "reported either way, but only defects decide the verdict")
     c.add_argument("--json", dest="json_out", metavar="PATH",
                    help="write the machine-readable report here")
     c.add_argument("--quiet", action="store_true", help="exit code only")

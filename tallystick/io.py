@@ -74,6 +74,20 @@ def _int(raw: Dict[str, Any], key: str, what: str) -> int:
 def load_run(data: Dict[str, Any]) -> Run:
     """Build a Run from the on-disk shape. Raises TraceError on anything off."""
     data = _obj(data, "trace")
+    # A JSON object with neither key is almost always someone's own agent log -
+    # an OpenAI message list, a LangSmith export - handed straight to us. Every
+    # field below is optional, so without this the file would load as an empty
+    # run and be reported back as "your trace records no steps and no answer":
+    # a confident verdict about their recorder, when the truth is that this is
+    # not our format. That reads as exit 1 ("bad trace") instead of exit 2
+    # ("could not read it"), which is the one distinction the exit codes exist
+    # to make.
+    if "artifacts" not in data and "steps" not in data:
+        raise TraceError(
+            "no 'artifacts' or 'steps' key: this does not look like a tallystick "
+            "trace. If it is an agent log in another shape, convert it first - "
+            "docs/auditable-traces.md says what a trace has to contain, and "
+            "tallystick/adapters/ has worked converters")
     run = Run()
 
     for i, raw in enumerate(_list(data, "artifacts")):

@@ -75,8 +75,13 @@ def test_model_text_written_by_a_step_that_declares_no_inputs_is_a_defect():
         {"step_id": "s1", "kind": "retrieve", "inputs": [], "outputs": ["d"]},
         {"step_id": "s2", "kind": "summarize", "inputs": [], "outputs": ["s"]},
         {"step_id": "s3", "kind": "answer", "inputs": ["s"], "outputs": ["f"]}]))
-    assert [f.code for f in a.findings] == ["undeclared_inputs"]
-    assert a.findings[0].subject == "s2" and a.verdict == "partial"
+    codes = [f.code for f in a.findings]
+    assert "undeclared_inputs" in codes and a.verdict == "partial"
+    assert [f.subject for f in a.findings if f.code == "undeclared_inputs"] == ["s2"]
+    # and the document nobody took in is named too: with s2 declaring no inputs,
+    # `d` is recorded and unreachable, which is the same bug seen from the
+    # other end
+    assert [f.subject for f in a.findings if f.code == "orphan_root"] == ["d"]
 
 
 def test_derived_text_no_step_admits_to_writing():
@@ -263,3 +268,68 @@ def test_truncated_is_only_read_when_it_is_a_list():
     assert check(run, meta={"truncated": "doc1"}).findings == ()
     assert check(run, meta={"truncated": 7}).findings == ()
     assert [f.subject for f in check(run, meta={"truncated": ["doc1"]}).findings] == ["doc1"]
+
+
+def test_a_document_no_step_took_in_is_named_before_the_audit_blames_the_model():
+    """The recorder's own documented failure: when a prompt reformats or
+    truncates a document, `TraceRecorder` cannot match it and drops it from the
+    step's inputs. The audit then reports every claim resting on it as
+    unfunded, and says nothing about why. check-trace has to catch that here."""
+    a = check(_run([DOC, TOOL, SUM, ANS], [
+        {"step_id": "s1", "kind": "retrieve", "inputs": [], "outputs": ["d"]},
+        {"step_id": "s2", "kind": "tool", "inputs": ["d"], "outputs": ["t"]},
+        # the summariser really saw `d` too, but the recorder could not match it
+        {"step_id": "s3", "kind": "summarize", "inputs": ["t"], "outputs": ["s"]},
+        {"step_id": "s4", "kind": "answer", "inputs": ["s"], "outputs": ["f"]}]))
+    assert [f.code for f in a.findings] == []          # d IS consumed, by s2
+    b = check(_run([DOC, SUM, ANS], [
+        {"step_id": "s1", "kind": "retrieve", "inputs": [], "outputs": ["d"]},
+        {"step_id": "s3", "kind": "summarize", "inputs": [], "outputs": ["s"]},
+        {"step_id": "s4", "kind": "answer", "inputs": ["s"], "outputs": ["f"]}]))
+    assert [f.subject for f in b.findings if f.code == "orphan_root"] == ["d"]
+    assert b.verdict == "partial"
+
+
+def test_the_threshold_is_at_or_above_not_above():
+    """9 of the 225 published trajectories sit exactly on 0.8. Which way the
+    boundary falls moves the headline from 5 of 24 to 2 of 19, so it is pinned."""
+    arts = [SUM, dict(SUM, artifact_id="s2"), dict(SUM, artifact_id="s3"),
+            TOOL, ANS]
+    steps = [{"step_id": "s1", "kind": "summarize", "inputs": [], "outputs": ["s"]},
+             {"step_id": "sb", "kind": "summarize", "inputs": ["s"], "outputs": ["s2"]},
+             {"step_id": "sc", "kind": "summarize", "inputs": ["s2"], "outputs": ["s3"]},
+             {"step_id": "st", "kind": "tool", "inputs": ["s3"], "outputs": ["t"]},
+             {"step_id": "sd", "kind": "answer", "inputs": ["s3", "t"], "outputs": ["f"]}]
+    a = check(_run(arts, steps), min_reachable=DEFAULT_MIN_REACHABLE)
+    assert a.reachable_share == 0.8                      # 4 derived, 1 tool result
+    assert a.verdict != "partial" or "Below the" not in report(a)
+    assert check(_run(arts, steps), min_reachable=0.8000001).verdict == "partial"
+
+
+def test_an_empty_artifact_does_not_lift_the_share():
+    """A blank artifact is not evidence of anything; counting it as the model's
+    own words would let a recorder raise its score by writing nothing."""
+    arts = [dict(SUM, artifact_id="s", content="Revenue grew 14%."),
+            dict(SUM, artifact_id="blank", content="   "), TOOL, ANS]
+    steps = [{"step_id": "s1", "kind": "summarize", "inputs": [], "outputs": ["s"]},
+             {"step_id": "s2", "kind": "summarize", "inputs": ["s"], "outputs": ["blank"]},
+             {"step_id": "s3", "kind": "tool", "inputs": ["s"], "outputs": ["t"]},
+             {"step_id": "s4", "kind": "answer", "inputs": ["s", "t"], "outputs": ["f"]}]
+    a = check(_run(arts, steps))
+    assert a.derived == 3 and a.tool_results == 1 and a.empty_derived == 1
+    assert a.judged_artifacts == 3 and a.reachable_share == 2 / 3
+    assert "empty_artifact" in {f.code for f in a.findings}
+
+
+def test_the_printed_share_is_floored_so_it_never_reads_above_the_line():
+    arts = [dict(SUM, artifact_id=f"s{i}", content=f"Sentence number {i}.") for i in range(38)]
+    arts += [dict(TOOL, artifact_id=f"t{i}", content=f"tool {i}") for i in range(10)]
+    arts += [ANS]
+    steps = [{"step_id": "g", "kind": "generate", "inputs": [],
+              "outputs": [a["artifact_id"] for a in arts if a["kind"] != "tool_result"]},
+             {"step_id": "t", "kind": "tool", "inputs": ["s0"],
+              "outputs": [a["artifact_id"] for a in arts if a["kind"] == "tool_result"]}]
+    a = check(_run(arts, steps), min_reachable=0.8)
+    assert 0.795 < a.reachable_share < 0.8               # 40/50
+    text = report(a)
+    assert "  79%" in text and "Below the 80%" in text   # never "80% ... below 80%"

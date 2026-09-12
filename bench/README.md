@@ -26,14 +26,14 @@ The per-trace rows of all three runs are committed — `bench/results/2026-09-n1
 
 ## Re-measuring the auditability line
 
-`tallystick check-trace` reports the share of the artifacts a chain passes through
-that hold the model's own words rather than a tool's output, and the README quotes
-an 80% line from the AgentHallu run. That line is read off that data, not held out,
-and stratified by agent framework it is not significant. To re-measure on any
-labelled corpus, compute the share with `tallystick.check_trace` per trace and sort
-the labelled trajectories by whether the labelled step is beyond the audit's
-boundary (`_meta.label_at_tool_boundary` in the AgentHallu adapter). On the v0.7.3
-run: at or above 80%, 5 of 24 beyond the boundary; below, 56 of 91; a permutation
-test stratified by framework gives p ≈ 0.19, so check that stratification on your
-own corpus before trusting the line. A corpus of your own traces will not have the
-labels; what it will have is the share, which is the point.
+`bench/auditability_agenthallu.py` does it, over every trajectory in AgentHallu
+rather than the benchmark's subset — `check-trace` calls no model, so the whole
+dataset is free. It prints the 2x2 table at five cuts, the per-framework tables at
+the chosen one, and a permutation test that shuffles within each framework, which
+is the test that matters: a framework that both records thinly and hallucinates
+past the boundary would otherwise manufacture a pooled association carrying no
+information about any single trace. Read the per-framework tables before the
+p-value. `--exclude-codeact` drops the runs whose tools execute inside
+model-written code; `--cut` moves the line; `--json` writes every row.
+
+Nothing in it is held out. On another corpus, run it before trusting the 80%.

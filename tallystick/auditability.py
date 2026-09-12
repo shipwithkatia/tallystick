@@ -29,17 +29,21 @@ alone moves 11% of them across any threshold. Artifacts do not move.
 stored verbatim is exactly what a trace should hold; counting it against the
 recording would punish the thing being asked for.
 
-On the 225 AgentHallu trajectories of the v0.7.3 run, measured with this
-function: traces at or above 80% held 5 of their 24 labelled hallucinations
-(21%) beyond the audit's reach, and traces below it held 56 of 91 (62%). The
-association is strong when the corpus is pooled and **weak within a framework**
-- stratified by the agent framework that produced each run, a permutation test
-puts it at p ~ 0.19. Most of the pooled effect is that some frameworks record
-thinly and hallucinate past the boundary (OpenManus: 22 of 22) while others
-record thickly and do not (Octotools: 0 of 9). So read the share as a fact
-about this recording, and the 80% line as a default worth testing on your own
-traces - not as a tested predictor, and not as a constant. `bench/README.md`
-says how to re-measure it. It decides nothing unless `--min-reachable` asks.
+On all 693 AgentHallu trajectories, measured with this function and no model at
+all (`bench/auditability_agenthallu.py`, output in `bench/results/`): of the 443
+that carry a human label, those at or above 80% have the label beyond the
+audit's reach in 24 of 84 runs (29%), and those below it in 212 of 359 (59%).
+The association survives the test that matters - shuffled *within* each agent
+framework, so that "some frameworks record thinly and also hallucinate past the
+boundary" cannot produce it, a permutation test gives p = 0.0027, and the four
+frameworks with traces on both sides of the cut point the same way (Magentic-One
+11% against 37%, OpenManus 40% against 72%, OWL 57% against 72%, Octotools 0%
+against 0%). Excluding the CodeAct runs, whose adapter cannot honestly separate
+the world's text from the model's, changes nothing: p = 0.0027.
+
+The 80% line is still chosen on this data and not held out, and one corpus is
+one corpus. So it decides nothing unless `--min-reachable` asks, and it is a
+rule to test on your own traces rather than a predictor already tested.
 
 A low share is not a defect. It is the reason a later clean audit of the same
 trace may mean less than it looks.
@@ -94,6 +98,8 @@ class Auditability:
     documents: int = 0
     tool_results: int = 0
     derived: int = 0
+    empty_derived: int = 0
+    empty_tool_results: int = 0
     root_chars: int = 0
     tool_result_chars: int = 0
     steps: int = 0
@@ -107,16 +113,19 @@ class Auditability:
 
     @property
     def judged_artifacts(self) -> int:
-        """What the share is taken over: model text and tool results. Documents
-        are excluded - storing them verbatim is the point, not a shortcoming."""
-        return self.derived + self.tool_results
+        """What the share is taken over: model text and tool results that hold
+        something. Documents are excluded - storing them verbatim is the point,
+        not a shortcoming - and an artifact recorded with no content is not
+        evidence of anything, so it neither lifts nor lowers the share."""
+        return ((self.derived - self.empty_derived)
+                + (self.tool_results - self.empty_tool_results))
 
     @property
     def reachable_share(self) -> Optional[float]:
         """`None` when there is nothing to take a share of, never a bare 0."""
         if not self.judged_artifacts:
             return None
-        return self.derived / self.judged_artifacts
+        return (self.derived - self.empty_derived) / self.judged_artifacts
 
     @property
     def fatal(self) -> Tuple[Finding, ...]:
@@ -146,6 +155,8 @@ class Auditability:
             "min_reachable": self.min_reachable,
             "artifacts": self.artifacts,
             "judged_artifacts": self.judged_artifacts,
+            "empty_derived": self.empty_derived,
+            "empty_tool_results": self.empty_tool_results,
             "documents": self.documents,
             "tool_results": self.tool_results,
             "derived": self.derived,
@@ -219,7 +230,9 @@ def check_trace(run: Run, *, min_reachable: Optional[float] = None,
             "recorded as steps but produced nothing, so they are in no chain"))
 
     documents = tool_results = derived = 0
+    empty_derived = empty_tool = 0
     root_chars = tool_chars = 0
+    consumed: set = {aid for step in run.steps for aid in step.inputs}
     by_text: Dict[str, List[str]] = defaultdict(list)
     finals: List[str] = []
     for aid, art in run.artifacts.items():
@@ -240,9 +253,24 @@ def check_trace(run: Run, *, min_reachable: Optional[float] = None,
                     "model-written text no step admits to producing; the audit cannot "
                     "ask what that step had in hand"))
         if not art.content.strip():
+            if art.kind is ArtifactKind.TOOL_RESULT:
+                empty_tool += 1
+            elif art.kind is not ArtifactKind.DOCUMENT:
+                empty_derived += 1
             findings.append(Finding("empty_artifact", aid, "no content recorded"))
         else:
             by_text[art.content].append(aid)
+        # A root nobody took as an input is evidence the run cannot reach. The
+        # LangChain recorder documents exactly this failure: when a prompt
+        # reformats or truncates a document, the recorder cannot match it and
+        # drops it from the step's inputs - and then every claim that rests on
+        # it is reported unfunded, with nothing in the audit saying why.
+        if art.kind.is_root and aid not in consumed and run.steps:
+            findings.append(Finding(
+                "orphan_root", aid,
+                "recorded but no step declares it as an input, so nothing can ever be "
+                "credited to it; if the prompt reformats or truncates documents, "
+                "record the inputs the step really saw"))
 
     for ids in by_text.values():
         if len(ids) > 1:
@@ -253,8 +281,10 @@ def check_trace(run: Run, *, min_reachable: Optional[float] = None,
                 "their text will confuse them"))
 
     truncated = (meta or {}).get("truncated")
-    if isinstance(truncated, (list, tuple, set)):
-        for aid in truncated:
+    if isinstance(truncated, (list, tuple, set, frozenset)):
+        # a set has no order of its own; sorting keeps the report byte-stable
+        for aid in (sorted(map(str, truncated))
+                    if isinstance(truncated, (set, frozenset)) else truncated):
             findings.append(Finding(
                 "truncated", str(aid),
                 "recorded only in part, so a quote into the missing tail cannot be "
@@ -281,7 +311,8 @@ def check_trace(run: Run, *, min_reachable: Optional[float] = None,
 
     return Auditability(
         artifacts=len(run.artifacts), documents=documents, tool_results=tool_results,
-        derived=derived, root_chars=root_chars, tool_result_chars=tool_chars,
+        derived=derived, empty_derived=empty_derived, empty_tool_results=empty_tool,
+        root_chars=root_chars, tool_result_chars=tool_chars,
         steps=len(run.steps), reachable_steps=len(reachable),
         opaque_steps=tuple(opaque), ingest_steps=tuple(ingest),
         silent_steps=tuple(silent), findings=tuple(findings), notes=tuple(notes),
@@ -317,7 +348,9 @@ def _group(items: Tuple[Finding, ...], title: str, examples: int) -> List[str]:
 def report(a: Auditability, *, examples: int = 5) -> str:
     """The human-readable view. One screen; `as_dict` has everything."""
     share = a.reachable_share
-    pct = "n/a" if share is None else f"{share:.0%}"
+    # floored, not rounded: 79.6% must not print as "80%" on the line above a
+    # "below the 80% you asked for".
+    pct = "n/a" if share is None else f"{int(share * 100)}%"
     thin = share is not None and share < DEFAULT_MIN_REACHABLE
     headline = _HEADLINE[a.verdict]
     if thin and a.verdict == "auditable":
@@ -326,7 +359,7 @@ def report(a: Auditability, *, examples: int = 5) -> str:
     lines = [
         f"Auditability - {a.steps} step(s), {a.artifacts} artifact(s)",
         "-" * 64,
-        f"  model text           {a.derived}/{a.judged_artifacts}  {pct:>4}   "
+        f"  model text           {a.derived - a.empty_derived}/{a.judged_artifacts}  {pct:>4}   "
         "of what a chain passes through is the model's own",
         f"  tool results         {a.tool_results:<5}          roots the audit cannot see behind",
         f"  documents            {a.documents:<5}          external text stored verbatim, "
@@ -343,11 +376,12 @@ def report(a: Auditability, *, examples: int = 5) -> str:
             lines.append(f"  Steps that recorded only a tool result: {shown}{more}.")
         if thin:
             lines += [
-                "  A chain that ends in a tool result ends on trust. On the AgentHallu",
-                "  run, traces below 80% held 62% of their labelled hallucinations beyond",
-                "  the audit's reach, against 21% above it - pooled; within a framework",
-                "  the line is not significant (p ~ 0.19). Read a clean audit of a thin",
-                "  recording as 'nothing found here', not as 'nothing there'.",
+                "  A chain that ends in a tool result ends on trust. Across AgentHallu's",
+                "  443 labelled trajectories, those below 80% had the hallucination beyond",
+                "  the audit's reach in 59% of runs, against 29% above it (p = 0.003,",
+                "  shuffled within each agent framework; the cut is not held out). Read a",
+                "  clean audit of a thin recording as 'nothing found here', not as",
+                "  'nothing there'.",
             ]
     if a.min_reachable is not None and share is not None and share < a.min_reachable:
         lines.append(f"  Below the {a.min_reachable:.0%} you asked for.")

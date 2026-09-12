@@ -79,11 +79,36 @@ Keep both artifacts. `check-trace` reports this as a **note**, not a defect: it
 does not change the verdict and does not fail a build, because the fix is a
 change to the agent, not to the recording.
 
-### 5. Cuts, marked as cuts
+### 5. Every root consumed by the step that used it
+
+Recording a document is not enough; the step that read it has to declare it as
+an input. If your prompt reformats or truncates a document, an automatic
+recorder may fail to match it and drop it — and then every claim resting on it
+is reported unfunded, with nothing saying why. `check-trace` reports a root that
+no step takes in as `orphan_root`, which is the cheapest bug in this list to fix
+and the most expensive to miss.
+
+### 6. Cuts, marked as cuts
 
 If you truncate a large tool result to fit a prompt, record which artifacts were
 cut (`_meta.truncated`). A quote into the missing tail cannot be found, and the
 audit should say "not recorded", not "not supported".
+
+## What the verdicts mean
+
+| verdict | exit | what it licenses you to conclude |
+|---|---|---|
+| `AUDITABLE` | 0 | nothing in the recording stands in the audit's way; a clean audit of this trace means something |
+| `PARTIAL` | 1 | the audit will run, but read its silence as "nothing found here", not "nothing there" |
+| `UNAUDITABLE` | 1 | no answer to work back from, or nothing the model wrote: there is no question to ask |
+| — | 2 | the file could not be read at all. Never confuse this with a verdict |
+
+The JSON report (`--json`) uses these names: `reachable_share` is the number
+above; `judged_artifacts` is what it is taken over (model text plus tool
+results, minus any recorded empty); `opaque_steps` are steps whose outputs are
+all tool results; `ingest_steps` are steps whose outputs are all documents;
+`silent_steps` produced nothing; `findings` decide the verdict and `notes` do
+not.
 
 ## The shape
 

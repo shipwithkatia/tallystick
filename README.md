@@ -126,7 +126,7 @@ $ tallystick check-trace run.json
 
 Auditability - 11 step(s), 12 artifact(s)
 ----------------------------------------------------------------
-  model text           9/11   82%   of what a chain passes through is the model's own
+  model text           9/11   81%   of what a chain passes through is the model's own
   tool results         2              roots the audit cannot see behind
   documents            1              external text stored verbatim, not in the share
   taken on trust       16919 character(s) of root text, 16182 of it from tools
@@ -155,13 +155,30 @@ artifacts holding the same string, which real agents produce constantly and whic
 breaks any tooling that matches artifacts by their text. Exit 0 when no defect
 stands in the way, 1 when one does, 2 when the file cannot be read.
 
+The three verdicts say what they license you to conclude. **AUDITABLE**: nothing in
+the recording stops the audit; a clean result from it means something. **PARTIAL**:
+the audit will run, and its silence will not mean much — read it as "nothing found
+here", not "nothing there". **UNAUDITABLE**: there is no answer to work back from,
+or nothing the model wrote, so the audit has no question to ask. Exit 1 covers the
+last two, because the distinction that matters to a build is "can I trust a clean
+result", and the answer for both is no.
+
+Because `check-trace` needs no model, the 80% line could be measured on the whole of
+AgentHallu rather than the subset a paid run could afford —
+[`bench/auditability_agenthallu.py`](bench/auditability_agenthallu.py), output in
+[`bench/results/auditability-agenthallu.txt`](bench/results/auditability-agenthallu.txt).
+Of the 443 labelled trajectories, those at or above 80% have the hallucination beyond
+the audit's reach in 24 of 84 runs (29%); those below it, in 212 of 359 (59%).
+Shuffled *within* each agent framework — so that "some frameworks record thinly and
+also hallucinate past the boundary" cannot manufacture it — a permutation test gives
+**p = 0.0027**, and all four frameworks with traces on both sides point the same way.
+The cut is still chosen on this data rather than held out, and one corpus is one
+corpus: it decides nothing unless you pass `--min-reachable`, and it is a rule to
+test on your own traces, not a predictor already tested.
+
 [`docs/auditable-traces.md`](docs/auditable-traces.md) is the specification behind
 it: what a trace has to contain, in the order it matters, framework-agnostic and
-asking nothing of tallystick. The 80% line comes from the AgentHallu run below, read
-off that data rather than held out, and the association is pooled: stratified by
-agent framework it is not significant (p ≈ 0.19), because much of it is that some
-frameworks record thinly and hallucinate past the boundary while others do not. A
-default worth testing on your own traces, not a tested predictor.
+asking nothing of tallystick.
 
 ## How It Works
 
@@ -210,7 +227,8 @@ Done so far: v0.2 model-side proposers outside the verdict path; v0.3 LangChain 
 
 - [x] v0.7.3 run — 228 AgentHallu trajectories (115 labelled, of which 61 at a tool-result boundary; 113 clean), CodeAct runs excluded and counted. Two runs were withdrawn in review before publication: v0.7.0 (the locate refused verbatim quotes at glued word boundaries) and v0.7.1 (`--reuse` replayed a step's coverage claims onto a final answer with the same text); both faults are fixed and both runs' answers feed the rerun through `--reuse`, so it costs a hundred or two model calls, not a third full run. Each run's false alarms were sorted by cause with `bench/diagnose_agenthallu.py`; the v0.7.2 rerun was clean and served as the base for measuring three cheap changes offline — one adopted (a bare-value answer the segmenter skipped is posted whole) and two refused with numbers, in `bench/HISTORY.md` — before the run that carries it is published
 - [ ] a second retry when the proposer returns malformed or empty JSON: 7 of 228 runs were lost to it at v0.7.0, 4 at v0.7.2
-- [ ] a pre-flight auditability check (`check-trace`): report what share of a run's steps carry the model's own prose and which tool results are digests of pages the trace does not hold, so a trace is told whether it can be audited before anything is audited. On the AgentHallu selection that share separates 21% unreachable from 62% (see Real trajectories), and it needs no labels and no model — the cut is read off that data, not held out, and is not significant within a framework
+- [x] a pre-flight auditability check (`check-trace`): what share of the artifacts a chain passes through hold the model's own words, and which defects a recorder can fix, so a trace is told whether it can be audited before anything is audited. Measured on all 443 labelled AgentHallu trajectories at no cost, since it calls no model: 29% unreachable above the line against 59% below, p = 0.0027 within framework (see Real trajectories)
+- [ ] an adapter for the log shapes practitioners already have — OpenAI Chat Completions message lists first, then OpenTelemetry GenAI spans — so that `check-trace` can be run on a real recording without writing a converter by hand. This is the gap between the tool and its first user
 - [ ] v0.8 — the recall gap is the verifier checking *where*, not *whether*. On real trajectories 5 of 23 reachable misses are a real source misread (a 1946 date taken for a 1937 one), which is exactly this. One deterministic candidate: require the funding span to contain the claim's content words, measured on this benchmark before it is adopted. Separately: let the proposer post a paraphrase together with the verbatim span behind it, and verify the span
 - [ ] coverage for the remainder of a sentence the segmenter claimed only in part ("Revenue rose, and the CEO resigned" with a claim over the first clause): today the remainder is logged as uncredited characters, not posted as a claim
 - [ ] adapters: LangSmith and OpenTelemetry exports, so a team can audit yesterday's logs without changing code — and a benchmark on such traces, three or more steps, where the last hop is not verbatim by construction; LlamaIndex; Claude Citations ingested as pre-verified credits
@@ -293,7 +311,7 @@ Read the first row as: where the hallucination was stated in the agent's own pro
 
 **What the numbers mean, three readings.**
 
-- **The boundary is the finding, not the footnote.** 61 of the 115 labelled runs — 53% — are labelled at a step whose only artifacts are tool results. No post-hoc audit of the file can reach them: the page the digest came from is not in the file. That is a statement about what a trace has to contain for provenance to be checkable at all, and it is measured, not argued. It also tracks something the file carries without any label, and `tallystick check-trace` reports that quantity: where at least 80% of the artifacts a chain passes through hold the model's own words rather than a tool's output, 5 of 24 labelled hallucinations are beyond the boundary (21%); below that line, 56 of 91 are (62%). Two caveats, both material. The cut is read off these same 115 runs rather than held out. And stratified by the framework that produced each run it is not significant (permutation test, p ≈ 0.19): most of the pooled association is that OpenManus records thinly and is beyond the boundary in 22 of 22 runs while Octotools records thickly and is in 0 of 9. So the share is a fact about a recording, and a rule to test — not a predictor already tested.
+- **The boundary is the finding, not the footnote.** 61 of the 115 labelled runs — 53% — are labelled at a step whose only artifacts are tool results. No post-hoc audit of the file can reach them: the page the digest came from is not in the file. That is a statement about what a trace has to contain for provenance to be checkable at all, and it is measured, not argued. It also tracks something the file carries without any label, and `tallystick check-trace` reports that quantity. Measured on all 443 labelled trajectories in the dataset — which costs nothing, since that check reads the file and calls no model: where at least 80% of the artifacts a chain passes through hold the model's own words rather than a tool's output, the hallucination is beyond the boundary in 24 of 84 runs (29%); below that line, in 212 of 359 (59%); shuffled within each agent framework, p = 0.0027. The cut is read off this data rather than held out, so it is a rule to test on other traces, not a predictor already tested — but the quantity it cuts on is in every trace, before anything is audited.
 - **23 reachable misses, and they are not one failure.** 16 of the 23 are labelled at step 1 — the plan. The agent read the question wrong or chose the wrong rule before doing anything, and everything after it, the answer included, is faithfully derived from that choice. The chain to a root is intact and the audit is right to close it; the error is in the reasoning, which a provenance audit does not judge. Five more are misreadings of a real source (1946 taken for 1937; the wrong actor from a cast list): the words are in the source, the meaning is not, and those need a check of *whether* a span supports a claim — the v0.8 question. The last two had no claim to check. The three groups do not overlap.
 - **35% false alarms, with one cause dominating.** `bench/diagnose_agenthallu.py` sorts them: a paraphrase of a source, most of its words or some of them, is 20 of 38; a quote the proposer offered that is not verbatim in the source, 7; a computation or formula the agent derived, 6; something the agent stated from its own knowledge, 5. Only the last is the audit working as designed on a claim with no external support — and AgentHallu calls those runs clean because the answer was *true*, which is the other question. The rest is the cost of verbatim verification against agents that paraphrase what they read and compute what they report.
 

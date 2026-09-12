@@ -1,0 +1,17 @@
+693 trajectories, 443 labelled, 236 of them beyond the audit's boundary
+
+share cut   at or above: beyond/n        below: beyond/n
+  0.5         119/295   40%             117/148   79%
+  0.6          64/215   30%             172/228   75%
+  0.7          41/135   30%             195/308   63%
+  0.8          24/84    29%             212/359   59%
+  0.9           1/25     4%             235/418   56%
+
+At the 80% cut, by framework (only those with traces on both sides):
+  Magentic-One               at or above 4/35   below 7/19
+  OWL                        at or above 16/28   below 21/29
+  Octotools                  at or above 0/11   below 0/19
+  OpenManus                  at or above 4/10   below 53/74
+
+permutation test stratified by framework, 20000 draws: p = 0.0027
+The cut is chosen on this data and is not held out; treat it as a rule to test on your own traces.
