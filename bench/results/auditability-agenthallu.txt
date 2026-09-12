@@ -7,11 +7,27 @@ share cut   at or above: beyond/n        below: beyond/n
   0.8          24/84    29%             212/359   59%
   0.9           1/25     4%             235/418   56%
 
+PLACEBO at the 80% cut - the same table with the human label replaced
+by 'a step drawn at random from this trajectory is tool-only', which knows
+nothing about the hallucination:
+  draw 0         6/84     7%             167/359   47%
+  draw 1        13/84    15%             159/359   44%
+  draw 2        12/84    14%             161/359   45%
+  draw 3        12/84    14%             165/359   46%
+  draw 4        11/84    13%             166/359   46%
+The placebo reproduces the association. It has to: a trace with more
+tool-only steps makes ANY step more likely to be tool-only. So the table
+above is arithmetic about this recording, not a signal about where the
+hallucination is - useful for 'how much of my run is out of reach', and
+not evidence of anything beyond that.
+
 At the 80% cut, by framework (only those with traces on both sides):
   Magentic-One               at or above 4/35   below 7/19
   OWL                        at or above 16/28   below 21/29
   Octotools                  at or above 0/11   below 0/19
   OpenManus                  at or above 4/10   below 53/74
 
-permutation test stratified by framework, 20000 draws: p = 0.0027
-The cut is chosen on this data and is not held out; treat it as a rule to test on your own traces.
+permutation test stratified by framework, 20000 draws: p = 0.003.
+Read it next to the placebo, not on its own: it rules out a between-framework
+confounder and rejects for the placebo too, so it is not evidence for the cut.
+Nothing here is held out; the cut is chosen on the data it is scored on.

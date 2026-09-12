@@ -36,7 +36,16 @@ Every piece of text the run produced or received, each with an id and one of:
 | `intermediate` | the model's own text — a plan, a summary, a scratchpad, a memory write | derived: must itself be funded |
 | `final_answer` | what the user saw | derived: this is what the audit starts from |
 
-The line that matters is `tool_result` against `intermediate`. A tool that hands
+**A tool that returns text as fetched is a `document`; a tool that returns another
+model's words is a `tool_result`.** A retriever handing back the passage, a file
+reader handing back the file, a database handing back the row — those brought in
+external text and stored it verbatim, which is exactly what a root should be. A
+web search API answering with a digest rather than the page did not. The
+distinction is load-bearing, not cosmetic: `check-trace` counts documents on
+neither side of its share and tool results against you, so labelling a verbatim
+retrieval as a `tool_result` understates your own recording.
+
+The other line that matters is `tool_result` against `intermediate`. A tool that hands
 back the agent's own text — a note store, a `final_answer` tool, an interpreter
 echoing a literal from the model's code — did not bring anything in from
 outside, and recording it as a root launders it into evidence. Record it as
@@ -103,12 +112,17 @@ audit should say "not recorded", not "not supported".
 | `UNAUDITABLE` | 1 | no answer to work back from, or nothing the model wrote: there is no question to ask |
 | — | 2 | the file could not be read at all. Never confuse this with a verdict |
 
-The JSON report (`--json`) uses these names: `reachable_share` is the number
-above; `judged_artifacts` is what it is taken over (model text plus tool
-results, minus any recorded empty); `opaque_steps` are steps whose outputs are
-all tool results; `ingest_steps` are steps whose outputs are all documents;
-`silent_steps` produced nothing; `findings` decide the verdict and `notes` do
-not.
+The JSON report (`--json`) has these fields. `verdict` is the word above and
+`min_reachable` the line you asked for, or `null`. `reachable_share` is the
+share, `judged_artifacts` what it is taken over. `artifacts`, `documents`,
+`tool_results` and `derived` count the artifacts by kind (the last three sum to
+the first); `empty_derived` and `empty_tool_results` are how many of those held
+no content, and they are excluded from the share on both sides. `root_chars` is
+how much root text the audit takes on trust and `tool_result_chars` how much of
+that came from tools. `steps` is the step count, `reachable_steps` those that
+recorded model text, `opaque_steps` those whose outputs are all tool results,
+`ingest_steps` those whose outputs are all documents, `silent_steps` those that
+produced nothing. `findings` decide the verdict; `notes` do not.
 
 ## The shape
 

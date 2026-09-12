@@ -12,15 +12,23 @@ reports - of the artifacts a chain passes through, how many hold the model's own
 words rather than a tool's output - and compares it with whether the human label
 sits at a step the audit cannot reach (`_meta.label_at_tool_boundary`).
 
-Two tests, because the pooled one is not enough. A framework that records thinly
-and hallucinates past the boundary would produce a strong pooled association
-with no information about any individual trace, so the permutation test shuffles
-*within* each framework and uses only the frameworks that have traces on both
-sides of the cut. The 2x2 table is printed for every one of them: read those
-before the p-value.
+The headline table is descriptive and useful: if a trace is below the cut, a
+hallucination in it lands beyond the audit more often than if it is above. What
+it is NOT is evidence that the share carries information about where the
+hallucination is, and this script says so with its own placebo. Replace the
+human label with a step drawn at random from the same trajectory - a label that
+knows nothing about the hallucination - and the association comes back just as
+strongly. It has to: a trace with a larger share of tool-only steps makes *any*
+step more likely to be tool-only. The relation is arithmetic.
 
-Nothing here is held out. The cut is chosen on the same data it is scored on,
-which is why the README calls it a default to test rather than a predictor.
+That also disposes of the permutation test this script used to lead with.
+Shuffling `beyond` within each framework rules out "some frameworks record
+thinly and also hallucinate past the boundary", which is a real confounder but
+not the dominant one; it cannot see the within-trace one, and it rejects for the
+placebo too. It is printed here next to the placebo so the pair can be read
+together, and nowhere else.
+
+Nothing is held out; the cut is chosen on the same data it is scored on.
 """
 
 from __future__ import annotations
@@ -53,10 +61,23 @@ def rows_for(data: Path, *, include_codeact: bool = True) -> List[Row]:
                         meta=meta)
         if a.reachable_share is None:
             continue
+        # Which history steps recorded a tool result and nothing else - the same
+        # rule `label_at_tool_boundary` applies to the labelled step. Kept so the
+        # placebo can ask "would a step picked at random look beyond the audit?"
+        art_step = {o: meta["history_step_of"].get(st["step_id"])
+                    for st in trace["steps"] for o in st["outputs"]}
+        per: Dict[int, List[str]] = defaultdict(list)
+        for art in trace["artifacts"]:
+            h = art_step.get(art["artifact_id"])
+            if h is not None:
+                per[h].append(art["kind"])
         out.append({"file": name, "framework": meta["framework"] or path.parent.name,
                     "hallucinated": meta["is_hallucination"],
                     "beyond": meta["label_at_tool_boundary"],
-                    "share": a.reachable_share})
+                    "share": a.reachable_share,
+                    "history_steps": sorted(per),
+                    "tool_only_steps": {h for h, ks in per.items()
+                                        if ks and all(k == "tool_result" for k in ks)}})
     return out
 
 
@@ -64,6 +85,20 @@ def table(rows: List[Row], cut: float) -> Tuple[int, int, int, int]:
     hi = [r for r in rows if r["share"] >= cut]
     lo = [r for r in rows if r["share"] < cut]
     return len(hi), sum(1 for r in hi if r["beyond"]), len(lo), sum(1 for r in lo if r["beyond"])
+
+
+def placebo_rows(rows: List[Row], data: Path, seed: int) -> List[Row]:
+    """The same rows with `beyond` replaced by "a step drawn at random from this
+    trajectory is tool-only". Carries no information about the hallucination."""
+    rnd = random.Random(seed)
+    out: List[Row] = []
+    for r in rows:
+        steps = r["tool_only_steps"], r["history_steps"]
+        tool_only, all_steps = steps
+        if not all_steps:
+            continue
+        out.append(dict(r, beyond=rnd.choice(sorted(all_steps)) in tool_only))
+    return out
 
 
 def stratified_p(rows: List[Row], cut: float, *, draws: int = 20000, seed: int = 0
@@ -93,7 +128,8 @@ def stratified_p(rows: List[Row], cut: float, *, draws: int = 20000, seed: int =
             total += sum(1 for h, b in zip(highs, beyond) if h and not b)
         if total >= observed:
             at_least += 1
-    return at_least / draws, {k: table(v, cut) for k, v in informative.items()}
+    # (r + 1) / (n + 1): a permutation p is an estimate, and 0/20000 is not 0.
+    return (at_least + 1) / (draws + 1), {k: table(v, cut) for k, v in informative.items()}
 
 
 def main(argv=None) -> int:
@@ -120,18 +156,34 @@ def main(argv=None) -> int:
         n_hi, b_hi, n_lo, b_lo = table(labelled, cut)
         print(f"  {cut:.1f}        {b_hi:>4}/{n_hi:<4} {b_hi / max(1, n_hi):>4.0%}"
               f"            {b_lo:>4}/{n_lo:<4} {b_lo / max(1, n_lo):>4.0%}")
+    print()
+    print(f"PLACEBO at the {args.cut:.0%} cut - the same table with the human label replaced")
+    print("by 'a step drawn at random from this trajectory is tool-only', which knows")
+    print("nothing about the hallucination:")
+    for seed in range(5):
+        pl = placebo_rows(labelled, data, seed)
+        n_hi, b_hi, n_lo, b_lo = table(pl, args.cut)
+        print(f"  draw {seed}      {b_hi:>4}/{n_hi:<4} {b_hi / max(1, n_hi):>4.0%}"
+              f"            {b_lo:>4}/{n_lo:<4} {b_lo / max(1, n_lo):>4.0%}")
+    print("The placebo reproduces the association. It has to: a trace with more")
+    print("tool-only steps makes ANY step more likely to be tool-only. So the table")
+    print("above is arithmetic about this recording, not a signal about where the")
+    print("hallucination is - useful for 'how much of my run is out of reach', and")
+    print("not evidence of anything beyond that.")
     p, strata = stratified_p(labelled, args.cut, draws=args.draws)
     print()
     print(f"At the {args.cut:.0%} cut, by framework (only those with traces on both sides):")
     for fw, (n_hi, b_hi, n_lo, b_lo) in sorted(strata.items()):
         print(f"  {fw:26} at or above {b_hi}/{n_hi:<3}  below {b_lo}/{n_lo}")
-    print(f"\npermutation test stratified by framework, {args.draws} draws: p = {p:.4f}")
-    print("The cut is chosen on this data and is not held out; treat it as a rule to "
-          "test on your own traces.")
+    print(f"\npermutation test stratified by framework, {args.draws} draws: p = {p:.3f}.")
+    print("Read it next to the placebo, not on its own: it rules out a between-framework")
+    print("confounder and rejects for the placebo too, so it is not evidence for the cut.")
+    print("Nothing here is held out; the cut is chosen on the data it is scored on.")
     if args.json_out:
         Path(args.json_out).write_text(json.dumps(
-            {"cut": args.cut, "draws": args.draws, "p": p, "rows": rows}, indent=1),
-            encoding="utf-8")
+            {"cut": args.cut, "draws": args.draws, "p": p,
+             "rows": [{k: (sorted(v) if isinstance(v, set) else v) for k, v in r.items()}
+                      for r in rows]}, indent=1), encoding="utf-8")
     return 0
 
 

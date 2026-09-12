@@ -333,3 +333,100 @@ def test_the_printed_share_is_floored_so_it_never_reads_above_the_line():
     assert 0.795 < a.reachable_share < 0.8               # 40/50
     text = report(a)
     assert "  79%" in text and "Below the 80%" in text   # never "80% ... below 80%"
+
+
+def test_a_file_that_is_not_a_trace_is_refused_rather_than_diagnosed(tmp_path):
+    """Someone's own agent log, handed straight in, must not come back as
+    'your trace records no steps and no answer'. That is a confident verdict
+    about their recorder when the truth is that this is not our format."""
+    from tallystick.types import TraceError
+    for foreign in ({}, {"messages": [{"role": "user", "content": "hi"}]},
+                    {"claims": []}, {"_meta": {"source": "somewhere"}}):
+        with pytest.raises(TraceError):
+            load_run(foreign)
+    # a trace with only one of the two keys is still a trace: all-roots and
+    # no answer is a thing a recording can honestly be, and the verdict says so
+    a = check(_run([DOC], []))
+    assert a.verdict == "unauditable"
+    assert {f.code for f in a.fatal} == {"no_final_answer", "no_steps"}
+    path = tmp_path / "log.json"
+    path.write_text(json.dumps({"messages": []}), encoding="utf-8")
+    assert main(["check-trace", str(path), "--quiet"]) == 2      # not 1
+
+
+def test_an_unconsumed_root_too_short_for_a_recorder_to_match_is_left_alone():
+    """`adapters/langchain.py` refuses to match a root under 20 characters into
+    a prompt on purpose. Reporting those as the recorder's bug would be blaming
+    it for a rule it is right to have - and "4" is what half the tools return."""
+    short = {"artifact_id": "t", "kind": "tool_result", "content": "4"}
+    steps = [{"step_id": "s1", "kind": "tool", "inputs": [], "outputs": ["t"]},
+             {"step_id": "s2", "kind": "summarize", "inputs": [], "outputs": ["s"]},
+             {"step_id": "s3", "kind": "answer", "inputs": ["s"], "outputs": ["f"]}]
+    a = check(_run([short, SUM, ANS], steps))
+    assert "orphan_root" not in {f.code for f in a.findings}
+    # a tool result long enough to be matched is reported
+    long = dict(short, content="Headcount at year end was 1,200 people.")
+    b = check(_run([long, SUM, ANS], steps))
+    assert [f.subject for f in b.findings if f.code == "orphan_root"] == ["t"]
+    # and a trace with no steps at all is not lectured about unconsumed roots
+    c = check(_run([long, SUM, ANS], []))
+    assert "orphan_root" not in {f.code for f in c.findings}
+
+
+def test_an_empty_tool_result_counts_on_neither_side_either():
+    arts = [dict(SUM, artifact_id="s", content="Revenue grew 14%."),
+            dict(SUM, artifact_id="s2", content="Costs fell 3%."),
+            dict(TOOL, artifact_id="t", content="  "),
+            dict(TOOL, artifact_id="t2", content=""), ANS]
+    steps = [{"step_id": "g", "kind": "generate", "inputs": [], "outputs": ["s", "s2"]},
+             {"step_id": "tl", "kind": "tool", "inputs": ["s"], "outputs": ["t", "t2"]},
+             {"step_id": "a", "kind": "answer", "inputs": ["s", "s2"], "outputs": ["f"]}]
+    a = check(_run(arts, steps))
+    assert a.tool_results == 2 and a.empty_tool_results == 2
+    assert a.judged_artifacts == 3 and a.reachable_share == 1.0
+
+
+def test_a_run_whose_every_derived_artifact_is_blank_cannot_be_audited():
+    a = check(_run([DOC, dict(SUM, content="  "), dict(ANS, content="")], [
+        {"step_id": "s1", "kind": "retrieve", "inputs": [], "outputs": ["d"]},
+        {"step_id": "s2", "kind": "summarize", "inputs": ["d"], "outputs": ["s"]},
+        {"step_id": "s3", "kind": "answer", "inputs": ["s"], "outputs": ["f"]}]))
+    assert a.derived == 2 and a.empty_derived == 2
+    assert a.verdict == "unauditable"          # there is nothing the model wrote
+
+
+def test_truncated_findings_come_out_in_a_stable_order():
+    run = _run([DOC, SUM, ANS], [
+        {"step_id": "s1", "kind": "retrieve", "inputs": [], "outputs": ["d"]},
+        {"step_id": "s2", "kind": "summarize", "inputs": ["d"], "outputs": ["s"]},
+        {"step_id": "s3", "kind": "answer", "inputs": ["s"], "outputs": ["f"]}])
+    subjects = [f.subject for f in check(run, meta={"truncated": {"b", "a", "c"}}).findings]
+    assert subjects == ["a", "b", "c"]         # a set has no order; the report must
+
+
+def test_the_verdict_itself_treats_the_threshold_as_at_or_above():
+    """Not the report string - the verdict. 27 of the 443 measured trajectories
+    sit exactly on 0.8, so which way this falls moves a published number."""
+    arts = [dict(SUM, artifact_id=f"s{i}", content=f"Sentence {i} of the summary.")
+            for i in range(3)] + [TOOL, ANS]
+    steps = [{"step_id": "d", "kind": "retrieve", "inputs": [], "outputs": ["doc"]},
+             {"step_id": "g", "kind": "generate", "inputs": ["doc"],
+              "outputs": ["s0", "s1", "s2"]},
+             {"step_id": "tl", "kind": "tool", "inputs": ["s0"], "outputs": ["t"]},
+             {"step_id": "a", "kind": "answer", "inputs": ["s0", "t"], "outputs": ["f"]}]
+    arts = [dict(DOC, artifact_id="doc")] + arts
+    a = check(_run(arts, steps), min_reachable=0.8)
+    assert a.reachable_share == 0.8 and a.findings == () and a.verdict == "auditable"
+    assert check(_run(arts, steps), min_reachable=0.81).verdict == "partial"
+
+
+def test_the_thin_warning_follows_the_line_the_caller_asked_for():
+    arts = [DOC, SUM, dict(SUM, artifact_id="s2"), TOOL, ANS]
+    steps = [{"step_id": "d", "kind": "retrieve", "inputs": [], "outputs": ["d"]},
+             {"step_id": "g", "kind": "generate", "inputs": ["d"], "outputs": ["s", "s2"]},
+             {"step_id": "tl", "kind": "tool", "inputs": ["s"], "outputs": ["t"]},
+             {"step_id": "a", "kind": "answer", "inputs": ["s", "t"], "outputs": ["f"]}]
+    a = check(_run(arts, steps), min_reachable=0.5)      # share 0.75, above the line asked
+    assert a.verdict == "auditable" and "audit's reach" not in report(a)
+    b = check(_run(arts, steps))                          # no line: the 80% default warns
+    assert "audit's reach" in report(b)

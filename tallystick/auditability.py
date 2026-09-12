@@ -33,17 +33,20 @@ On all 693 AgentHallu trajectories, measured with this function and no model at
 all (`bench/auditability_agenthallu.py`, output in `bench/results/`): of the 443
 that carry a human label, those at or above 80% have the label beyond the
 audit's reach in 24 of 84 runs (29%), and those below it in 212 of 359 (59%).
-The association survives the test that matters - shuffled *within* each agent
-framework, so that "some frameworks record thinly and also hallucinate past the
-boundary" cannot produce it, a permutation test gives p = 0.0027, and the four
-frameworks with traces on both sides of the cut point the same way (Magentic-One
-11% against 37%, OpenManus 40% against 72%, OWL 57% against 72%, Octotools 0%
-against 0%). Excluding the CodeAct runs, whose adapter cannot honestly separate
-the world's text from the model's, changes nothing: p = 0.0027.
 
-The 80% line is still chosen on this data and not held out, and one corpus is
-one corpus. So it decides nothing unless `--min-reachable` asks, and it is a
-rule to test on your own traces rather than a predictor already tested.
+That is a useful table and a modest claim, so here is what it is not. Replace
+the human label with a step drawn at random from the same trajectory - a label
+that knows nothing about the hallucination - and the association comes back
+just as strongly. It has to: a trace with more tool-only steps makes *any* step
+more likely to be tool-only. The relation is arithmetic, not a signal about
+where the hallucination sits, and the same goes for the significance test the
+script prints, which rejects for the placebo too. What the share tells you is
+how much of your run is out of the audit's reach. What follows from that is
+only what follows arithmetically: in a thin recording, more of what can go
+wrong goes wrong where nothing can check it.
+
+The 80% line is chosen on this data and not held out, and one corpus is one
+corpus. So it decides nothing unless `--min-reachable` asks.
 
 A low share is not a defect. It is the reason a later clean audit of the same
 trace may mean less than it looks.
@@ -76,6 +79,12 @@ from .types import ArtifactKind, Run
 #: AgentHallu v0.7.3 run (see above); a default, not a law, and it decides
 #: nothing unless the caller passes it.
 DEFAULT_MIN_REACHABLE = 0.8
+
+#: A root shorter than this is not reported as unconsumed. `adapters/langchain.py`
+#: deliberately refuses to match such a root into a prompt - a "4" in a prompt is
+#: no evidence that this tool result is what put it there - so an unconsumed short
+#: root is that rule working, not a recorder's mistake.
+_MATCHABLE_ROOT_CHARS = 20
 
 
 @dataclass(frozen=True)
@@ -139,7 +148,7 @@ class Auditability:
         answer to work back from, or nothing the model wrote. `partial` means
         it will run and its silence will not mean much. Notes never decide it.
         """
-        if self.fatal or not self.derived:
+        if self.fatal or not (self.derived - self.empty_derived):
             return "unauditable"
         share = self.reachable_share
         if (self.min_reachable is not None and share is not None
@@ -265,7 +274,13 @@ def check_trace(run: Run, *, min_reachable: Optional[float] = None,
         # reformats or truncates a document, the recorder cannot match it and
         # drops it from the step's inputs - and then every claim that rests on
         # it is reported unfunded, with nothing in the audit saying why.
-        if art.kind.is_root and aid not in consumed and run.steps:
+        # ... but only for a root long enough that a recorder could have matched
+        # it. tallystick's own LangChain recorder refuses to match anything under
+        # 20 characters, on purpose: a "4" appearing in a prompt is not evidence
+        # that this tool result is what put it there. Flagging those would blame
+        # a recorder for a rule it is right to have.
+        if (art.kind.is_root and aid not in consumed and run.steps
+                and len(art.content.strip()) >= _MATCHABLE_ROOT_CHARS):
             findings.append(Finding(
                 "orphan_root", aid,
                 "recorded but no step declares it as an input, so nothing can ever be "
@@ -351,7 +366,8 @@ def report(a: Auditability, *, examples: int = 5) -> str:
     # floored, not rounded: 79.6% must not print as "80%" on the line above a
     # "below the 80% you asked for".
     pct = "n/a" if share is None else f"{int(share * 100)}%"
-    thin = share is not None and share < DEFAULT_MIN_REACHABLE
+    line = a.min_reachable if a.min_reachable is not None else DEFAULT_MIN_REACHABLE
+    thin = share is not None and share < line
     headline = _HEADLINE[a.verdict]
     if thin and a.verdict == "auditable":
         headline = (f"AUDITABLE - no defect stands in the audit's way, but only {pct} "
@@ -378,10 +394,10 @@ def report(a: Auditability, *, examples: int = 5) -> str:
             lines += [
                 "  A chain that ends in a tool result ends on trust. Across AgentHallu's",
                 "  443 labelled trajectories, those below 80% had the hallucination beyond",
-                "  the audit's reach in 59% of runs, against 29% above it (p = 0.003,",
-                "  shuffled within each agent framework; the cut is not held out). Read a",
-                "  clean audit of a thin recording as 'nothing found here', not as",
-                "  'nothing there'.",
+                "  the audit's reach in 59% of runs, against 29% above it - arithmetic",
+                "  rather than prediction, since more of the run is out of reach to begin",
+                "  with. Read a clean audit of a thin recording as 'nothing found here',",
+                "  not as 'nothing there'.",
             ]
     if a.min_reachable is not None and share is not None and share < a.min_reachable:
         lines.append(f"  Below the {a.min_reachable:.0%} you asked for.")
