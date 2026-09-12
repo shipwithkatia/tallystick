@@ -357,7 +357,7 @@ def _twin_run():
     """A last step and a final answer with the same text, as OpenManus and the
     SmolAgents `final_answer` echo produce: the step gets coverage claims, the
     answer by design does not."""
-    text = "Revenue grew 14%. I will now terminate the interaction."
+    text = "Revenue grew 14%. Costs fell by three percent over the year."
     return load_run({
         "artifacts": [{"artifact_id": "d", "kind": "document", "content": "Revenue grew 14%."},
                       {"artifact_id": "s6", "kind": "intermediate", "content": text},
@@ -418,7 +418,7 @@ def test_reuse_replays_the_segmenter_not_coverage_on_a_lone_step(tmp_path):
     run = load_run({
         "artifacts": [{"artifact_id": "d", "kind": "document", "content": "Revenue grew 14%."},
                       {"artifact_id": "s6", "kind": "intermediate",
-                       "content": "Revenue grew 14%. I will now terminate the interaction."},
+                       "content": "Revenue grew 14%. Costs fell by three percent over the year."},
                       {"artifact_id": "answer", "kind": "final_answer", "content": "Revenue grew 14%."}],
         "steps": [{"step_id": "s6", "kind": "generate", "inputs": ["d"], "outputs": ["s6"]},
                   {"step_id": "answer", "kind": "answer", "inputs": ["d", "s6"], "outputs": ["answer"]}],
@@ -526,3 +526,26 @@ def test_resume_redoes_trajectories_that_failed_last_time(tmp_path, monkeypatch)
     again = [json.loads(l) for l in (work / "rows.jsonl").read_text().splitlines()]
     assert len(again) == 3 and not any(r.get("error") for r in again)
     assert {r["file"] for r in again} == {r["file"] for r in rows}
+
+
+def test_reuse_does_not_replay_a_whole_answer_claim_as_the_segmenter_s(tmp_path):
+    run = load_run({
+        "artifacts": [{"artifact_id": "t", "kind": "tool_result", "content": "Result: 1898"},
+                      {"artifact_id": "answer", "kind": "final_answer", "content": "1898"}],
+        "steps": [{"step_id": "s1", "kind": "tool", "inputs": [], "outputs": ["t"]},
+                  {"step_id": "answer", "kind": "answer", "inputs": ["t"], "outputs": ["answer"]}],
+    })
+
+    class Silent(_Counting):
+        def complete(self, system, user):
+            if user.startswith("TEXT:"):
+                return json.dumps({"claims": []})
+            return super().complete(system, user)
+
+    first = post_run(run, Silent(), on_demand=True)
+    assert [c["proposed_by"] for c in first["claims"]] == ["whole-answer"]
+    (tmp_path / "X__1.json").write_text(json.dumps(first), encoding="utf-8")
+    reuse = harness.ReuseProposer(Silent(), tmp_path)
+    reuse.start("X/1.json")
+    second = post_run(run, reuse, on_demand=True)
+    assert [c["proposed_by"] for c in second["claims"]] == ["whole-answer"]

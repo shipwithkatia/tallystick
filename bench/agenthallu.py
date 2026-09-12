@@ -116,7 +116,8 @@ class ReuseProposer:
 
     Only what the model said is replayed. A claim the pipeline added itself
     (`proposed_by: "coverage"`, a sentence of a model step the segmenter did
-    not return) is left out: the pipeline adds coverage again on its own, and
+    not return; `"whole-answer"`, a bare-value answer posted whole) is left
+    out: the pipeline adds coverage again on its own, and
     replaying it as the segmenter's word would post it on any artifact with
     the same text - in AgentHallu the final answer usually repeats the last
     step word for word, and a final answer gets no coverage by design. Files
@@ -216,7 +217,8 @@ class ReuseProposer:
         # coverage, so it is the safe one to read in an untagged file.
         art = next((a for a in twins if a["kind"] == "final_answer"), twins[0])
         aid = art["artifact_id"]
-        mine = [c for c in old["claims"] if c["artifact_id"] == aid and c.get("proposed_by") != "coverage"]
+        mine = [c for c in old["claims"] if c["artifact_id"] == aid
+                and c.get("proposed_by") not in ("coverage", "whole-answer")]
         claims = [old["_claim_text"][c["claim_id"]] for c in mine]
         claims += [d["text"] for d in old["_proposal"]["dropped_claims"]
                    if d["artifact_id"] == aid]
@@ -343,6 +345,7 @@ def summarise(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
         # A trajectory whose final answer got no claim (the segmenter returned
         # none, or none it returned was in the text) cannot be flagged; it is
         # counted as not flagged above and named here so the reader can see it.
+        "whole_answer_claims": sum(r.get("proposal", {}).get("whole_answer_claims", 0) for r in rows),
         "no_final_claim": {"reachable": sum(1 for r in reach if r["score"].get("final_claims") == 0),
                            "beyond_tool_boundary": sum(1 for r in beyond if r["score"].get("final_claims") == 0),
                            "clean": sum(1 for r in clean if r["score"].get("final_claims") == 0)},
@@ -387,12 +390,16 @@ def render(s: Dict[str, Any], model: str, which: str) -> str:
         "categories (Liu et al., 2026); that figure is over a different set and is not "
         "comparable to any cell above without that caveat.",
     ]
+    if s.get("whole_answer_claims"):
+        lines.append(f"\n{s['whole_answer_claims']} short final answer(s) the segmenter returned no "
+                     f"locatable claim for were posted whole as one claim, so that an answer of a bare "
+                     f"number is audited rather than passed for having nothing to audit.")
     nfc = s.get("no_final_claim") or {}
     if any(nfc.values()):
         lines.append(f"\n{sum(nfc.values())} trajectory(ies) had no final-answer claim posted (the "
-                     f"segmenter returned none, or none it returned was in the text) and count as not "
-                     f"flagged: {nfc['reachable']} reachable, {nfc['beyond_tool_boundary']} beyond the "
-                     f"boundary, {nfc['clean']} clean.")
+                     f"segmenter returned none that could be located, and the answer was not a bare "
+                     f"value) and count as not flagged: {nfc['reachable']} reachable, "
+                     f"{nfc['beyond_tool_boundary']} beyond the boundary, {nfc['clean']} clean.")
     if s["failures"]:
         lines.append(f"\n{s['failures']} trajectory(ies) failed in the proposer and are excluded.")
     return "\n".join(lines) + "\n"
@@ -557,7 +564,7 @@ def main(argv=None) -> int:
                 row["proposal"] = {k: posted["_proposal"][k] for k in
                                    ("claims_posted", "credits_posted", "prior_posted",
                                     "unasked_claims", "coverage_claims", "tolerant_locates",
-                                    "self_evident_credits")}
+                                    "self_evident_credits", "whole_answer_claims")}
                 sc = row["score"]
                 print(f"    label={sc['label_step']} break={sc['break_step']} "
                       f"flagged={sc['flagged']} exact={sc['exact']}"

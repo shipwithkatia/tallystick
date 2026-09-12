@@ -173,10 +173,12 @@ def test_malformed_model_output_is_logged_not_crashed():
     ], pad={"credits": []}))
     # Nothing from the model was posted; the summary's sentence came back as a
     # coverage claim ("That is good." is under the 15-character floor; the
-    # final answer gets no coverage), and neither warning is about a claim
-    # per character.
-    assert posted["_proposal"]["coverage_claims"] == len(posted["claims"]) == 1
-    assert posted["claims"][0]["artifact_id"] == "s"
+    # final answer gets no coverage, but a short answer the segmenter skipped
+    # is posted whole), and neither warning is about a claim per character.
+    assert posted["_proposal"]["coverage_claims"] == 1
+    assert [(c["artifact_id"], c["proposed_by"]) for c in posted["claims"]] == [
+        ("s", "coverage"), ("f", "whole-answer")]
+    assert posted["_proposal"]["whole_answer_claims"] == 1
     assert sum("expected a list" in w for w in posted["_proposal"]["warnings"]) == 2
     posted = post_run(_tiny_run(), FakeProposer([
         {"claims": ["revenue rose 14 percent."]},
@@ -665,3 +667,55 @@ def test_an_exact_hit_glued_to_letters_is_a_hit_but_one_that_cuts_a_number_is_no
     assert _locate_tolerant("margin (5%) here", "5%", []) is None
     assert _locate_tolerant("aged 65+ people", "65", []) is None
     assert _locate_tolerant("costs 5\u20ac each", "costs 5", []) is None
+
+
+def test_a_short_answer_the_segmenter_skipped_is_posted_whole_and_audited():
+    def run(tool="Result: 1898", answer="1898"):
+        return load_run({
+            "artifacts": [{"artifact_id": "t", "kind": "tool_result", "content": tool},
+                          {"artifact_id": "f", "kind": "final_answer", "content": answer}],
+            "steps": [{"step_id": "s1", "kind": "tool", "inputs": [], "outputs": ["t"]},
+                      {"step_id": "s2", "kind": "answer", "inputs": ["t"], "outputs": ["f"]}],
+        })
+    posted = post_run(run(), FakeProposer([{"claims": []}], pad={"credits": []}))
+    assert [(c["artifact_id"], c["proposed_by"]) for c in posted["claims"]] == [("f", "whole-answer")]
+    assert audit(load_run(posted)).audits["f.c1"].status.value == "grounded"   # self-evident in the tool result
+    # a number the run never produced is a claim with nothing behind it
+    posted = post_run(run(tool="Result: 1811"), FakeProposer([{"claims": []}], pad={"credits": []}))
+    assert audit(load_run(posted)).audits["f.c1"].status.value != "grounded"
+    # an invisible character at either end is not part of the answer, and a
+    # carriage return or a line separator is not "one line"
+    for ok in ("\ufeff1898", "1898\ufeff", "\u200b1898", "1898\u200b",
+               " \u200b \u200b 1898", "1898 \u200b \u200b "):
+        posted = post_run(run(answer=ok), FakeProposer([{"claims": []}], pad={"credits": []}))
+        assert [c["end"] - c["start"] for c in posted["claims"]] == [4], ok
+        assert audit(load_run(posted)).audits["f.c1"].status.value == "grounded", ok
+    for bad in ("18\r98", "18\u202898"):
+        posted = post_run(run(answer=bad), FakeProposer([{"claims": []}], pad={"credits": []}))
+        assert posted["claims"] == [], bad
+    # a sentence is not a bare value, however short: the segmenter skipped it
+    # on purpose and posting it would manufacture a false alarm
+    for sentence in ("Task completed successfully.", "It is difficult to give an exact answer.",
+                     "I could not find the information requested.", "a b c d e f"):
+        posted = post_run(run(answer=sentence), FakeProposer([{"claims": []}], pad={"credits": []}))
+        assert posted["claims"] == [], sentence
+    # the bare values the v0.7.2 AgentHallu run produced do fire
+    for value in ("2", "360,573,1200", "Saint Petersburg", "The Cradle Will Rock."):
+        posted = post_run(run(answer=value), FakeProposer([{"claims": []}], pad={"credits": []}))
+        assert [c["proposed_by"] for c in posted["claims"]] == ["whole-answer"], value
+    # only a final answer: a short intermediate the segmenter skipped is not one
+    two = load_run({
+        "artifacts": [{"artifact_id": "t", "kind": "tool_result", "content": "Result: 1898"},
+                      {"artifact_id": "m", "kind": "intermediate", "content": "1898"},
+                      {"artifact_id": "f", "kind": "final_answer", "content": "1898"}],
+        "steps": [{"step_id": "s1", "kind": "tool", "inputs": [], "outputs": ["t"]},
+                  {"step_id": "s2", "kind": "generate", "inputs": ["t"], "outputs": ["m"]},
+                  {"step_id": "s3", "kind": "answer", "inputs": ["t", "m"], "outputs": ["f"]}],
+    })
+    posted = post_run(two, FakeProposer([{"claims": []}], pad={"credits": []}))
+    assert [(c["artifact_id"], c["proposed_by"]) for c in posted["claims"]] == [("f", "whole-answer")]
+    # a long answer the segmenter skipped is left alone: its segmenter decides
+    long = ("The answer, after considering every source above, is most likely 1898, "
+            "though the sources disagree and an exact figure is difficult to give here.")
+    posted = post_run(run(answer=long), FakeProposer([{"claims": []}], pad={"credits": []}))
+    assert posted["claims"] == []

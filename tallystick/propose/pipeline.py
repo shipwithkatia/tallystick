@@ -40,6 +40,7 @@ class ProposalLog:
     coverage_claims: int = 0      # sentences the segmenter skipped, posted anyway
     tolerant_locates: int = 0     # texts found only by the tolerant locate
     self_evident_credits: int = 0  # credits posted because the claim text is in a source
+    whole_answer_claims: int = 0  # short final answers posted whole when the segmenter returned nothing
 
 
 def _as_list(value: Any, what: str, log: ProposalLog) -> List[Any]:
@@ -288,6 +289,13 @@ def _find(haystack: str, needle: str, taken: List[Tuple[int, int]],
     return span
 
 
+# Whitespace plus the characters that are invisible but are not whitespace to
+# `str.strip`: byte-order mark, zero-width space/non-joiner/joiner, word joiner.
+_PADDING = (" \t\n\r\v\f\u00a0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007"
+            "\u2008\u2009\u200a\u2028\u2029\u202f\u205f\u3000"
+            "\ufeff\u200b\u200c\u200d\u2060")
+
+
 def _sentences(text: str) -> List[Tuple[int, int]]:
     """Deterministic sentence spans: a line break is a boundary, then a run of
     .!? followed by whitespace or the end of the line, except a lone full stop
@@ -395,11 +403,48 @@ def segment_artifact(art: Artifact, proposer: Proposer, log: ProposalLog,
             f"{art.artifact_id}: {added} sentence(s) the segmenter did not return "
             "were posted as claims (coverage)")
 
+    # A bare-value final answer the segmenter returned no locatable claim for
+    # ("1898", "360,573,1200", "Saint Petersburg") is still the answer: it is
+    # posted whole as one claim, so that an answer consisting of a number is
+    # audited rather than passed for having nothing to audit. On the v0.7.2
+    # AgentHallu run 18 of 224 answers had no claim, 7 of them labelled
+    # hallucinations; 15 of the 18 are a bare value (4 labelled).
+    #
+    # "Bare value" is one line, at most 4 words and at most 24 characters. The
+    # longest of those 15 is "The Cradle Will Rock." (21 characters, 4 words)
+    # and the shortest answer above the bounds is 148 characters, so the corpus
+    # itself does not choose between 24 and 147: the bounds are set at the
+    # observed maximum plus a small margin on purpose, against a case the corpus
+    # does not contain - a short sentence the segmenter skipped deliberately
+    # ("Task completed successfully.", 28 characters, hypothetical here). Such a
+    # sentence is not a claim to fund, and a wider cap would turn it into a false
+    # alarm. Calibrated on one corpus; a stated limit, not a law.
+    #
+    # A one- or two-token answer that occurs anywhere in any input closes on a
+    # self-evident credit, so the rule mostly buys an honest `grounded` rather
+    # than a new flag; what it removes is the silent pass of an answer with
+    # nothing to audit. Everything longer is left to the segmenter's judgement,
+    # and the harness reports the answers that were left without a claim.
+    # One strip, not three: alternating spaces and zero-width characters would
+    # survive a strip(whitespace) -> strip(invisible) -> strip(whitespace) pass
+    # and end up inside the claim, where no source can ever match them.
+    whole = art.content.strip(_PADDING)
+    if (art.kind is ArtifactKind.FINAL_ANSWER and not spans and whole
+            and len(whole) <= 24 and len(_words(whole)) <= 4
+            and len(whole.splitlines()) == 1):
+        a = art.content.index(whole)
+        spans.append((a, a + len(whole)))
+        by[(a, a + len(whole))] = "whole-answer"
+        log.whole_answer_claims += 1
+        log.warnings.append(f"{art.artifact_id}: the segmenter returned no claim that could "
+                            "be located; the short answer was posted whole as one claim")
+
     # Ids follow text order, not the order the model happened to answer in, so
     # `summary.c3` is always the third claim a reader meets in the summary.
-    # `proposed_by` says whether the segmenter returned the claim or coverage
-    # added it: a reader, and a rerun replaying this file, can tell them apart
-    # (`replay`: an earlier untagged file was replayed and could not say).
+    # `proposed_by` says who put the claim there: the proposer's name, or
+    # `coverage` (a sentence of a model step the segmenter skipped),
+    # `whole-answer` (a short answer it returned nothing locatable for), or
+    # `replay` (an earlier untagged file was replayed and could not say).
     spans.sort()
     claims = [
         {"claim_id": f"{art.artifact_id}.c{i + 1}", "artifact_id": art.artifact_id,
