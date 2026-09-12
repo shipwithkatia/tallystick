@@ -23,6 +23,15 @@ land at tool boundaries more than chance puts them, which is a fact about
 agents rather than about the share. The table is 'how much of my run is
 out of reach'; it is not a predictor of where the hallucination is.
 
+ENRICHMENT - the real label against what each trace's own composition
+predicts, which is the probability the placebo draws from:
+  all labelled         n=443  observed  236   expected  171.8   1.37x
+  at or above 80%      n=84   observed   24   expected    8.8   2.73x
+  below 80%            n=359  observed  212   expected  163.0   1.30x
+  within-trace permutation, 20000 draws: p = 0.00005
+So the banding is mostly arithmetic and the labels are still enriched:
+hallucinations land at tool boundaries more than chance puts them.
+
 At the 80% cut, by framework (only those with traces on both sides):
   Magentic-One               at or above 4/35   below 7/19
   OWL                        at or above 16/28   below 21/29

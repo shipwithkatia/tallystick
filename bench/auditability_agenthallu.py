@@ -13,20 +13,27 @@ words rather than a tool's output - and compares it with whether the human label
 sits at a step the audit cannot reach (`_meta.label_at_tool_boundary`).
 
 The headline table is descriptive and useful: if a trace is below the cut, a
-hallucination in it lands beyond the audit more often than if it is above. What
-it is NOT is evidence that the share carries information about where the
-hallucination is, and this script says so with its own placebo. Replace the
-human label with a step drawn at random from the same trajectory - a label that
-knows nothing about the hallucination - and the association comes back just as
-strongly. It has to: a trace with a larger share of tool-only steps makes *any*
-step more likely to be tool-only. The relation is arithmetic.
+hallucination in it lands beyond the audit more often than if it is above. Three
+things are true about it and they belong together, so this script prints all
+three.
 
-That also disposes of the permutation test this script used to lead with.
-Shuffling `beyond` within each framework rules out "some frameworks record
-thinly and also hallucinate past the boundary", which is a real confounder but
-not the dominant one; it cannot see the within-trace one, and it rejects for the
-placebo too. It is printed here next to the placebo so the pair can be read
-together, and nowhere else.
+The share is counting. Nothing about it is in doubt.
+
+Most of the banding is arithmetic, and the placebo below shows it: replace the
+human label with a step drawn at random from the same trajectory - a label that
+knows nothing about the hallucination - and the same ordering appears, because a
+trace with more tool-only steps makes any step more likely to be tool-only.
+
+But the placebo's rates are lower than the real ones in both bands. Real
+hallucinations do sit at tool boundaries more often than chance puts them, which
+is a fact about agents rather than about the share, and it is why the boundary is
+worth measuring at all. `--enrichment` prints that comparison: observed against
+what each trace's own composition predicts.
+
+The framework-stratified permutation test is printed beside the placebo and
+nowhere else. It rules out "some frameworks record thinly and also hallucinate
+past the boundary", which is a real confounder but not the dominant one, and it
+rejects for the placebo too, so it is not evidence for the cut.
 
 Nothing is held out; the cut is chosen on the same data it is scored on.
 """
@@ -85,6 +92,37 @@ def table(rows: List[Row], cut: float) -> Tuple[int, int, int, int]:
     hi = [r for r in rows if r["share"] >= cut]
     lo = [r for r in rows if r["share"] < cut]
     return len(hi), sum(1 for r in hi if r["beyond"]), len(lo), sum(1 for r in lo if r["beyond"])
+
+
+def enrichment(rows: List[Row], cut: float) -> List[Tuple[str, int, int, float]]:
+    """Observed labels at a tool boundary against what each trace's own
+    composition predicts. `p_tool` is that trace's share of artifact-bearing
+    history steps that recorded a tool result and nothing else - exactly the
+    probability the placebo draws from - so the ratio says how much more often
+    the human label lands there than a step picked at random would."""
+    def block(rs: List[Row], name: str) -> Tuple[str, int, int, float]:
+        obs = sum(1 for r in rs if r["beyond"])
+        exp = sum(len(r["tool_only_steps"]) / len(r["history_steps"]) for r in rs
+                  if r["history_steps"])
+        return name, obs, len(rs), (obs / exp if exp else float("nan"))
+    return [block(rows, "all labelled"),
+            block([r for r in rows if r["share"] >= cut], f"at or above {cut:.0%}"),
+            block([r for r in rows if r["share"] < cut], f"below {cut:.0%}")]
+
+
+def within_trace_p(rows: List[Row], *, draws: int = 20000, seed: int = 0) -> float:
+    """Is the label at a tool boundary more often than composition predicts?
+    Each trace contributes its own p_tool; no shuffling across traces, which is
+    what the framework-stratified test does and why that one cannot see this."""
+    observed = sum(1 for r in rows if r["beyond"])
+    rnd = random.Random(seed)
+    at_least = 0
+    for _ in range(draws):
+        total = sum(1 for r in rows if r["history_steps"]
+                    and rnd.random() < len(r["tool_only_steps"]) / len(r["history_steps"]))
+        if total >= observed:
+            at_least += 1
+    return (at_least + 1) / (draws + 1)
 
 
 def placebo_rows(rows: List[Row], data: Path, seed: int) -> List[Row]:
@@ -172,6 +210,16 @@ def main(argv=None) -> int:
     print("land at tool boundaries more than chance puts them, which is a fact about")
     print("agents rather than about the share. The table is 'how much of my run is")
     print("out of reach'; it is not a predictor of where the hallucination is.")
+    print()
+    print("ENRICHMENT - the real label against what each trace's own composition")
+    print("predicts, which is the probability the placebo draws from:")
+    for name, obs, n, ratio in enrichment(labelled, args.cut):
+        exp = obs / ratio if ratio == ratio and ratio else float("nan")
+        print(f"  {name:20} n={n:<4} observed {obs:>4}   expected {exp:6.1f}   {ratio:.2f}x")
+    print(f"  within-trace permutation, {args.draws} draws: "
+          f"p = {within_trace_p(labelled, draws=args.draws):.5f}")
+    print("So the banding is mostly arithmetic and the labels are still enriched:")
+    print("hallucinations land at tool boundaries more than chance puts them.")
     p, strata = stratified_p(labelled, args.cut, draws=args.draws)
     print()
     print(f"At the {args.cut:.0%} cut, by framework (only those with traces on both sides):")

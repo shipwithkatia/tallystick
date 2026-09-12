@@ -469,3 +469,71 @@ def test_an_unconsumed_root_is_measured_the_way_a_recorder_measures_it():
             if f.code == "orphan_root"] == ["t"]
     just_under = dict(padded, content="a b c d e f g h i j")       # 19 normalised
     assert "orphan_root" not in {f.code for f in check(_run([just_under, SUM, ANS], steps)).findings}
+
+
+def test_the_report_says_what_it_counts_over_and_which_way_is_better():
+    """A reader with no access to the docs could not tell what the headline's
+    denominator was, did not know 'root', and could not tell whether 66% was
+    good. Each of those is a line in the report now, so each is pinned here."""
+    arts = [DOC, TOOL, SUM, dict(SUM, artifact_id="s2"), ANS]
+    steps = [{"step_id": "r", "kind": "retrieve", "inputs": [], "outputs": ["d"]},
+             {"step_id": "tl", "kind": "tool", "inputs": ["d"], "outputs": ["t"]},
+             {"step_id": "g", "kind": "generate", "inputs": ["d", "t"], "outputs": ["s", "s2"]},
+             {"step_id": "an", "kind": "answer", "inputs": ["s"], "outputs": ["f"]}]
+    a = check(_run(arts, steps))
+    text = report(a)
+    assert a.judged_artifacts == 4 and a.artifacts == 5
+    # the denominator is printed, and it is the judged count, not every artifact
+    assert "What a chain passes through: 4 piece(s) of text" in text
+    assert "5 piece(s)" not in text
+    # the direction is on screen, not left to be inferred
+    assert "Higher is better" in text
+    # the document's characters are the document's, not the tool result's too
+    assert f"{len(DOC['content'])} character(s)" in text
+    assert f"{a.root_chars} character(s)" not in text
+
+
+def test_every_step_and_every_defect_is_named_however_many_there_are():
+    """A list of things to go and fix is not a place for '(+3 more)': the
+    hidden one is as broken as the shown ones."""
+    arts = [SUM, ANS] + [dict(TOOL, artifact_id=f"t{i}", content=f"tool output {i}")
+                         for i in range(9)]
+    steps = [{"step_id": "g", "kind": "generate", "inputs": [], "outputs": ["s"]},
+             {"step_id": "an", "kind": "answer", "inputs": ["s"], "outputs": ["f"]}]
+    steps += [{"step_id": f"tool{i}", "kind": "tool", "inputs": ["s"],
+               "outputs": [f"t{i}"]} for i in range(9)]
+    text = report(check(_run(arts, steps)))
+    assert "more)" not in text
+    for i in range(9):
+        assert f"tool{i}" in text
+    assert max(len(line) for line in text.splitlines()) <= 80      # and it wraps
+    # the same for defects, which decide the verdict
+    many = check(_run([DOC, SUM, ANS] + [dict(SUM, artifact_id=f"m{i}", content=f"Line {i} of it.")
+                                         for i in range(8)],
+                      [{"step_id": "r", "kind": "retrieve", "inputs": [], "outputs": ["d"]}]
+                      + [{"step_id": f"g{i}", "kind": "generate", "inputs": [],
+                          "outputs": [f"m{i}"]} for i in range(8)]
+                      + [{"step_id": "g", "kind": "generate", "inputs": ["d"], "outputs": ["s"]},
+                         {"step_id": "an", "kind": "answer", "inputs": ["s"], "outputs": ["f"]}]))
+    text = report(many)
+    assert len([f for f in many.findings if f.code == "undeclared_inputs"]) == 8
+    assert "more)" not in text
+    for i in range(8):
+        assert f"g{i}" in text
+
+
+def test_an_unconsumed_root_of_exactly_the_floor_is_reported():
+    """`>=` not `>`: the recorder skips below 20 normalised characters, so 20
+    itself is matchable and an unconsumed one is the recorder's to fix."""
+    from tallystick.auditability import _MATCHABLE_ROOT_CHARS
+    from tallystick.normalize import normalize
+    at = "a b c d e f g h i j"                     # 19 normalised
+    over = at + "k"                                # 20 normalised
+    assert len(normalize(at)) == _MATCHABLE_ROOT_CHARS - 1
+    assert len(normalize(over)) == _MATCHABLE_ROOT_CHARS
+    steps = [{"step_id": "s1", "kind": "tool", "inputs": [], "outputs": ["t"]},
+             {"step_id": "s2", "kind": "summarize", "inputs": [], "outputs": ["s"]},
+             {"step_id": "s3", "kind": "answer", "inputs": ["s"], "outputs": ["f"]}]
+    codes = lambda c: {f.code for f in check(_run([dict(TOOL, content=c), SUM, ANS], steps)).findings}
+    assert "orphan_root" not in codes(at)
+    assert "orphan_root" in codes(over)

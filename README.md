@@ -125,23 +125,31 @@ reads a raw trace and says so before a single model call is spent:
 $ tallystick check-trace run.json
 
 Auditability - 11 step(s), 12 artifact(s)
-----------------------------------------------------------------
-  model text           9/11   81%   of what a chain passes through is the model's own
-  tool results         2              roots the audit cannot see behind
-  documents            1              external text stored verbatim, not in the share
-  taken on trust       16919 character(s) of root text, 16182 of it from tools
+----------------------------------------------------------------------------
+  What a chain passes through: 11 piece(s) of text
+    9      81%  written by the model - the audit can ask what it rests on
+    2           returned by a tool - a chain stops here, on trust
+  Plus 1 document(s), 737 character(s) of external text kept verbatim -
+  which is what a trace is for, so it is not counted in the share.
+
+  Higher is better: the more of a run the model wrote down, the more of it
+  an audit can follow.
 
 AUDITABLE - no defect stands in the audit's way.
-  Steps that recorded only a tool result: s3.tools, s5.tools.
+  2 step(s) recorded a tool result and nothing the model wrote, so the audit
+  cannot ask what happened there. Record the model's own text for each of:
+    s3.tools, s5.tools
 
 Worth knowing (does not decide the verdict):
-  [duplicate_content] answer, s10
-      these artifacts hold the same text, so a quote cannot be attributed to one rather than another, and tooling that matches artifacts by their text will confuse them
+  [duplicate_content] these artifacts hold the same text, so a quote cannot
+      be attributed to one rather than another, and tooling that matches
+      artifacts by their text will confuse them
+      answer, s10
 ```
 
 Three things are reported and they are not the same kind of thing. The **share** is
-a fact about the recording: of the artifacts a chain passes through or stops at, how
-many hold the model's own words rather than a tool's output. It is counted over
+a fact about the recording: of the pieces of text a chain passes through or stops at,
+how many hold the model's own words rather than a tool's output. It is counted over
 artifacts, not steps, because a step-based fraction measures the recorder — one
 agent turn logged as a single step and the same turn logged as two score
 differently, while the artifact count cannot change: artifacts are texts, and
@@ -177,7 +185,7 @@ The share itself is counting: it says how much of a run the audit cannot look at
 
 **The banding is mostly arithmetic, and the script proves that against itself.** Swap
 the human label for a step drawn at random from the same trajectory — a label that
-knows nothing about where the hallucination is — and the same ordering appears, 11%
+knows nothing about where the hallucination is — and the same ordering appears, 10%
 against 45%, because a trace with more tool-only steps makes *any* step more likely to
 be tool-only. So "below the line, more hallucinations are out of reach" is largely a
 restatement of "below the line, more of everything is out of reach", and the
@@ -186,7 +194,7 @@ printed beside it rather than quoted alone.
 
 **But the real labels are not the placebo.** They sit at a tool boundary 236 times
 where each trace's own composition predicts 172 — 1.37×, within-trace permutation
-p &lt; 0.0001 — and the enrichment is largest in the traces with the *highest* share
+p < 0.0001 — and the enrichment is largest in the traces with the *highest* share
 (24 against 8.8, 2.7×). Real hallucinations do land at tool boundaries more often than
 chance puts them. That is a fact about agents rather than about this number, and it is
 why the boundary is worth measuring at all. The cut is not held out, and it decides
@@ -243,7 +251,7 @@ Done so far: v0.2 model-side proposers outside the verdict path; v0.3 LangChain 
 
 - [x] v0.7.3 run — 228 AgentHallu trajectories (115 labelled, of which 61 at a tool-result boundary; 113 clean), CodeAct runs excluded and counted. Two runs were withdrawn in review before publication: v0.7.0 (the locate refused verbatim quotes at glued word boundaries) and v0.7.1 (`--reuse` replayed a step's coverage claims onto a final answer with the same text); both faults are fixed and both runs' answers feed the rerun through `--reuse`, so it costs a hundred or two model calls, not a third full run. Each run's false alarms were sorted by cause with `bench/diagnose_agenthallu.py`; the v0.7.2 rerun was clean and served as the base for measuring three cheap changes offline — one adopted (a bare-value answer the segmenter skipped is posted whole) and two refused with numbers, in `bench/HISTORY.md` — before the run that carries it is published
 - [ ] a second retry when the proposer returns malformed or empty JSON: 7 of 228 runs were lost to it at v0.7.0, 4 at v0.7.2
-- [x] a pre-flight auditability check (`check-trace`): what share of the artifacts a chain passes through hold the model's own words, and which defects a recorder can fix, so a trace is told whether it can be audited before anything is audited. Measured on all 443 labelled AgentHallu trajectories at no cost, since it calls no model: 29% unreachable above the line against 59% below — arithmetic rather than prediction, as the placebo in `bench/auditability_agenthallu.py` shows (see Real trajectories)
+- [x] a pre-flight auditability check (`check-trace`): what share of the artifacts a chain passes through hold the model's own words, and which defects a recorder can fix, so a trace is told whether it can be audited before anything is audited. Measured on all 443 labelled AgentHallu trajectories at no cost, since it calls no model: 29% unreachable above the line against 59% below, most of that gap arithmetic rather than prediction — though real labels do sit at tool boundaries more often than the placebo (see Real trajectories)
 - [ ] an adapter for the log shapes practitioners already have — OpenAI Chat Completions message lists first, then OpenTelemetry GenAI spans — so that `check-trace` can be run on a real recording without writing a converter by hand. This is the gap between the tool and its first user
 - [ ] v0.8 — the recall gap is the verifier checking *where*, not *whether*. On real trajectories 5 of 23 reachable misses are a real source misread (a 1946 date taken for a 1937 one), which is exactly this. One deterministic candidate: require the funding span to contain the claim's content words, measured on this benchmark before it is adopted. Separately: let the proposer post a paraphrase together with the verbatim span behind it, and verify the span
 - [ ] coverage for the remainder of a sentence the segmenter claimed only in part ("Revenue rose, and the CEO resigned" with a claim over the first clause): today the remainder is logged as uncredited characters, not posted as a claim
@@ -374,4 +382,4 @@ An Exchequer tally was a stick notched with an amount and split lengthwise. Paye
 MIT
 
 ---
-Built by Katia Engalycheva | [GitHub](https://github.com/shipwithkatia) | [LinkedIn](https://www.linkedin.com/in/katiaengalycheva/)
+Built by Katia Engalycheva with Claude | [GitHub](https://github.com/shipwithkatia) | [LinkedIn](https://www.linkedin.com/in/katiaengalycheva/)

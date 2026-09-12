@@ -22,8 +22,9 @@ stops at, how many hold the model's own words rather than a tool's output -
 `derived / (derived + tool_results)`. It is counted over artifacts on purpose.
 A step-based fraction would measure the recorder rather than the run: one agent
 turn written down as a single step (prose plus its tool results) and the same
-turn written as two score differently, and on the AgentHallu traces that choice
-alone moves 11% of them across any threshold. Artifacts do not move.
+turn written as two score differently. An artifact count cannot move that way -
+artifacts are texts, and how turns are grouped into steps does not change how
+many there are.
 
 `document` roots are left out of the fraction entirely. Text retrieved and
 stored verbatim is exactly what a trace should hold; counting it against the
@@ -40,7 +41,7 @@ The share itself is counting: it says how much of this run the audit cannot
 look at. Nothing about it is in doubt.
 
 The banding is mostly arithmetic. Replace the human label with a step drawn at
-random from the same trajectory and the same ordering appears - 11% against
+random from the same trajectory and the same ordering appears - 10% against
 45% - because a trace with more tool-only steps makes any step more likely to
 be tool-only. So "below the line, more hallucinations are out of reach" is
 largely a restatement of "below the line, more of everything is out of reach".
@@ -76,6 +77,7 @@ a change to the agent, not to the recorder.
 
 from __future__ import annotations
 
+import textwrap
 from collections import defaultdict
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
@@ -360,6 +362,22 @@ _HEADLINE = {
 }
 
 
+def _wrap(subjects: List[str], indent: str, width: int = 76) -> List[str]:
+    """Every subject, on as many lines as it takes. A list of things to go and
+    fix is not a place to print "(+3 more)" - the hidden one is as broken as
+    the shown ones - and it is not a place for a 500-character line either."""
+    out: List[str] = []
+    line = indent
+    for i, subject in enumerate(subjects):
+        piece = subject + ("," if i < len(subjects) - 1 else "")
+        if len(line) + len(piece) + 1 > width and line != indent:
+            out.append(line.rstrip())
+            line = indent
+        line += piece + " "
+    out.append(line.rstrip())
+    return out
+
+
 def _group(items: Tuple[Finding, ...], title: str, examples: int) -> List[str]:
     if not items:
         return []
@@ -368,10 +386,9 @@ def _group(items: Tuple[Finding, ...], title: str, examples: int) -> List[str]:
         by_code[f.code].append(f)
     lines = ["", title]
     for code, fs in sorted(by_code.items()):
-        subjects = ", ".join(f.subject for f in fs[:examples])
-        more = f" (+{len(fs) - examples} more)" if len(fs) > examples else ""
-        lines.append(f"  [{code}] {subjects}{more}")
-        lines.append(f"      {fs[0].detail}")
+        lines += textwrap.wrap(f"[{code}] {fs[0].detail}", width=76,
+                               initial_indent="  ", subsequent_indent="      ")
+        lines += _wrap([f.subject for f in fs], "      ")
     return lines
 
 
@@ -385,14 +402,20 @@ def report(a: Auditability, *, examples: int = 5) -> str:
     line = a.min_reachable
     lines = [
         f"Auditability - {a.steps} step(s), {a.artifacts} artifact(s)",
-        "-" * 66,
-        f"  What a chain can pass through   {a.judged_artifacts} piece(s) of text",
-        f"    written by the model          {a.derived - a.empty_derived:<4} {pct:>5}  "
-        "checkable: the audit can ask what it rests on",
-        f"    returned by a tool            {a.tool_results - a.empty_tool_results:<4}        "
-        "not checkable: a chain stops here, on trust",
-        f"  Stored from outside             {a.documents} document(s), "
-        f"{a.root_chars} character(s) of root text in all",
+        "-" * 76,
+        f"  What a chain passes through: {a.judged_artifacts} piece(s) of text",
+        f"    {a.derived - a.empty_derived:<4} {pct:>5}  written by the model - "
+        "the audit can ask what it rests on",
+        f"    {a.tool_results - a.empty_tool_results:<4}        returned by a tool - "
+        "a chain stops here, on trust",
+    ]
+    if a.documents:
+        lines += textwrap.wrap(
+            f"Plus {a.documents} document(s), {a.root_chars - a.tool_result_chars} "
+            "character(s) of external text kept verbatim - which is what a trace is "
+            "for, so it is not counted in the share.",
+            width=76, initial_indent="  ", subsequent_indent="  ")
+    lines += [
         "",
         "  Higher is better: the more of a run the model wrote down, the more of it",
         "  an audit can follow.",
@@ -408,8 +431,7 @@ def report(a: Auditability, *, examples: int = 5) -> str:
             f"  {len(a.opaque_steps)} step(s) recorded a tool result and nothing the model "
             "wrote, so the audit",
             "  cannot ask what happened there. Record the model's own text for each of:",
-            "    " + ", ".join(a.opaque_steps),
-        ]
+        ] + _wrap(list(a.opaque_steps), "    ")
     if below_default:
         lines += [
             "  Across AgentHallu's 443 labelled trajectories, runs below 80% had the",
