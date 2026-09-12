@@ -269,3 +269,84 @@ def test_summary_counts_boundary_rows_apart(traces):
     assert s["clean"]["flagged"] == 1
     text = harness.render(s, "counting", "factual")
     assert "beyond the audit's boundary" in text and "| clean | 2 |" in text
+
+
+def test_reuse_proposer_answers_old_questions_from_the_posted_file_and_new_ones_from_the_model(tmp_path):
+    """A rerun after a deterministic change must not pay the model again for
+    the same questions, nor add its noise. Claims the old run never reached
+    still go to the model."""
+    obj = _load("Camel/078.json")
+    t = to_trace(obj, name="Camel/078.json")
+    run = load_run({k: t[k] for k in ("artifacts", "steps")})
+
+    class Recording(_Counting):
+        def complete(self, system, user):
+            if user.startswith("TEXT:"):
+                body = re.search(r"(<+)\n(.*?)\n>+\n", user, re.S).group(2)
+                return json.dumps({"claims": [x for x in body.split(". ") if len(x) > 3]})
+            self.credit_calls.append(user)
+            return json.dumps({"credits": [{"artifact_id": "s1", "quote": "3√13"}]})
+
+    first = post_run(run, Recording(), on_demand=True)
+    (tmp_path / "Camel__078.json").write_text(json.dumps(first), encoding="utf-8")
+
+    inner = _Counting()
+    reuse = harness.ReuseProposer(inner, tmp_path)
+    reuse.start("Camel/078.json")
+    second = post_run(run, reuse, on_demand=True)
+    assert reuse.calls["segment_reused"] > 0 and reuse.calls["credits_reused"] > 0
+    assert inner.credit_calls == []                     # nothing new was reached
+    assert [c["claim_id"] for c in second["claims"]] == [c["claim_id"] for c in first["claims"]]
+    assert sorted(e["account"] for e in second["entries"]) == sorted(e["account"] for e in first["entries"])
+    # a trajectory with no old file goes straight to the model
+    reuse.start("Camel/999.json")
+    third = post_run(run, reuse, on_demand=True)
+    assert reuse.calls["model"] > 0 and third["_proposal"]["claims_posted"] >= 1
+
+
+def test_diagnose_agenthallu_classifier_buckets():
+    import diagnose_agenthallu as dg
+    posted = {
+        "artifacts": [{"artifact_id": "d", "kind": "tool_result",
+                       "content": "The Greenland shark is the longest-lived vertebrate, living 400 years."},
+                      {"artifact_id": "f", "kind": "final_answer",
+                       "content": "The longest-lived vertebrate is the Greenland shark. 1 gallon = 3,785.41 cm³. Water is wet."}],
+        "claims": [{"claim_id": "f.c1", "artifact_id": "f", "start": 0, "end": 51},
+                   {"claim_id": "f.c2", "artifact_id": "f", "start": 52, "end": 76},
+                   {"claim_id": "f.c3", "artifact_id": "f", "start": 77, "end": 90}],
+        "_proposal": {"dropped_credits": [{"claim_id": "f.c3", "artifact_id": "d", "quote": "Water is wet",
+                                           "reason": "quote is not a verbatim substring of the artifact"}]},
+    }
+    assert dg.classify(posted, "f.c1", "")[0] == "paraphrase_of_tool_result"
+    assert dg.classify(posted, "f.c2", "")[0] == "computation_or_formula"
+    assert dg.classify(posted, "f.c3", "")[0] == "quote_offered_not_verbatim"
+    assert dg.classify(posted, "f.c1", "cited span not fully accounted for")[0] == "unaccounted_span"
+    assert dg._FORMULA.search("p-propenyl benzoate with -CH=CH-CH₃ groups") is None
+
+
+def test_reuse_credits_offer_a_straddling_quote_once_and_nothing_for_a_prior_only_claim(tmp_path):
+    old = {
+        "artifacts": [{"artifact_id": "s", "kind": "intermediate",
+                       "content": "Revenue grew 14%. In summary, costs fell 3%."}],
+        "steps": [{"step_id": "s2", "kind": "summarize", "inputs": [], "outputs": ["s"]}],
+        "claims": [{"claim_id": "f.c1", "artifact_id": "s", "start": 0, "end": 17},
+                   {"claim_id": "f.c2", "artifact_id": "s", "start": 30, "end": 44}],
+        "entries": [
+            {"entry_id": "f.c1.e1", "claim_id": "f.c1", "account": "EVIDENCE:s#0-17",
+             "quoted_span": "Revenue grew 14%.", "proposed_by": "fake", "group": "f.c1.g1"},
+            {"entry_id": "f.c2.e0", "claim_id": "f.c2", "account": "PRIOR:model",
+             "quoted_span": "", "proposed_by": "fake"},
+        ],
+        "_proposal": {"dropped_claims": [], "dropped_credits": [
+            {"claim_id": "f.c1", "artifact_id": "s", "quote": "Revenue grew 14%. In summary, costs",
+             "reason": "quote only partially overlaps claim s#30-44; refused as ambiguous"},
+            {"claim_id": "f.c1", "artifact_id": "s", "quote": "nowhere in the text",
+             "reason": "quote is not a verbatim substring of the artifact"},
+        ]},
+    }
+    (tmp_path / "X__1.json").write_text(json.dumps(old), encoding="utf-8")
+    reuse = harness.ReuseProposer(_Counting(), tmp_path)
+    reuse.start("X/1.json")
+    assert reuse._credits_of("f.c1") == [{"artifact_id": "s", "quote": "Revenue grew 14%."},
+                                         {"artifact_id": "s", "quote": "nowhere in the text"}]
+    assert reuse._credits_of("f.c2") == []

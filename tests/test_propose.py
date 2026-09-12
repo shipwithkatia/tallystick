@@ -635,3 +635,33 @@ def test_a_refused_self_evident_credit_is_marked_in_the_log():
     assert len(dropped) == 1 and dropped[0]["proposed_by"] == "verbatim"
     assert "partially overlaps" in dropped[0]["reason"]
     assert [e["proposed_by"] for e in posted["entries"] if e["claim_id"] == "f.c1"] == ["verbatim"]
+
+
+def test_an_exact_hit_glued_to_letters_is_a_hit_but_one_that_cuts_a_number_is_not():
+    """Review of the v0.7.0 AgentHallu run: the locate required a word
+    boundary on both sides of an exact hit and refused 177 quotes that were
+    in the source word for word, because scraped pages glue words together
+    ("87,700 resultsEtta Cone"). Only a cut through a number is refused."""
+    from tallystick.propose.pipeline import _cuts_number
+    src = "87,700 resultsEtta Cone commissioned a portrait in 1930."
+    assert _locate_tolerant(src, "Etta Cone commissioned a portrait in 1930.", []) == (14, 56)
+    assert _locate_tolerant("UncertaintyOnly a large gap works.", "Only a large gap works.", []) is not None
+    assert _locate_tolerant("12 minutes\\n- Frank", "12 minutes", []) == (0, 10)
+    # numbers are still protected on every side
+    assert _locate_tolerant("Revenue fell -5% this year", "5% this year", []) is None
+    assert _locate_tolerant("Revenue grew 14.5% in Q2", "Revenue grew 14", []) is None
+    assert _locate_tolerant("The 14% growth was recorded", "4% growth was recorded", []) is None
+    assert _locate_tolerant("It cost $100 today", "100 today", []) is None
+    assert _locate_tolerant("Paid 1,000 dollars", "000 dollars", []) is None
+    assert _locate_tolerant("grew 14% in 2024", "grew 14", []) is None
+    assert _locate_tolerant("Population 1200000 people", "200000 people", []) is None
+    assert _cuts_number("abc", 0, 3) is False and _cuts_number("x", 1, 1) is False
+    # every exact occurrence is tried before the word path
+    assert _locate_tolerant("rate 15% then -5% and 5% flat", "5%", []) == (22, 24)
+    assert _locate_tolerant("2020-2021 season", "2021", []) is None
+    assert _locate_tolerant("2020\u20132021 season", "2020", []) is None     # en dash
+    assert _locate_tolerant("10:30 sharp", "30 sharp", []) is None
+    assert _locate_tolerant("a \u20135% drop", "5%", []) is None
+    assert _locate_tolerant("margin (5%) here", "5%", []) is None
+    assert _locate_tolerant("aged 65+ people", "65", []) is None
+    assert _locate_tolerant("costs 5\u20ac each", "costs 5", []) is None

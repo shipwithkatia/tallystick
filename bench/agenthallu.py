@@ -43,6 +43,7 @@ import argparse
 import hashlib
 import json
 import random
+import re
 import sys
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -94,6 +95,111 @@ def select(data: Path, which: str, seed: int, limit: Optional[int],
     out = bad + chosen_clean
     rng.shuffle(out)
     return out
+
+
+class ReuseProposer:
+    """Answer from a previous run's posted file where the same question was
+    asked; send only new questions to the real proposer.
+
+    A posted file records everything the model returned for a trajectory:
+    the claims it segmented (posted and dropped) and, for every claim it was
+    asked about, the credits it offered (posted as entries, or dropped with a
+    reason). A rerun after a change to the deterministic side of the pipeline
+    - the locate, the containment rule - needs the same answers to the same
+    questions; asking the model again costs money and adds model noise for
+    no information. So a segment call for an artifact whose text matches the
+    old file is answered from it, and a credit call for a claim the old run
+    asked about (it has entries, a PRIOR:model entry counts) is answered from
+    it. A claim the old run never reached, or a trajectory with no old file,
+    goes to `inner`. `calls` counts what went where."""
+
+    def __init__(self, inner, posted_dir: Path):
+        self.inner = inner
+        self.name = getattr(inner, "name", type(inner).__name__)
+        self.posted_dir = posted_dir
+        self.calls = Counter()
+        self._old: Optional[Dict[str, Any]] = None
+        self._claim_text: Dict[str, str] = {}
+        self._used: set = set()
+
+    def start(self, name: str) -> None:
+        path = self.posted_dir / name.replace("/", "__")
+        self._old = json.loads(path.read_text(encoding="utf-8")) if path.exists() else None
+        self._used = set()
+        if self._old:
+            arts = {a["artifact_id"]: a["content"] for a in self._old["artifacts"]}
+            self._claim_text = {c["claim_id"]: arts[c["artifact_id"]][c["start"]:c["end"]]
+                                for c in self._old["claims"]}
+
+    def complete(self, system: str, user: str) -> str:
+        if self._old is not None:
+            m = re.search(r"(<+)\n(.*?)\n>+\n", user, re.S)
+            body = m.group(2) if m else None
+            if body is not None and user.startswith("TEXT:"):
+                arts = {a["artifact_id"]: a["content"] for a in self._old["artifacts"]}
+                aid = next((a for a, c in arts.items() if c == body), None)
+                if aid is not None:
+                    claims = [self._claim_text[c["claim_id"]] for c in self._old["claims"]
+                              if c["artifact_id"] == aid]
+                    claims += [d["text"] for d in self._old["_proposal"]["dropped_claims"]
+                               if d["artifact_id"] == aid]
+                    self.calls["segment_reused"] += 1
+                    return json.dumps({"claims": claims}, ensure_ascii=False)
+            elif body is not None:
+                cid = self._asked_claim(body, user)
+                if cid is not None:
+                    self.calls["credits_reused"] += 1
+                    return json.dumps({"credits": self._credits_of(cid)}, ensure_ascii=False)
+        self.calls["model"] += 1
+        return self.inner.complete(system, user)
+
+    def _asked_claim(self, text: str, user: str) -> Optional[str]:
+        srcs = set(re.findall(r"\[artifact_id: ([^\]]+)\]", user))
+        inputs: Dict[str, set] = {}
+        for st in self._old["steps"]:
+            for o in st["outputs"]:
+                inputs[o] = set(st["inputs"])
+        asked = {e["claim_id"] for e in self._old["entries"]}
+        for c in self._old["claims"]:
+            cid = c["claim_id"]
+            if cid in self._used or cid not in asked or self._claim_text[cid] != text:
+                continue
+            if inputs.get(c["artifact_id"]) == srcs:
+                self._used.add(cid)
+                return cid
+        return None
+
+    def _credits_of(self, cid: str) -> List[Dict[str, str]]:
+        arts = {a["artifact_id"]: a["content"] for a in self._old["artifacts"]}
+        out: List[Dict[str, str]] = []
+        groups: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+        for e in self._old["entries"]:
+            if e["claim_id"] != cid or not e["account"].startswith("EVIDENCE:"):
+                continue
+            if e.get("proposed_by") == "verbatim":
+                continue   # the pipeline finds these again by itself
+            groups[e.get("group") or e["entry_id"]].append(e)
+        for es in groups.values():
+            aid = es[0]["account"][len("EVIDENCE:"):].rpartition("#")[0]
+            spans = [tuple(int(x) for x in e["account"].rpartition("#")[2].split("-")) for e in es]
+            lo, hi = min(a for a, _ in spans), max(b for _, b in spans)
+            out.append({"artifact_id": aid, "quote": arts[aid][lo:hi]})
+        seen = {(c["artifact_id"], c["quote"]) for c in out}
+        for d in self._old["_proposal"]["dropped_credits"]:
+            if d["claim_id"] != cid or d.get("proposed_by") == "verbatim" or not d.get("artifact_id"):
+                continue
+            key = (d["artifact_id"], d["quote"])
+            if key in seen:
+                continue
+            # A quote that straddled a claim was posted for the part it covered
+            # (a group above) and dropped for the part it clipped; offering the
+            # original quote again would post it twice.
+            if d["reason"].startswith("quote only partially overlaps") and any(
+                    d["artifact_id"] == c["artifact_id"] and c["quote"] in d["quote"] for c in out):
+                continue
+            seen.add(key)
+            out.append({"artifact_id": d["artifact_id"], "quote": d["quote"]})
+        return out
 
 
 def trace_sha(trace: Dict[str, Any]) -> str:
@@ -218,6 +324,9 @@ def main(argv=None) -> int:
     ap.add_argument("--seed", type=int, default=7)
     ap.add_argument("--model", default="claude-sonnet-4-6")
     ap.add_argument("--max-tool-chars", type=int, default=DEFAULT_MAX_TOOL_CHARS)
+    ap.add_argument("--reuse", default=None, metavar="POSTED_DIR",
+                    help="answer from a previous run's posted files where the same "
+                         "question was asked; only new questions go to the model")
     ap.add_argument("--include-codeact", action="store_true",
                     help="keep CodeAct trajectories (tool boundary inside the execution log)")
     ap.add_argument("--dry-run", action="store_true")
@@ -261,12 +370,20 @@ def main(argv=None) -> int:
 
     from tallystick.propose import AnthropicProposer, post_run
     proposer = AnthropicProposer(model=args.model)
+    reuse: Optional[ReuseProposer] = None
+    if args.reuse:
+        if not Path(args.reuse).is_dir():
+            print(f"not a directory: {args.reuse}", file=sys.stderr)
+            return 2
+        reuse = ReuseProposer(proposer, Path(args.reuse))
+        proposer = reuse
 
     work = Path(args.work)
     (work / "posted").mkdir(parents=True, exist_ok=True)
     params = {"select": args.select, "seed": args.seed, "limit": args.limit,
               "include_codeact": args.include_codeact, "max_tool_chars": args.max_tool_chars,
-              "model": args.model, "tallystick_version": TALLYSTICK_VERSION}
+              "model": args.model, "tallystick_version": TALLYSTICK_VERSION,
+              "reuse": str(Path(args.reuse).resolve()) if args.reuse else None}
     meta_path = work / "rows.meta.json"
     if meta_path.exists():
         before = json.loads(meta_path.read_text(encoding="utf-8"))
@@ -306,6 +423,8 @@ def main(argv=None) -> int:
                                    "tallystick_version": TALLYSTICK_VERSION,
                                    "model": args.model}
             try:
+                if reuse is not None:
+                    reuse.start(name)
                 run = load_run({k: trace[k] for k in ("artifacts", "steps")})
                 posted = post_run(run, proposer, on_demand=True)
                 posted["_meta"] = trace["_meta"]
@@ -327,6 +446,8 @@ def main(argv=None) -> int:
             fh.write(json.dumps(row, ensure_ascii=False) + "\n")
             fh.flush()
 
+    if reuse is not None:
+        print(f"reuse: {dict(reuse.calls)}")
     scored = [r for r in rows if "score" in r]
     s = summarise(scored)
     s["failures"] = sum(1 for r in rows if r.get("error"))

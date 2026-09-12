@@ -205,6 +205,35 @@ def _ends_sentence(line: str, m: "re.Match[str]") -> bool:
     while start > 0 and not line[start - 1].isspace():
         start -= 1
     return not _ABBREV_RE.search(line[start:m.start()])
+def _cuts_number(text: str, a: int, b: int) -> bool:
+    """Does the span [a, b) start or end inside a number, as _words reads
+    numbers? Inside means: a digit at the edge of the span continued on the
+    outside by a digit; by a dash, a sign or a currency mark before it
+    ("-5%", "$100"); by a percent sign after it; by a mark between two digits
+    ("3.5", "1,000", "2020-2021", "10:30", "3/4"); or by a bracket hugging a
+    token with a digit in it ("(5%)")."""
+    if a >= b:
+        return False
+    n = len(text)
+    if text[a].isdigit() and a > 0:
+        left = text[a - 1]
+        if left.isdigit() or left in "+$\u20ac\u00a3" or unicodedata.category(left) == "Pd":
+            return True
+        if _is_sep(left) and not left.isspace() and a > 1 and text[a - 2].isdigit():
+            return True
+    if text[b - 1].isdigit() and b < n:
+        right = text[b]
+        if right.isdigit() or right in "%+$\u20ac\u00a3":   # "65+", "5€"
+            return True
+        if _is_sep(right) and not right.isspace() and b + 1 < n and text[b + 1].isdigit():
+            return True
+    # "(5%)": a bracket pair hugging the token, as _words keeps it whole
+    if a > 0 and b < n and text[a - 1] == "(" and text[b] == ")" \
+            and any(ch.isdigit() for ch in text[a:b]) and not any(ch.isspace() for ch in text[a:b]):
+        return True
+    return False
+
+
 def _locate_tolerant(haystack: str, needle: str, taken: List[Tuple[int, int]],
                      ) -> Optional[Tuple[int, int]]:
     """`_locate` on word boundaries, then a match on the words alone.
@@ -225,14 +254,19 @@ def _locate_tolerant(haystack: str, needle: str, taken: List[Tuple[int, int]],
     hay = _words(haystack)
     span = _locate(haystack, needle, taken)
     if span is not None:
-        # An exact hit that cuts a word ("5%" inside "-5%", "14" inside
-        # "14.5%") is not the text the model was shown; it is a smaller one.
-        a, b = _core(haystack, span)
-        starts = {x for x, _, _ in hay}
-        ends = {y for _, y, _ in hay}
-        if a in starts and b in ends:
-            return span
-        span = None
+        # An exact hit that cuts a number ("5%" inside "-5%", "14" inside
+        # "14.5%", "4%" inside "14%") is not the text the model was shown; it
+        # is a smaller one. Letters glued to the hit are allowed: a scraped
+        # page reads "87,700 resultsEtta Cone commissioned", and the quote
+        # "Etta Cone commissioned" is there word for word. (The v0.7.0 rule
+        # required a word boundary on both sides and refused 177 verbatim
+        # quotes in one AgentHallu run for that reason.)
+        blocked = list(taken)
+        while span is not None:
+            if not _cuts_number(haystack, *_core(haystack, span)):
+                return span
+            blocked.append(span)
+            span = _locate(haystack, needle, blocked)
     n = len(ndl)
     for i in range(len(hay) - n + 1):
         if hay[i][2] != ndl[0]:
@@ -249,8 +283,8 @@ def _find(haystack: str, needle: str, taken: List[Tuple[int, int]],
           log: "ProposalLog") -> Optional[Tuple[int, int]]:
     """_locate_tolerant, counting in `log` the finds the strict locate missed."""
     span = _locate_tolerant(haystack, needle, taken)
-    if span is not None and _locate(haystack, needle, taken) != span:
-        log.tolerant_locates += 1
+    if span is not None and haystack[span[0]:span[1]].casefold() != needle.strip().casefold():
+        log.tolerant_locates += 1   # the word path found it, not an exact hit
     return span
 
 
