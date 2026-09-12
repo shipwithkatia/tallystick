@@ -1,0 +1,139 @@
+# What a trace must contain for its provenance to be checkable
+
+A provenance audit answers one question: *for each claim in the answer, is there
+a path back to something the model did not write?* It can only answer it from
+what the recording kept. This page says what that is, in the order it matters.
+It is framework-agnostic: nothing here asks you to use tallystick.
+
+`tallystick check-trace run.json` reports how much of a given trace meets this,
+with no model and no cost. `--json` writes the same thing for CI.
+
+## The one rule
+
+**Record what entered the run from outside, and record it as it arrived.**
+
+Everything else follows. A provenance chain has to end somewhere that is not the
+model's own words; that end point is the only thing in the file the audit does
+not have to justify. If what you stored in its place is a model's summary of it,
+the chain ends on trust and the audit is theatre.
+
+This is not hypothetical. On 225 real trajectories from six agent frameworks,
+61 of the 115 human-labelled hallucinations — 53% — sat inside a tool result
+that was a model-written digest of a page the trace never held. No post-hoc
+reading of those files can reach them. (Measured; see the AgentHallu section of
+the [README](../README.md).)
+
+## What to record
+
+### 1. Artifacts, with an honest kind
+
+Every piece of text the run produced or received, each with an id and one of:
+
+| kind | meaning | the audit's stance |
+|---|---|---|
+| `document` | text supplied or retrieved, stored verbatim | a root: a chain may end here |
+| `tool_result` | what a tool returned, **as it returned it** | a root: a chain may end here |
+| `intermediate` | the model's own text — a plan, a summary, a scratchpad, a memory write | derived: must itself be funded |
+| `final_answer` | what the user saw | derived: this is what the audit starts from |
+
+The line that matters is `tool_result` against `intermediate`. A tool that hands
+back the agent's own text — a note store, a `final_answer` tool, an interpreter
+echoing a literal from the model's code — did not bring anything in from
+outside, and recording it as a root launders it into evidence. Record it as
+`intermediate`.
+
+Where a tool's output is genuinely a digest produced by another model — most web
+search APIs — you have two honest options: store the pages it digested as
+`document` artifacts alongside it, or accept that everything resting on it is
+unverifiable and say so. `check-trace` counts those artifacts, and the steps that recorded nothing else.
+
+### 2. Steps, with their real inputs
+
+Each step: an id, what it consumed, what it produced. `inputs` is the whole
+point. A claim written at a step may only be credited against something that
+step actually had in hand, so a citation to a document the step never received
+is not a weak citation — it is impossible, and code can say so without asking a
+model. A step that produced model text and declares no inputs can never fund
+anything it wrote; `check-trace` reports that as `undeclared_inputs`.
+
+Record the inputs the step really saw, not the ones it should have seen. If your
+agent puts the whole history in every prompt, then the whole history is the
+input, and that is the honest record.
+
+### 3. The answer, marked as the answer
+
+Exactly one artifact of kind `final_answer`. Without it there is nothing to
+audit back from and `check-trace` reports `unauditable`; with more than one it
+reports `multiple_final_answers`, because the audit cannot tell which one the
+user saw.
+
+### 4. Know where the same text appears twice
+
+If the final answer repeats the last step word for word — which real agents do
+constantly, in 210 of 223 trajectories in one run here — a quote can no longer
+be attributed to one rather than the other, and any tooling matching artifacts
+*by their text* will confuse them. That is not theory: it is how one of this
+project's own runs was withdrawn (see `bench/HISTORY.md`, v0.7.1).
+
+Keep both artifacts. `check-trace` reports this as a **note**, not a defect: it
+does not change the verdict and does not fail a build, because the fix is a
+change to the agent, not to the recording.
+
+### 5. Cuts, marked as cuts
+
+If you truncate a large tool result to fit a prompt, record which artifacts were
+cut (`_meta.truncated`). A quote into the missing tail cannot be found, and the
+audit should say "not recorded", not "not supported".
+
+## The shape
+
+```json
+{
+  "artifacts": [
+    {"artifact_id": "doc_filing", "kind": "document",     "content": "...", "title": "10-K 2024"},
+    {"artifact_id": "summary",    "kind": "intermediate", "content": "..."},
+    {"artifact_id": "answer",     "kind": "final_answer", "content": "..."}
+  ],
+  "steps": [
+    {"step_id": "s1", "kind": "retrieve",  "inputs": [],          "outputs": ["doc_filing"]},
+    {"step_id": "s2", "kind": "summarize", "inputs": ["doc_filing"], "outputs": ["summary"]},
+    {"step_id": "s3", "kind": "answer",    "inputs": ["summary"],    "outputs": ["answer"]}
+  ],
+  "_meta": {"truncated": []}
+}
+```
+
+That is the whole format. `tallystick/adapters/` converts other shapes into it;
+`examples/` has worked files.
+
+## What this does not ask for
+
+No hashes, no signatures, no immutability, no schema registry. Those matter for
+tamper-evidence, which is a different property from provenance: a signed log of
+a digest is a tamper-evident record of something unverifiable. Get the content
+right first.
+
+It also asks for nothing semantic. Whether a claim is *true*, whether a source
+*supports* it — neither is decided here, and a trace that satisfies this page
+tells you only that the question can be asked.
+
+## Checking a trace
+
+```
+$ tallystick check-trace run.json
+$ tallystick check-trace run.json --json report.json      # for CI
+$ tallystick check-trace run.json --min-reachable         # also fail a thin recording
+```
+
+Exit 0 when no defect stands in the audit's way, 1 when one does (or the
+recording is thinner than `--min-reachable`), 2 when the file cannot be read at
+all. The share — of the artifacts a chain passes through, how many hold the
+model's own words rather than a tool's output — is reported either way; by
+default it is context, not a verdict, because a run that legitimately leans on
+tools is not a broken run, it is a run whose clean audit means less.
+
+On the AgentHallu corpus, traces at or above 80% held 5 of their 24 labelled
+hallucinations beyond the audit's reach (21%) and traces below it 56 of 91
+(62%). Two caveats: the line is read off that corpus rather than held out, and
+stratified by agent framework the association is not significant (p ≈ 0.19).
+Treat it as a fact about a recording and a rule to test, not as a predictor.

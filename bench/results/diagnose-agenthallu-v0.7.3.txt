@@ -1,0 +1,39 @@
+110 clean trajectories, 38 flagged (false alarms)
+
+False alarms by why the earliest failing chain broke:
+  partial_paraphrase               11  (29%)
+  paraphrase_of_tool_result         9  (24%)
+  quote_offered_not_verbatim        7  (18%)
+  computation_or_formula            6  (16%)
+  unsourced_knowledge               5  (13%)
+
+--- partial_paraphrase: examples
+  [OpenDeepSearch/055.json] "the company completed its Legacy Tour and disbanded following Merce Cunningham's death."
+  [Octotools/038.json] 'No conflicting information was found in the search results.'
+  [Magentic_One/057.json] 'The longest-lived vertebrate is likely the Greenland shark (Somniosus microcephalus), which is named'
+  [Octotools/016.json] 'these questions are irrelevant to the task at hand.'
+  [Magentic_One/064.json] '- The wording likely uses a rounded figure such as “More than 7,000 languages have been documented t'
+--- paraphrase_of_tool_result: examples
+  [SmolAgents/052.json] 'it absorbs the complementary color to green, which is red, in the visible spectrum.'
+  [Magentic_One/060.json] 'In Audre Lorde’s poem “Father Son and Holy Ghost,” the stanza that contains indented lines is the se'
+  [Camel/062.json] 'For a wave of wavelength λ, this means n t1 = λ/4 and t2 = λ/4 (in air).'
+  [OpenManus/008.json] 'The least is Edward H. White II: 5,876 minutes.'
+  [Magentic_One/085.json] '$= -a^2 + \\frac{1}{b^2}$'
+--- quote_offered_not_verbatim: examples
+  [OpenManus/080.json] 'benzoquinone lacks these hydrogen atoms necessary for keto-enol tautomerism'
+  [OpenManus/001.json] 'v = 2π × (1.4 × 6.96×10^8 m) / (9 × 24 × 3600 s) = 7.87 km/s'
+  [OpenManus/034.json] 'We verified this by examining each possible color Alice might give and confirmed that no other scena'
+  [SmolAgents/067.json] 'These individuals are the parents of Nicholas "Nitch" Drinkard, the maternal grandfather of Whitney '
+  [SmolAgents/057.json] 'January 25, 1991'
+--- computation_or_formula: examples
+  [Magentic_One/080.json] 'Central pressure: Pc = (3 GM^2) / (8π R^4).'
+  [Magentic_One/029.json] 'x = 2 might be worth checking as a potential solution since it involves simple powers'
+  [Magentic_One/056.json] "A: TikTok's recognizable colors in 2023 might be cyan and magenta (excluding black/white); so A = 2 "
+  [SmolAgents/035.json] '1 gallon = 3,785.41 cm³'
+  [Camel/076.json] 'f(x) = (3x − 2)/(x − 2) as 3 + 4/(x − 2) via polynomial division.'
+--- unsourced_knowledge: examples
+  [SmolAgents/090.json] '- When comparing the two functions, many terms cancel out, leaving a simpler equation to solve'
+  [Octotools/045.json] 'The total number of divisors of a number is given by multiplying the powers of the prime factors (ea'
+  [Magentic_One/044.json] 'The other substituent likely contains a vinyl group (–CH=CH–) with a methyl attachment'
+  [SmolAgents/074.json] 'λ₊/λ₋ = coth(βJ),'
+  [Camel/002.json] '{"content": "536", "failed": false}'

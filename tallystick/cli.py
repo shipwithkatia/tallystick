@@ -1,7 +1,8 @@
 """Command line entry point.
 
-    tallystick audit   run.json          close the books on a posted trace
-    tallystick propose raw.json -o run.json
+    tallystick audit       run.json      close the books on a posted trace
+    tallystick check-trace raw.json      can this trace be audited at all?
+    tallystick propose     raw.json -o run.json
                                          let a model post claims and credits,
                                          then audit the file it wrote
 
@@ -13,6 +14,11 @@ malformed trace, a missing SDK or key, a proposer failure). A bad API key must n
 read as "books do not balance". That is what turns this from a report into a gate
 you can put in CI and fail a build on.
 
+`check-trace` comes before either: it reads a raw trace and reports how much of
+the run a provenance audit can look at, and what would have to be recorded for
+the rest. No model, no claims, no cost - and a `partial` verdict there is why a
+later clean audit may mean less than it looks.
+
 `propose` is the only place the verdict path touches the model side, and it does so
 lazily, inside the subcommand, so `tallystick audit` never imports an SDK.
 """
@@ -22,12 +28,14 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from pathlib import Path
 
+from .auditability import DEFAULT_MIN_REACHABLE, check_trace, report
 from .io import load_run_file
 from .ledger import close_books
 from .report import chain_view, summary
 
-SUBCOMMANDS = ("audit", "propose")
+SUBCOMMANDS = ("audit", "check-trace", "propose")
 
 
 def _write_json(path: str, payload) -> None:
@@ -84,6 +92,35 @@ def _audit(args: argparse.Namespace) -> int:
             return 2
 
     return 0 if balance.books_balance else 1
+
+
+def _check_trace(args: argparse.Namespace) -> int:
+    """Exit 0 when the trace is auditable, 1 when it is only partly so or not at
+    all, 2 when it cannot be read. Same shape as `audit`: 1 is a verdict about
+    the trace, 2 is a failure to run - so a CI job can fail a build on a
+    recording that has stopped keeping what an audit needs."""
+    try:
+        raw = json.loads(Path(args.trace).read_text(encoding="utf-8"))
+        run = load_run_file(args.trace)
+    except (OSError, ValueError) as exc:
+        print(f"tallystick: cannot read this trace: {exc}", file=sys.stderr)
+        return 2
+    if args.min_reachable is not None and not 0.0 <= args.min_reachable <= 1.0:
+        print(f"tallystick: --min-reachable must be a share between 0 and 1, "
+              f"got {args.min_reachable}", file=sys.stderr)
+        return 2
+    meta = raw.get("_meta") if isinstance(raw, dict) else None
+    result = check_trace(run, min_reachable=args.min_reachable,
+                   meta=meta if isinstance(meta, dict) else None)
+    if args.json_out:
+        try:
+            _write_json(args.json_out, result.as_dict())
+        except OSError as exc:
+            print(f"tallystick: cannot write {args.json_out}: {exc}", file=sys.stderr)
+            return 2
+    if not args.quiet:
+        print(report(result))
+    return 0 if result.verdict == "auditable" else 1
 
 
 def _propose(args: argparse.Namespace) -> int:
@@ -154,6 +191,21 @@ def build_parser() -> argparse.ArgumentParser:
                    help="print the full provenance chain for one claim")
     a.add_argument("--quiet", action="store_true", help="exit code only")
     a.set_defaults(func=_audit)
+
+    c = sub.add_parser("check-trace",
+                       help="can this trace be audited at all? (no model, no cost)")
+    c.add_argument("trace", help="path to a raw run JSON (artifacts + steps)")
+    c.add_argument("--min-reachable", type=float, nargs="?", default=None,
+                   const=DEFAULT_MIN_REACHABLE, metavar="SHARE",
+                   help="also fail when fewer than this share of judged steps record "
+                        f"the model's own text (bare flag means {DEFAULT_MIN_REACHABLE:g}, "
+                        "read off the AgentHallu run, not a constant). Off by default: "
+                        "the share is reported either way, but only defects decide the "
+                        "verdict")
+    c.add_argument("--json", dest="json_out", metavar="PATH",
+                   help="write the machine-readable report here")
+    c.add_argument("--quiet", action="store_true", help="exit code only")
+    c.set_defaults(func=_check_trace)
 
     p = sub.add_parser("propose", help="let a model post claims and credits")
     p.add_argument("trace", help="path to a raw run JSON (artifacts + steps)")

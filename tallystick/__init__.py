@@ -16,6 +16,7 @@ books say so without anyone being asked to judge.
     assert balance.books_balance
 """
 
+from .auditability import Auditability, check_trace
 from .io import load_run, load_run_file
 from .ledger import ChainHop, ClaimAudit, ClaimStatus, TrialBalance, close_books
 from .report import chain_view, summary
@@ -24,10 +25,10 @@ from .types import (
     TraceError,
 )
 
-__version__ = "0.7.3"
+__version__ = "0.7.4"
 
 __all__ = [
-    "audit", "close_books", "load_run", "load_run_file",
+    "audit", "check_trace", "Auditability", "close_books", "load_run", "load_run_file",
     "TrialBalance", "ClaimAudit", "ClaimStatus", "ChainHop",
     "summary", "chain_view",
     "Run", "Step", "Artifact", "ArtifactKind", "Claim", "Entry",

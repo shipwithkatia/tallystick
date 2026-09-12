@@ -24,3 +24,16 @@ print(prf(pred, truth))                       # precision, recall, f1, fpr, coun
 
 The per-trace rows of all three runs are committed — `bench/results/2026-09-n100.json` (v0.5.2), `bench/results/2026-09-n100-v0.5.3.json` (v0.5.3) and `bench/results/2026-09-n100-v0.6.json` (v0.6, same traces as v0.5.3), each a JSON object with the rows under `"rows"` and the aggregate under `"summary"`: which traces, the per-sentence truth, and every run's flags on every side — a failed run is `null`, and a trace with any `null` run is one of the dropped (6 in the v0.5.2 file, 1 in the v0.5.3 and v0.6 files). To compare on exactly the same sentences as a table, keep only that file's rows with no `null` run rather than taking every trace in the manifest. `python bench/ci.py <results.json>` recomputes the table from the rows and adds bootstrap intervals and the paired difference, with no model calls. Labels are checked two ways in the test suite: every RAGTruth annotation's span must address the text the annotation carries (the test runs on the 6-item sample in `bench/sample`; the same check over all 14,289 labels in the dataset was run by hand at n=100 and passed), and every answer-sentence label is re-derived independently from the raw annotations and must agree with what `build.py` wrote. Keep the caveats attached to any number you publish: the last hop is verbatim by construction, prevalence is enriched, Data2txt is excluded, and the scored set is conditioned on tallystick's proposer not failing. If your detector only sees the last hop, expect the first row.
 
+## Re-measuring the auditability line
+
+`tallystick check-trace` reports the share of the artifacts a chain passes through
+that hold the model's own words rather than a tool's output, and the README quotes
+an 80% line from the AgentHallu run. That line is read off that data, not held out,
+and stratified by agent framework it is not significant. To re-measure on any
+labelled corpus, compute the share with `tallystick.check_trace` per trace and sort
+the labelled trajectories by whether the labelled step is beyond the audit's
+boundary (`_meta.label_at_tool_boundary` in the AgentHallu adapter). On the v0.7.3
+run: at or above 80%, 5 of 24 beyond the boundary; below, 56 of 91; a permutation
+test stratified by framework gives p ≈ 0.19, so check that stratification on your
+own corpus before trusting the line. A corpus of your own traces will not have the
+labels; what it will have is the share, which is the point.

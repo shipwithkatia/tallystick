@@ -2,7 +2,7 @@
 
 Provenance accounting for LLM agent runs: every claim in the final answer is traced back, hop by hop, to something outside the model — or named, together with the step that invented it.
 
-**In short.** An agent that summarises its sources and then answers from the summary can invent a fact in the middle and quote it faithfully at the end; every one-hop check then says "grounded". tallystick walks the chain back to the documents with plain code — no model in the verdict — and names the step where it breaks. On 290 answer sentences built from RAGTruth, that audit is level with an LLM judge shown the full history on F1 (0.59 vs 0.58; the paired difference spans zero) and puts a false flag on fewer than half as many clean sentences (FPR 0.07 vs 0.16). The benchmark is constructed, not natural; its limits are stated under [Benchmark](#benchmark), and a run on real agent trajectories is in progress.
+**In short.** An agent that summarises its sources and then answers from the summary can invent a fact in the middle and quote it faithfully at the end; every one-hop check then says "grounded". tallystick walks the chain back to the documents with plain code — no model in the verdict — and names the step where it breaks. On 290 answer sentences built from RAGTruth, that audit is level with an LLM judge shown the full history on F1 (0.59 vs 0.58; the paired difference spans zero) and puts a false flag on fewer than half as many clean sentences (FPR 0.07 vs 0.16). The benchmark is constructed, not natural; its limits are stated under [Benchmark](#benchmark). On 225 real agent trajectories from [AgentHallu](https://arxiv.org/abs/2601.06818), the same audit names the labelled step in 15% of the runs it can reach and reports a break in 57% — and measures its own boundary: 53% of the human-labelled hallucinations are inside tool results the trace never kept, where no post-hoc audit can follow.
 
 ![One hop is not enough: the answer quotes the summary, the summary invented a sentence, and the chain breaks at the summarise step](docs/chain.svg)
 
@@ -69,11 +69,16 @@ pip install -e ".[propose,langchain]"   # plain `pip install -e .` gives the aud
 #    LangChain run — or write the JSON by hand, as examples/raw_research_run.json.
 python examples/langchain_demo.py          # a 4-step agent, recorded -> raw_langchain.json
 
-# 2. Let a model post the books: writes a posted trace, then audits it.
+# 2. Before spending anything: can this trace be audited at all? No model, no cost.
+tallystick check-trace raw_langchain.json
+tallystick check-trace raw_langchain.json --json report.json   # for CI
+tallystick check-trace raw_langchain.json --min-reachable      # also fail a thin recording
+
+# 3. Let a model post the books: writes a posted trace, then audits it.
 #    Needs ANTHROPIC_API_KEY.
 tallystick propose raw_langchain.json -o posted.json
 
-# 3. Audit a posted trace. Deterministic, offline, no SDK needed.
+# 4. Audit a posted trace. Deterministic, offline, no SDK needed.
 tallystick posted.json                 # exit 0 = balance, 1 = don't, 2 = could not run
 tallystick posted.json --chain <id>    # full provenance chain for one claim
 tallystick posted.json --json out.json # machine-readable balance
@@ -109,6 +114,54 @@ balance.injection_points()         # failing claims, each with the step that bro
 ```
 
 The trace format is plain JSON — artifacts, steps with inputs/outputs, claims by character span, entries — documented in `tallystick/io.py`. `examples/laundered_summary.json` is a complete posted trace; `examples/raw_research_run.json` is the same run before posting; `examples/balanced_run.json` is the same run with an honest summariser, and it balances. A `Run` can also be built in Python from the exported `Artifact`, `Step`, `Claim` and `Entry` types; it gets the same validation as a file.
+
+### Before the audit: can this trace be audited at all?
+
+An audit of provenance can only work on what the recording kept, and the thing it
+most often did not keep is the page behind a tool result. `tallystick check-trace`
+reads a raw trace and says so before a single model call is spent:
+
+```
+$ tallystick check-trace run.json
+
+Auditability - 11 step(s), 12 artifact(s)
+----------------------------------------------------------------
+  model text           9/11   82%   of what a chain passes through is the model's own
+  tool results         2              roots the audit cannot see behind
+  documents            1              external text stored verbatim, not in the share
+  taken on trust       16919 character(s) of root text, 16182 of it from tools
+
+AUDITABLE - no defect stands in the audit's way.
+  Steps that recorded only a tool result: s3.tools, s5.tools.
+
+Worth knowing (does not decide the verdict):
+  [duplicate_content] answer, s10
+      these artifacts hold the same text, so a quote cannot be attributed to one rather than another, and tooling that matches artifacts by their text will confuse them
+```
+
+Three things are reported and they are not the same kind of thing. The **share** is
+a fact about the recording: of the artifacts a chain passes through or stops at, how
+many hold the model's own words rather than a tool's output. It is counted over
+artifacts, not steps, because a step-based fraction measures the recorder — one
+agent turn logged as a single step and the same turn logged as two score
+differently, and that choice alone moves 11% of the AgentHallu traces across any
+threshold. It decides nothing unless you ask with `--min-reachable`, because a run
+that leans on tools is not broken; it is a run whose clean audit means less. The
+**defects** decide the verdict and each names something a recorder can fix: model
+text from a step that declares no inputs (nothing it wrote can ever be funded), text
+no step admits to producing, an empty or truncated artifact, more than one answer,
+or none. The **notes** are worth knowing and are nobody's bug — above all two
+artifacts holding the same string, which real agents produce constantly and which
+breaks any tooling that matches artifacts by their text. Exit 0 when no defect
+stands in the way, 1 when one does, 2 when the file cannot be read.
+
+[`docs/auditable-traces.md`](docs/auditable-traces.md) is the specification behind
+it: what a trace has to contain, in the order it matters, framework-agnostic and
+asking nothing of tallystick. The 80% line comes from the AgentHallu run below, read
+off that data rather than held out, and the association is pooled: stratified by
+agent framework it is not significant (p ≈ 0.19), because much of it is that some
+frameworks record thinly and hallucinate past the boundary while others do not. A
+default worth testing on your own traces, not a tested predictor.
 
 ## How It Works
 
@@ -155,9 +208,10 @@ The trace format is plain JSON — artifacts, steps with inputs/outputs, claims 
 
 Done so far: v0.2 model-side proposers outside the verdict path; v0.3 LangChain recorder; v0.5–v0.5.3 the benchmark, its intervals and the entry-group fix; v0.6 precision from the false-flag diagnosis; v0.7 the AgentHallu adapter and harness. The version-by-version record, with what each one cost, is in [`bench/HISTORY.md`](bench/HISTORY.md).
 
-- [ ] v0.7.3 run — 228 AgentHallu trajectories (115 labelled, of which 61 at a tool-result boundary; 113 clean), CodeAct runs excluded and counted. Two runs were withdrawn in review before publication: v0.7.0 (the locate refused verbatim quotes at glued word boundaries) and v0.7.1 (`--reuse` replayed a step's coverage claims onto a final answer with the same text); both faults are fixed and both runs' answers feed the rerun through `--reuse`, so it costs a hundred or two model calls, not a third full run. Each run's false alarms were sorted by cause with `bench/diagnose_agenthallu.py`; the v0.7.2 rerun was clean and served as the base for measuring three cheap changes offline — one adopted (a bare-value answer the segmenter skipped is posted whole) and two refused with numbers, in `bench/HISTORY.md` — before the run that carries it is published
+- [x] v0.7.3 run — 228 AgentHallu trajectories (115 labelled, of which 61 at a tool-result boundary; 113 clean), CodeAct runs excluded and counted. Two runs were withdrawn in review before publication: v0.7.0 (the locate refused verbatim quotes at glued word boundaries) and v0.7.1 (`--reuse` replayed a step's coverage claims onto a final answer with the same text); both faults are fixed and both runs' answers feed the rerun through `--reuse`, so it costs a hundred or two model calls, not a third full run. Each run's false alarms were sorted by cause with `bench/diagnose_agenthallu.py`; the v0.7.2 rerun was clean and served as the base for measuring three cheap changes offline — one adopted (a bare-value answer the segmenter skipped is posted whole) and two refused with numbers, in `bench/HISTORY.md` — before the run that carries it is published
 - [ ] a second retry when the proposer returns malformed or empty JSON: 7 of 228 runs were lost to it at v0.7.0, 4 at v0.7.2
-- [ ] v0.8 — the recall gap is the verifier checking *where*, not *whether*. One deterministic candidate: require the funding span to contain the claim's content words, measured on this benchmark before it is adopted. Separately: let the proposer post a paraphrase together with the verbatim span behind it, and verify the span
+- [ ] a pre-flight auditability check (`check-trace`): report what share of a run's steps carry the model's own prose and which tool results are digests of pages the trace does not hold, so a trace is told whether it can be audited before anything is audited. On the AgentHallu selection that share separates 21% unreachable from 62% (see Real trajectories), and it needs no labels and no model — the cut is read off that data, not held out, and is not significant within a framework
+- [ ] v0.8 — the recall gap is the verifier checking *where*, not *whether*. On real trajectories 5 of 23 reachable misses are a real source misread (a 1946 date taken for a 1937 one), which is exactly this. One deterministic candidate: require the funding span to contain the claim's content words, measured on this benchmark before it is adopted. Separately: let the proposer post a paraphrase together with the verbatim span behind it, and verify the span
 - [ ] coverage for the remainder of a sentence the segmenter claimed only in part ("Revenue rose, and the CEO resigned" with a claim over the first clause): today the remainder is logged as uncredited characters, not posted as a claim
 - [ ] adapters: LangSmith and OpenTelemetry exports, so a team can audit yesterday's logs without changing code — and a benchmark on such traces, three or more steps, where the last hop is not verbatim by construction; LlamaIndex; Claude Citations ingested as pre-verified credits
 - [ ] HTML ledger view: the answer colour-coded by status, click a sentence to unfold its chain to the root
@@ -208,7 +262,7 @@ Bootstrap over traces (`bench/ci.py`, 2000 resamples): 95% intervals on F1 — o
 - **The summary-step number got worse, and that is a cost of v0.6.** Claim-level precision on the summary fell 0.49 → 0.39 over 759 claims in the first run (590 at v0.5.3). Two things added claims: 70 coverage claims per run over sentences the segmenter skipped — closing lines, hedges, list tails — which the proposer can rarely fund and which, on inspection of the posted files, the annotators mostly left unmarked; and roughly 80–100 more model claims per run, most plausibly ones the word-level locate now keeps instead of dropping (`tolerant_locates` counts claims and quotes together, and the two v0.5.3 runs already differ by 14 claims from segmenter variance, so this is an inference). The rows do not mark which is which, so the split of the 45 extra false flags between them is not measured. Coverage claims exist so that an answer quote always has an account to land on; together with the self-evident credit and the locate they are what cut the false flags on the chain, and at the summary step they are noise. Both numbers are reported because they pull in opposite directions.
 - **Two proposer runs now agree on F1 to two decimals** (spread 0.004, was 0.03), and 5% of sentences flip between runs (was 8%). Less of the posting is the model's: coverage, self-evident credits and the word-level locate are searches, and searches do not vary. The judge's flip rate at identical settings is also 5% this run (7% at v0.5.3).
 
-### Real trajectories: AgentHallu (v0.7 — rerun pending; the table lands here)
+### Real trajectories: AgentHallu (v0.7.3, September 2026)
 
 Everything above is on traces `build.py` constructed. [AgentHallu](https://arxiv.org/abs/2601.06818) (Liu et al., 2026; CC BY 4.0) is 693 real runs of seven agent frameworks — SmolAgents, OpenDeepSearch, OpenManus, Magentic-One, OWL/Camel, OctoTools, function-calling agents — of which 443 carry a human label naming the step that introduced the hallucination and 250 are clean. `tallystick/adapters/agenthallu.py` reads a trajectory as a trace (question → document; each step's model text → intermediate; tool results → roots; the answer → final_answer; every step sees everything before it — which makes the reachability gate vacuous on this data, so what the audit tests here is the quote gate and the chain, not conservation), and `bench/agenthallu.py` posts a selection with the proposer, audits, and compares the audit's `break_step_id` with the labelled step: any final claim flagged, earliest breaking step equal to the label, within one step, and the false-alarm rate on clean runs. Credits are proposed on demand — the answer's claims first, then only the claims their credits reach — so the cost is one credit call per claim the answer rests on, not per sentence the agent ever wrote.
 
@@ -217,7 +271,33 @@ Two boundaries are stated before any number exists, because reading the files se
 - **The audit stops at a tool result, and 61 of the 115 labelled runs in the default selection are labelled at a step whose only artifacts are tool results.** OpenDeepSearch's `web_search`, above all, returns a model-written digest of pages the file does not contain, and the label sits inside that digest. There is no page in the file to check it against; no post-hoc audit of the file can reach it. Those rows are reported apart — neither hits nor misses; a flag on one is a flag on something else in the run. Tools that hand the agent's own text back — `final_answer`, Camel's notes, `terminate` — are posted as model text, not roots, or every answer would ground on itself; five runs labelled at a note-writing step are reachable for that reason and are not in the 61. (An interpreter printing the answer literal back from the model's code is treated the same way; that only occurs in CodeAct runs, excluded by default.)
 - **CodeAct agents (55 of 693) call their tools from inside model-written code**, so one execution log holds a web result and a model-computed string side by side, and the file does not mark where one ends and the other begins. No reading of that log — root or model text — audits it honestly; those runs are excluded by default and counted.
 
-The default selection is the categories where the label and the audit ask the same question — a fact stated in model text with nothing behind it: Planning/Fact Derive, Reasoning/Factual Reasoning, and the three Retrieval sub-categories — plus as many clean runs from the same frameworks as exist (OpenManus has 20 for its 22): 115 labelled and 113 clean, 228 trajectories, roughly $17–34 of proposer calls — an estimate from input tokens alone, assuming about six credit calls per trajectory. The table reports, for the reachable rows, whether any final claim was flagged, whether the earliest breaking step is the labelled one, whether the labelled step is among the breaks at all (an unfunded hedge quoted from an earlier step drags the earliest break forward without making the audit wrong about the labelled step), and within one step. AgentHallu's abstract reports its best model judge localising the step in 41.1% of cases over all categories; that number is on a different set and a different question, and will be quoted next to ours only with that said. Two runs were reviewed before publication and withdrawn. At v0.7.0 the locate refused 177 verbatim quotes at glued word boundaries (see Tradeoffs). The v0.7.1 rerun used `--reuse`, which answers every question an earlier run already asked from its posted files and sends only new questions to the model — the same answers to the same questions, no second helping of model noise — and review of that run found the reuse matching artifacts by text alone: in AgentHallu the final answer usually repeats the last step word for word, so the step's coverage claims (sentences the pipeline posts on model steps so a later quote has an account: "Otherwise, I will terminate the interaction.") came back as if the segmenter had returned them for the answer, which by design gets no coverage; and where the twin was a tool result the answer got no claims at all. 210 of 223 answers repeat an earlier artifact; 82 were given claims the segmenter had never returned for them, 19 were left with none. Posted claims now say who proposed them, the reuse replays only what the model said (a claim from an earlier file that could not say is marked `replay`), and the v0.7.2 rerun reads both earlier runs, so the third run costs a hundred or two model calls — an offline replay reproduces 194 of the 228 trajectories without any. Five trajectories are committed under `bench/sample-agenthallu/` as test fixtures, unchanged, with attribution.
+The default selection is the categories where the label and the audit ask the same question — a fact stated in model text with nothing behind it: Planning/Fact Derive, Reasoning/Factual Reasoning, and the three Retrieval sub-categories — plus as many clean runs from the same frameworks as exist (OpenManus has 20 for its 22): 115 labelled and 113 clean, 228 trajectories, roughly $17–34 of proposer calls at the first attempt — an estimate from input tokens alone, assuming about six credit calls per trajectory. Two earlier runs were withdrawn in review; the published run answered most questions from their posted files through `--reuse` and sent only what was new to the model, so it cost a small fraction of that. The harness prints the split but does not record it, so the exact number of live calls is not on file. The table reports, for the reachable rows, whether any final claim was flagged, whether the earliest breaking step is the labelled one, whether the labelled step is among the breaks at all (an unfunded hedge quoted from an earlier step drags the earliest break forward without making the audit wrong about the labelled step), and within one step. AgentHallu's abstract reports its best model judge localising the step in 41.1% of cases over all categories; that number is on a different set and a different question, and will be quoted next to ours only with that said. Two runs were reviewed before publication and withdrawn. At v0.7.0 the locate refused 177 verbatim quotes at glued word boundaries (see Tradeoffs). The v0.7.1 rerun used `--reuse`, which answers every question an earlier run already asked from its posted files and sends only new questions to the model — the same answers to the same questions, no second helping of model noise — and review of that run found the reuse matching artifacts by text alone: in AgentHallu the final answer usually repeats the last step word for word, so the step's coverage claims (sentences the pipeline posts on model steps so a later quote has an account: "Otherwise, I will terminate the interaction.") came back as if the segmenter had returned them for the answer, which by design gets no coverage; and where the twin was a tool result the answer got no claims at all. 210 of 223 answers repeat an earlier artifact; 82 were given claims the segmenter had never returned for them, 19 were left with none. Posted claims now say who proposed them, the reuse replays only what the model said (a claim from an earlier file that could not say is marked `replay`), and the v0.7.2 rerun reads both earlier runs, so the third run costs a hundred or two model calls — an offline replay reproduces 194 of the 228 trajectories without any. Five trajectories are committed under `bench/sample-agenthallu/` as test fixtures, unchanged, with attribution.
+
+**The result.** 225 of the 228 scored; 3 failed in the proposer and are excluded. Rows are in [`bench/results/agenthallu-v0.7.3-rows.jsonl`](bench/results/agenthallu-v0.7.3-rows.jsonl), the report in [`bench/results/agenthallu-v0.7.3.md`](bench/results/agenthallu-v0.7.3.md), the false-alarm diagnosis in [`bench/results/diagnose-agenthallu-v0.7.3.txt`](bench/results/diagnose-agenthallu-v0.7.3.txt).
+
+| set | n | any final claim flagged | earliest break = labelled step | labelled step among the breaks | within one step |
+|---|---|---|---|---|---|
+| hallucinated, label in model text (reachable) | 54 | 31/54 (57%) | 8/54 (15%) | 8/54 (15%) | 11/54 (20%) |
+| hallucinated, label at a tool-only step (beyond the audit's boundary) | 61 | 7/61 (11%) | — | — | — |
+| clean | 110 | 38/110 (35%) (false alarms) | — | — | — |
+
+| category / sub-category | n | flagged | exact step | label among breaks | within one |
+|---|---|---|---|---|---|
+| Planning Hallucination / Fact Derive | 34 | 18 | 4 | 4 | 4 |
+| Reasoning Hallucination / Factual Reasoning | 11 | 5 | 3 | 3 | 4 |
+| Retrieval Hallucination / Context Misalign | 3 | 2 | 1 | 1 | 1 |
+| Retrieval Hallucination / Query Misalign | 1 | 1 | 0 | 0 | 1 |
+| Retrieval Hallucination / Summarize Misalign | 5 | 5 | 0 | 0 | 1 |
+
+Read the first row as: where the hallucination was stated in the agent's own prose, the audit reported *something in this answer rests on nothing* in 57% of runs, and the step it named was the labelled one in 15% — against 35% of clean runs flagged, so the margin is real but modest (Fisher exact p = 0.007). Detection of a break is the stronger half; localisation is weak, and the sub-category table says where each comes from — the three Retrieval rows are flagged in 8 of 9 runs — too few to put a rate on — and the two larger reasoning categories in about half. AgentHallu's own best model judge localises the step in 41.1% of cases over all categories; that is a different selection, a different question, and a model judge rather than plain code, so it is context, not a comparison.
+
+**What the numbers mean, three readings.**
+
+- **The boundary is the finding, not the footnote.** 61 of the 115 labelled runs — 53% — are labelled at a step whose only artifacts are tool results. No post-hoc audit of the file can reach them: the page the digest came from is not in the file. That is a statement about what a trace has to contain for provenance to be checkable at all, and it is measured, not argued. It also tracks something the file carries without any label, and `tallystick check-trace` reports that quantity: where at least 80% of the artifacts a chain passes through hold the model's own words rather than a tool's output, 5 of 24 labelled hallucinations are beyond the boundary (21%); below that line, 56 of 91 are (62%). Two caveats, both material. The cut is read off these same 115 runs rather than held out. And stratified by the framework that produced each run it is not significant (permutation test, p ≈ 0.19): most of the pooled association is that OpenManus records thinly and is beyond the boundary in 22 of 22 runs while Octotools records thickly and is in 0 of 9. So the share is a fact about a recording, and a rule to test — not a predictor already tested.
+- **23 reachable misses, and they are not one failure.** 16 of the 23 are labelled at step 1 — the plan. The agent read the question wrong or chose the wrong rule before doing anything, and everything after it, the answer included, is faithfully derived from that choice. The chain to a root is intact and the audit is right to close it; the error is in the reasoning, which a provenance audit does not judge. Five more are misreadings of a real source (1946 taken for 1937; the wrong actor from a cast list): the words are in the source, the meaning is not, and those need a check of *whether* a span supports a claim — the v0.8 question. The last two had no claim to check. The three groups do not overlap.
+- **35% false alarms, with one cause dominating.** `bench/diagnose_agenthallu.py` sorts them: a paraphrase of a source, most of its words or some of them, is 20 of 38; a quote the proposer offered that is not verbatim in the source, 7; a computation or formula the agent derived, 6; something the agent stated from its own knowledge, 5. Only the last is the audit working as designed on a claim with no external support — and AgentHallu calls those runs clean because the answer was *true*, which is the other question. The rest is the cost of verbatim verification against agents that paraphrase what they read and compute what they report.
+
+**Two changes were measured on the previous run's files and refused** rather than shipped, with the numbers in [`bench/HISTORY.md`](bench/HISTORY.md): skipping the model's narration of itself in coverage, and requiring the claim's numbers to appear in the funding span. One was adopted: a bare-value answer the segmenter returns nothing locatable for is posted whole, which closed a silent pass on 15 answers that carried no claim at all and so could not be flagged whatever they said.
 
 ### Using the benchmark for your own detector
 
