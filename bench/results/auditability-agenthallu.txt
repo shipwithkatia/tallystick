@@ -28,7 +28,8 @@ predicts, which is the probability the placebo draws from:
   all labelled         n=443  observed  236   expected  171.8   1.37x
   at or above 80%      n=84   observed   24   expected    8.8   2.73x
   below 80%            n=359  observed  212   expected  163.0   1.30x
-  within-trace permutation, 20000 draws: p = 0.00005
+  within-trace Monte Carlo (each trace drawn at its own tool-only rate,
+  nothing shuffled): 0 of 20000 draws reached 236  -> below this test's resolution
 So the banding is mostly arithmetic and the labels are still enriched:
 hallucinations land at tool boundaries more than chance puts them.
 

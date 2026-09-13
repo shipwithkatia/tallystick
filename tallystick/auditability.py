@@ -47,9 +47,11 @@ be tool-only. So "below the line, more hallucinations are out of reach" is
 largely a restatement of "below the line, more of everything is out of reach".
 
 But the real labels are not the placebo. They sit at a tool boundary 236 times
-where composition alone predicts 172 (1.37x, within-trace permutation
-p < 0.0001), and the enrichment is largest exactly in the traces with the
-highest share (24 against 8.8, 2.7x). Real hallucinations do land at tool
+where composition alone predicts 172 (1.37x; in a within-trace Monte Carlo
+that draws each trace at its own tool-only rate, none of 20,000 draws reached
+236 - the floor of what that many draws resolve, not a measured p-value, and
+not a permutation test: nothing is shuffled). The enrichment is largest in the
+traces with the highest share (24 against 8.8, 2.7x). Real hallucinations do land at tool
 boundaries more often than chance puts them - which is a fact about agents,
 not about this number, and it is the reason the boundary matters at all.
 

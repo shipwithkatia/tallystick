@@ -202,8 +202,13 @@ significance test the script prints rejects for the placebo too, which is why it
 printed beside it rather than quoted alone.
 
 **But the real labels are not the placebo.** They sit at a tool boundary 236 times
-where each trace's own composition predicts 172 — 1.37×, within-trace permutation
-p < 0.0001 — and the enrichment is largest in the traces with the *highest* share
+where each trace's own composition predicts 172 — 1.37×. In a within-trace Monte Carlo
+that draws each trace at its own rate of tool-only steps, none of 20,000 draws reached
+236; that is the floor of what 20,000 draws can resolve rather than a measured p-value,
+and it is not a permutation test — nothing is shuffled, each trace draws its own coin.
+(The framework-stratified test printed beside the placebo *is* a permutation test, and
+it rejects for the placebo too, which is why it is never quoted alone.)
+The enrichment is largest in the traces with the *highest* share
 (24 against 8.8, 2.7×). Real hallucinations do land at tool boundaries more often than
 chance puts them. That is a fact about agents rather than about this number, and it is
 why the boundary is worth measuring at all. The cut is not held out, and it decides

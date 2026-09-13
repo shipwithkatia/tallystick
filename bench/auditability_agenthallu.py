@@ -110,10 +110,29 @@ def enrichment(rows: List[Row], cut: float) -> List[Tuple[str, int, int, float]]
             block([r for r in rows if r["share"] < cut], f"below {cut:.0%}")]
 
 
-def within_trace_p(rows: List[Row], *, draws: int = 20000, seed: int = 0) -> float:
+def within_trace_mc(rows: List[Row], *, draws: int = 20000, seed: int = 0
+                    ) -> Tuple[int, int, int]:
     """Is the label at a tool boundary more often than composition predicts?
-    Each trace contributes its own p_tool; no shuffling across traces, which is
-    what the framework-stratified test does and why that one cannot see this."""
+
+    Returns (observed, draws_at_least_observed, draws).
+
+    This is a **Monte-Carlo test, not a permutation test**, and the difference is
+    not pedantry. Nothing is shuffled here: each trace independently draws a coin
+    at its own rate of tool-only steps, and the draws are summed. That is a
+    parametric null - "every trace hallucinates at a step picked at its own
+    composition rate" - and it is the null the placebo also draws from, which is
+    why this test is the one that can see past the arithmetic.
+
+    `stratified_p` below IS a permutation test: it shuffles `beyond` inside each
+    framework. Calling this one a permutation test (as an earlier version of this
+    script, the README and the committed report all did) claims a null that was
+    never sampled. `test_bench.py` now fails the build if the word comes back.
+
+    The count is returned rather than a p-value because with 20000 draws and zero
+    hits the p-value is (0+1)/(20000+1) - the floor of what this many draws can
+    resolve, not a measured magnitude. Report it as "none of N draws reached the
+    observed count", and let the reader see N.
+    """
     observed = sum(1 for r in rows if r["beyond"])
     rnd = random.Random(seed)
     at_least = 0
@@ -122,7 +141,7 @@ def within_trace_p(rows: List[Row], *, draws: int = 20000, seed: int = 0) -> flo
                     and rnd.random() < len(r["tool_only_steps"]) / len(r["history_steps"]))
         if total >= observed:
             at_least += 1
-    return (at_least + 1) / (draws + 1)
+    return observed, at_least, draws
 
 
 def placebo_rows(rows: List[Row], data: Path, seed: int) -> List[Row]:
@@ -216,8 +235,10 @@ def main(argv=None) -> int:
     for name, obs, n, ratio in enrichment(labelled, args.cut):
         exp = obs / ratio if ratio == ratio and ratio else float("nan")
         print(f"  {name:20} n={n:<4} observed {obs:>4}   expected {exp:6.1f}   {ratio:.2f}x")
-    print(f"  within-trace permutation, {args.draws} draws: "
-          f"p = {within_trace_p(labelled, draws=args.draws):.5f}")
+    obs, hits, draws = within_trace_mc(labelled, draws=args.draws)
+    print(f"  within-trace Monte Carlo (each trace drawn at its own tool-only rate,")
+    print(f"  nothing shuffled): {hits} of {draws} draws reached {obs}"
+          + ("  -> below this test's resolution" if hits == 0 else ""))
     print("So the banding is mostly arithmetic and the labels are still enriched:")
     print("hallucinations land at tool boundaries more than chance puts them.")
     p, strata = stratified_p(labelled, args.cut, draws=args.draws)

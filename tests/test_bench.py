@@ -450,3 +450,52 @@ def test_bench_and_pipeline_sentence_boundaries_agree():
         "First point without a full stop",      # "1." is its own fragment, dropped
         "Second point (Passage 3).",
     ]
+
+
+# --------------------------------------------------------------------------- #
+# The name of a test is part of its claim
+# --------------------------------------------------------------------------- #
+
+#: Prose that names a statistical method is a claim about what was sampled, and a
+#: reader who checks it against the code is exactly the reader this project wants.
+#: `within_trace_mc` shuffles nothing - each trace draws its own Bernoulli coin -
+#: so calling it a permutation test claims a null that was never sampled. It was
+#: called one in the README, in `tallystick/auditability.py` and in the committed
+#: report until v0.7.5. These two tests exist so the word cannot come back.
+
+MISNOMER_FILES = ("README.md", "bench/HISTORY.md", "tallystick/auditability.py",
+                  "bench/auditability_agenthallu.py",
+                  "bench/results/auditability-agenthallu.txt")
+
+
+def test_the_within_trace_test_is_never_called_a_permutation_test():
+    offences = []
+    for name in MISNOMER_FILES:
+        path = ROOT / name
+        if not path.exists():
+            continue
+        for i, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            low = line.lower()
+            if "within-trace permutation" in low or "within_trace permutation" in low:
+                offences.append(f"{name}:{i}")
+    assert not offences, (
+        "the within-trace test is a Monte Carlo, not a permutation test; "
+        f"found the old name at {offences}")
+
+
+def test_the_within_trace_null_draws_each_trace_at_its_own_rate():
+    """Behavioural, not textual: with every trace tool-only, the null reaches the
+    observed count every time; with none, never. A shuffle of a fixed vector of
+    labels could not produce either, which is the difference the name carries."""
+    sys.path.insert(0, str(ROOT / "bench"))
+    from auditability_agenthallu import within_trace_mc
+
+    always = [{"beyond": True, "tool_only_steps": {1}, "history_steps": {1}}
+              for _ in range(8)]
+    obs, hits, draws = within_trace_mc(always, draws=50)
+    assert (obs, hits, draws) == (8, 50, 50)
+
+    never = [{"beyond": True, "tool_only_steps": set(), "history_steps": {1, 2}}
+             for _ in range(8)]
+    obs, hits, draws = within_trace_mc(never, draws=50)
+    assert obs == 8 and hits == 0
