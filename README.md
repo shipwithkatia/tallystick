@@ -4,8 +4,8 @@ Provenance accounting for LLM agent runs: every claim in the final answer is tra
 
 **In short.** An agent that summarises its sources and then answers from the summary can invent a fact in the middle and quote it faithfully at the end. Every one-hop check then says "grounded". tallystick walks the chain back to the documents with plain code — no model in the verdict — and names the step where it breaks.
 
-- **About half of real agent hallucinations are out of reach of any post-hoc audit.** On [AgentHallu](https://arxiv.org/abs/2601.06818), 236 of the 443 human-labelled hallucinations sit inside tool results the trace never kept. That boundary is measured, not argued.
-- **Plain code is level with an LLM judge, with less than half the false flags.** On 290 answer sentences built from RAGTruth: F1 0.59 against 0.58, a paired difference that spans zero, and a false flag on 7% of clean sentences against 16%. The benchmark is constructed, not natural; its limits are under [Benchmark](#benchmark).
+- **About half of the labelled mistakes in real agent runs happen at steps this audit cannot check.** On [AgentHallu](https://arxiv.org/abs/2601.06818), 236 of the 443 human labels point at a step where the agent wrote no text — only a tool call and its result. tallystick checks what a model wrote, so those steps are beyond its reach. That boundary is measured, not argued.
+- **Plain code is level with an LLM judge on F1: fewer false flags, fewer finds.** On 290 answer sentences built from RAGTruth: F1 0.59 against 0.58, a paired difference that spans zero; a false flag on 7% of clean sentences against 16%, and 61% of the invented sentences found against 81%. The benchmark is constructed, not natural; its limits are under [Benchmark](#benchmark).
 - **On 225 real trajectories, it detects a break more often than it finds the step.** Where the hallucination is in the agent's own text, it flags the answer in 57% of runs and names the labelled step in 15%. It also flags 35% of clean runs.
 
 ![One hop is not enough: the answer quotes the summary, the summary invented a sentence, and the chain breaks at the summarise step](docs/chain.svg)
