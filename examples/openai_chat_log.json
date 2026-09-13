@@ -1,0 +1,17 @@
+{
+  "_comment": "A log in the shape an OpenAI Chat Completions app already writes. Read it with: tallystick check-trace --from openai examples/openai_chat_log.json",
+  "model": "gpt-4o",
+  "messages": [
+    {"role": "system", "content": "You are a research assistant. Answer only from the sources you retrieve, and say when you cannot."},
+    {"role": "user", "content": "Did Northwind Logistics grow faster than the sector in 2024, and what drove it?"},
+    {"role": "assistant", "content": "I will pull the annual report and the sector figures before answering.", "tool_calls": [
+      {"id": "call_1", "type": "function", "function": {"name": "web_search", "arguments": "{\"q\": \"Northwind Logistics 2024 annual report revenue\"}"}}
+    ]},
+    {"role": "tool", "tool_call_id": "call_1", "name": "web_search", "content": "Northwind Logistics reported 2024 revenue of $1.84 billion, up 9.1% year over year. The company attributed the increase mainly to its cold-chain division. Sector revenue grew roughly 5% over the same period."},
+    {"role": "assistant", "content": "So Northwind grew 9.1% against a sector at about 5%. The cold-chain division is named as the driver. I still need the division's own numbers to say how much of the growth it accounts for.", "tool_calls": [
+      {"id": "call_2", "type": "function", "function": {"name": "read_file", "arguments": "{\"path\": \"northwind_2024_segments.txt\"}"}}
+    ]},
+    {"role": "tool", "tool_call_id": "call_2", "name": "read_file", "content": "SEGMENT REVENUE, FY2024 (USD millions)\nCold chain      612\nGround freight  938\nBrokerage       290\nTotal         1,840\n\nSEGMENT REVENUE, FY2023 (USD millions)\nCold chain      471\nGround freight  931\nBrokerage       284\nTotal         1,686"},
+    {"role": "assistant", "content": "Northwind Logistics grew 9.1% in 2024, against sector growth of about 5%, so it outgrew its sector by roughly four percentage points. The cold-chain division drove almost all of it: cold chain went from $471m to $612m, an increase of $141m, while total revenue rose $154m. Ground freight and brokerage were close to flat. Margins improved to 14.2% on the back of the mix shift."}
+  ]
+}

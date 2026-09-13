@@ -1,0 +1,27 @@
+$ tallystick check-trace examples/logs/clean_run.json --tool-returns-verbatim read_file
+
+Read as openai: 5 artifact(s) from examples/logs/clean_run.json. The report below judges that reading.
+  tools read as external text, verbatim: read_file
+
+Can this run be checked?   5 pieces of text across 3 steps
+----------------------------------------------------------------------------
+  A check starts at the answer and walks back until it reaches text the
+  model did not write. This run gives it 2 pieces of text to walk through:
+
+      2 of 2   (100%)   the model's own words - a plan, a summary,
+                       a note. The check can ask each one what it
+                       rests on, and keep walking back.
+
+      0 of 2           a tool's reply - a search result, a page, a
+                       row from a table. The walk stops here and
+                       takes the tool's word for it.
+
+  3 further pieces of text are documents kept word for word - 271 characters.
+  Reaching one of those is how a walk is meant to end, so they are not
+  part of the 2 above and count neither for you nor against you.
+
+  The higher that 100% is, the more of the run a check can follow.
+
+CAN BE CHECKED - nothing in the recording is in the way.
+
+exit: 0

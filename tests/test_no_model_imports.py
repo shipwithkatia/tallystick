@@ -175,18 +175,93 @@ def test_adapters_never_import_an_sdk():
         assert not bad, f"adapters/{p.name} imports {sorted(bad)}"
 
 
-def test_adapters_never_import_the_model_side_and_the_core_never_imports_adapters():
-    """Recording and proposing are separate jobs. An adapter that proposed would be
-    a framework-specific verdict; a core that recorded would drag in frameworks."""
+def test_adapters_never_import_the_model_side():
+    """Recording and proposing are separate jobs. An adapter that proposed would
+    be a framework-specific verdict."""
     for p in (PKG / "adapters").rglob("*.py"):
         tree = ast.parse(p.read_text(encoding="utf-8"))
         assert not list(_model_side_imports(tree)), f"adapters/{p.name} imports propose/"
+
+
+def _module_level_local_imports(path: pathlib.Path) -> set[str]:
+    """Sibling modules this one pulls in *at import time*, as paths relative to
+    the package. Imports inside a function are deliberately not followed: those
+    cost nothing until called, which is how `propose` stays out of an audit."""
+    text = path.read_text(encoding="utf-8")
+    tree = ast.parse(text)
+    inside = _nodes_inside_functions(tree)
+    here = path.relative_to(PKG).parent
+    out: set[str] = set()
+    for node in ast.walk(tree):
+        if id(node) in inside:
+            continue
+        if isinstance(node, ast.Import):
+            for a in node.names:
+                if a.name.split(".")[0] == "tallystick":
+                    out.add("/".join(a.name.split(".")[1:]))
+        elif isinstance(node, ast.ImportFrom):
+            if node.level == 0 and (node.module or "").split(".")[0] == "tallystick":
+                out.add("/".join((node.module or "").split(".")[1:]))
+            elif node.level > 0:
+                base = here
+                for _ in range(node.level - 1):
+                    base = base.parent
+                mod = (node.module or "").replace(".", "/")
+                out.add(str(base / mod) if mod else str(base))
+                for a in node.names:      # `from . import x` - x may be a module
+                    out.add(str(base / a.name))
+    return {o.strip("/.") for o in out if o not in ("", ".")}
+
+
+def _closure(start: str) -> set[str]:
+    """Every module reached from `start` by module-level imports."""
+    seen: set[str] = set()
+    queue = [start]
+    while queue:
+        name = queue.pop()
+        for candidate in (PKG / name, PKG / f"{name}.py", PKG / name / "__init__.py"):
+            if candidate.is_file():
+                break
+        else:
+            continue
+        key = str(candidate.relative_to(PKG))
+        if key in seen:
+            continue
+        seen.add(key)
+        queue.extend(_module_level_local_imports(candidate))
+    return seen
+
+
+def test_nothing_the_verdict_path_loads_can_reach_a_model():
+    """The rule that matters, enforced through the whole import graph rather
+    than on one module's own first line.
+
+    This used to be spelled "the core must not import adapters/", which was a
+    stand-in for the real property and blocked a reader that only touches
+    stdlib. What has to hold is that importing any verdict module cannot pull
+    in a model SDK, the network, or a source of randomness - however many
+    modules deep. Read `tallystick convert` as the case in point: it loads a
+    chat-log reader and must stay as offline as `audit`."""
+    offences: dict[str, dict[str, list[str]]] = {}
     for name in VERDICT_MODULES:
-        tree = ast.parse((PKG / name).read_text(encoding="utf-8"))
-        for node in ast.walk(tree):
-            if isinstance(node, ast.ImportFrom) and node.module and \
-                    "adapters" in node.module.split("."):
-                raise AssertionError(f"{name} imports adapters/")
-            if isinstance(node, ast.ImportFrom) and node.level > 0 and \
-                    any(a.name == "adapters" for a in node.names):
-                raise AssertionError(f"{name} imports adapters/")
+        via: dict[str, list[str]] = {}
+        for reached in sorted(_closure(name)):
+            bad = sorted(r for r in _imported_roots(PKG / reached)
+                         if any(r == f or r.startswith(f + "_") for f in FORBIDDEN_ROOTS))
+            if bad:
+                via[reached] = bad
+        if via:
+            offences[name] = via
+    assert not offences, (
+        "importing these verdict modules would load something that can reach a "
+        f"model, the network or a clock: {offences}")
+
+
+def test_the_closure_check_would_catch_a_framework_binding():
+    """The guard above is only worth having if it fires. `adapters/langchain.py`
+    imports langchain_core, so any verdict module that reached it must fail."""
+    reached = _closure("adapters/langchain.py")
+    roots: set[str] = set()
+    for name in reached:
+        roots |= _imported_roots(PKG / name)
+    assert any(r.startswith("langchain") for r in roots)

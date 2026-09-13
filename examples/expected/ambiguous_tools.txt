@@ -1,0 +1,47 @@
+$ tallystick check-trace examples/logs/ambiguous_tools.json
+
+Read as openai: 4 artifact(s) from examples/logs/ambiguous_tools.json. The report below judges that reading.
+  left out - tool name(s) matched by position: tool[2] -> web_search (by position only), tool[3] -> final_answer (by position only)
+  note: this log stops on a tool's reply, so it does not record what the
+        user saw: the model's last message before it is a step, not an
+        answer, and this reading does not promote it to one
+
+Can this run be checked?   4 pieces of text across 2 steps
+----------------------------------------------------------------------------
+  A check starts at the answer and walks back until it reaches text the
+  model did not write. This run gives it 3 pieces of text to walk through:
+
+      1 of 3   (33%)   the model's own words - a plan, a summary,
+                       a note. The check can ask each one what it
+                       rests on, and keep walking back.
+
+      2 of 3           a tool's reply - a search result, a page, a
+                       row from a table. The walk stops here and
+                       takes the tool's word for it.
+
+  1 further piece of text is a document kept word for word - 26 characters.
+  Reaching one of those is how a walk is meant to end, so it is not part
+  of the 3 above and counts neither for you nor against you.
+
+  The higher that 33% is, the more of the run a check can follow.
+
+CANNOT BE CHECKED - there is no answer to work back from, or nothing the model
+wrote. A check has no question to ask.
+  1 step recorded only a tool's reply and nothing the model wrote,
+  so there is nothing to ask at that step. It is:
+    a1.tools
+  For scale: across 443 runs where a person marked where the agent went
+  wrong, runs below 80% had that point out of reach 59% of the time,
+  against 29% above it - mostly because there is more out of reach to
+  begin with, not because a low number predicts trouble.
+
+Defects a recorder can fix:
+  [no_final_answer] nothing is marked as the run's answer, so there is
+      nothing to audit back from
+      -
+  [orphan_root] recorded but no step declares it as an input, so nothing can
+      ever be credited to it; if the prompt reformats or truncates
+      documents, record the inputs the step really saw
+      t3
+
+exit: 1

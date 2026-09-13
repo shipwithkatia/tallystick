@@ -1,0 +1,27 @@
+$ tallystick check-trace examples/logs/otel_spans.json
+
+Read as otel: 3 artifact(s) from examples/logs/otel_spans.json. The report below judges that reading.
+  reader: read against the OpenTelemetry GenAI specification and logs built to match it, not against a corpus of real exports
+
+Can this run be checked?   3 pieces of text across 1 step
+----------------------------------------------------------------------------
+  A check starts at the answer and walks back until it reaches text the
+  model did not write. This run gives it 1 piece of text to walk through:
+
+      1 of 1   (100%)   the model's own words - a plan, a summary,
+                       a note. The check can ask each one what it
+                       rests on, and keep walking back.
+
+      0 of 1           a tool's reply - a search result, a page, a
+                       row from a table. The walk stops here and
+                       takes the tool's word for it.
+
+  2 further pieces of text are documents kept word for word - 55 characters.
+  Reaching one of those is how a walk is meant to end, so they are not
+  part of the 1 above and count neither for you nor against you.
+
+  The higher that 100% is, the more of the run a check can follow.
+
+CAN BE CHECKED - nothing in the recording is in the way.
+
+exit: 0

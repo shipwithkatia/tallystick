@@ -2,6 +2,7 @@
 
 Provenance accounting for LLM agent runs: every claim in the final answer is traced back, hop by hop, to something outside the model — or named, together with the step that invented it.
 
+**In short.** An agent that summarises its sources and then answers from the summary can invent a fact in the middle and quote it faithfully at the end; every one-hop check then says "grounded". tallystick walks the chain back to the documents with plain code — no model in the verdict — and names the step where it breaks. On 290 answer sentences built from RAGTruth, that audit is level with an LLM judge shown the full history on F1 (0.59 vs 0.58; the paired difference spans zero) and puts a false flag on fewer than half as many clean sentences (FPR 0.07 vs 0.16). The benchmark is constructed, not natural; its limits are stated under [Benchmark](#benchmark). On 225 real agent trajectories from [AgentHallu](https://arxiv.org/abs/2601.06818), the same audit names the labelled step in 15% of the runs it can reach and reports a break in 57% — and measures its own boundary: 53% of the human-labelled hallucinations are inside tool results the trace never kept, where no post-hoc audit can follow.
 **In short.** An agent that summarises its sources and then answers from the summary can invent a fact in the middle and quote it faithfully at the end. Every one-hop check then says "grounded". tallystick walks the chain back to the documents with plain code — no model in the verdict — and names the step where it breaks.
 
 - **About half of the labelled mistakes in real agent runs happen at steps this audit cannot check.** On [AgentHallu](https://arxiv.org/abs/2601.06818), 236 of the 443 human labels point at a step where the agent wrote no prose — only a tool call and the result it came back with. tallystick checks what a model wrote, so those steps are beyond its reach. That boundary is measured, not argued, and so is the one way to argue with it: if a tool call's own text counts as something to check, the share is 32% rather than 53% ([`bench/results/boundary-sensitivity.txt`](bench/results/boundary-sensitivity.txt)).
@@ -69,33 +70,94 @@ ans_3 [laundered] depth=1
 
 ## How to Use
 
+Everything in the first two steps needs no API key, no account and no network.
+
 ```bash
 git clone https://github.com/shipwithkatia/tallystick && cd tallystick
-pip install -e ".[propose,langchain]"   # plain `pip install -e .` gives the audit path only
+pip install -e .
+```
 
-# 1. Get a raw trace (artifacts + steps, no claims yet). Either record a
-#    LangChain run — or write the JSON by hand, as examples/raw_research_run.json.
-python examples/langchain_demo.py          # a 4-step agent, recorded -> raw_langchain.json
+Python 3.9 or newer. Run the commands below in a terminal — **Terminal** on
+macOS, **PowerShell** on Windows, or the built-in terminal in your editor
+(in Cursor and VS Code: Terminal → New Terminal).
 
-# 2. Before spending anything: can this trace be audited at all? No model, no cost.
-tallystick check-trace raw_langchain.json
-tallystick check-trace raw_langchain.json --json report.json   # for CI
-tallystick check-trace raw_langchain.json --min-reachable      # also fail a thin recording
+**1. Ask whether a run can be checked at all.** This is the cheap question, and
+it comes first: a recording that did not keep what an audit needs cannot be
+audited, however much you spend on the audit. No model is called.
 
-# 3. Let a model post the books: writes a posted trace, then audits it.
-#    Needs ANTHROPIC_API_KEY.
-tallystick propose raw_langchain.json -o posted.json
+```bash
+# six test logs are included - deliberately different shapes, not your data
+tallystick check-trace examples/logs/clean_run.json        # a tidy run
+tallystick check-trace examples/logs/ambiguous_tools.json  # PARTLY, and why
+tallystick check-trace examples/logs/not_an_agent_log.json # refused, exit 2
+```
 
-# 4. Audit a posted trace. Deterministic, offline, no SDK needed.
-tallystick posted.json                 # exit 0 = balance, 1 = don't, 2 = could not run
-tallystick posted.json --chain <id>    # full provenance chain for one claim
-tallystick posted.json --json out.json # machine-readable balance
-tallystick posted.json --quiet         # exit code only
-tallystick examples/balanced_run.json  # what a passing gate looks like: exit 0
+`examples/logs/README.md` says what each one is and what it should print;
+`examples/expected/` holds the exact output, so you can tell whether your copy
+agrees with this one.
 
-# Same propose path with canned answers and no network — what CI runs.
+Then your own log. An OpenAI `messages` array, whatever your app already
+writes — LiteLLM, vLLM and most gateways use the same keys — or an
+OpenTelemetry GenAI span export. No recorder, no code change:
+
+```bash
+tallystick check-trace my_log.json
+tallystick check-trace my_log.json --json report.json --quiet   # for CI
+tallystick convert     my_log.json -o trace.json                # keep the reading
+```
+
+Two things the file cannot tell it, and you can. A tool that hands the model's
+own words back (a `final_answer` tool, a note store) is not evidence; a tool
+that returns a page exactly as fetched is:
+
+```bash
+tallystick check-trace my_log.json --tool-returns-model-text save_note
+tallystick check-trace my_log.json --tool-returns-verbatim  read_file
+```
+
+Neither is guessed from the log. By default every tool result is treated as a
+wall the audit cannot see past, which counts against your recording rather
+than quietly in its favour.
+
+**2. Audit a run whose claims are already posted.** Deterministic, offline, no
+SDK needed:
+
+```bash
+tallystick examples/balanced_run.json     # what a passing gate looks like: exit 0
+tallystick examples/laundered_summary.json  # a fabrication quoted faithfully: exit 1
+tallystick examples/laundered_summary.json --chain ans_3   # the full chain for one claim
+```
+
+Exit codes are the product decision here. **0** — every claim in the answer
+traces back to something outside the model. **1** — one does not, and the
+report names it and the step that introduced it. **2** — the audit could not
+run at all: a malformed file, a missing key, a trace with no claims posted on
+it yet. A file that cannot be read must never read as "this agent failed".
+
+**3. Let a model post the claims.** This is the only step that costs anything,
+and the only one that needs `ANTHROPIC_API_KEY`. It reads a raw trace, writes
+the claims and the evidence behind each one, and audits the file it wrote:
+
+```bash
+pip install -e ".[propose]"
+tallystick propose raw_trace.json -o posted.json
+```
+
+Without a key you can still see the whole path, with canned answers and no
+network — this is what CI runs:
+
+```bash
 tallystick propose examples/raw_research_run.json -o posted.json \
   --proposer fake --script examples/fake_answers.json
+```
+
+**4. Record a run yourself, if you want the recording to be better than your
+logs.** The LangChain recorder writes down what each step actually saw, which
+a message list cannot tell you:
+
+```bash
+pip install -e ".[langchain]"
+python examples/langchain_demo.py     # a 4-step agent, recorded -> raw_langchain.json
 ```
 
 ```python
@@ -130,29 +192,38 @@ most often did not keep is the page behind a tool result. `tallystick check-trac
 reads a raw trace and says so before a single model call is spent:
 
 ```
-$ tallystick check-trace run.json
+$ tallystick check-trace examples/logs/laundered_search.json
 
-Auditability - 11 step(s), 12 artifact(s)
+Read as openai: 7 artifact(s) from examples/logs/laundered_search.json. The report below judges that reading.
+
+Can this run be checked?   7 pieces of text across 5 steps
 ----------------------------------------------------------------------------
-  What a chain passes through: 11 piece(s) of text
-    9      81%  written by the model - the audit can ask what it rests on
-    2           returned by a tool - a chain stops here, on trust
-  Plus 1 document(s), 737 character(s) of external text kept verbatim -
-  which is what a trace is for, so it is not counted in the share.
+  A check starts at the answer and walks back until it reaches text the
+  model did not write. This run gives it 5 pieces of text to walk through:
 
-  Higher is better: the more of a run the model wrote down, the more of it
-  an audit can follow.
+      3 of 5   (60%)   the model's own words - a plan, a summary,
+                       a note. The check can ask each one what it
+                       rests on, and keep walking back.
 
-AUDITABLE - no defect stands in the audit's way.
-  2 step(s) recorded a tool result and nothing the model wrote, so the audit
-  cannot ask what happened there. Record the model's own text for each of:
-    s3.tools, s5.tools
+      2 of 5           a tool's reply - a search result, a page, a
+                       row from a table. The walk stops here and
+                       takes the tool's word for it.
 
-Worth knowing (does not decide the verdict):
-  [duplicate_content] these artifacts hold the same text, so a quote cannot
-      be attributed to one rather than another, and tooling that matches
-      artifacts by their text will confuse them
-      answer, s10
+  2 further pieces of text are documents kept word for word - 100 characters.
+  Reaching one of those is how a walk is meant to end, so they are not
+  part of the 5 above and count neither for you nor against you.
+
+  The higher that 60% is, the more of the run a check can follow.
+
+CAN BE CHECKED - nothing in the recording is in the way, but only 60% of what
+the walk goes through is the model's own words.
+  2 steps recorded only a tool's reply and nothing the model wrote,
+  so there is nothing to ask at those steps. They are:
+    a2.tools, a4.tools
+  For scale: across 443 runs where a person marked where the agent went
+  wrong, runs below 80% had that point out of reach 59% of the time,
+  against 29% above it - mostly because there is more out of reach to
+  begin with, not because a low number predicts trouble.
 ```
 
 Three things are reported and they are not the same kind of thing. The **share** is
@@ -172,11 +243,11 @@ breaks any tooling that matches artifacts by their text. Exit 0 when no defect
 stands in the way, 1 when one does or the recording is thinner than a
 `--min-reachable` you passed, 2 when the file cannot be read.
 
-The three verdicts say what they license you to conclude. **AUDITABLE**: nothing in
-the recording stops the audit; a clean result from it means something. **PARTIAL**:
+The three verdicts say what they license you to conclude. **CAN BE CHECKED**: nothing
+in the recording stops the audit; a clean result from it means something. **PARTLY**:
 the audit will run, and its silence will not mean much — read it as "nothing found
-here", not "nothing there". **UNAUDITABLE**: there is no answer to work back from,
-or nothing the model wrote, so the audit has no question to ask. Exit 1 covers the
+here", not "nothing here". **CANNOT BE CHECKED**: there is no answer to work back
+from, or nothing the model wrote, so the audit has no question to ask. Exit 1 covers the
 last two, because the distinction that matters to a build is "can I trust a clean
 result", and the answer for both is no.
 
@@ -269,7 +340,7 @@ Done so far: v0.2 model-side proposers outside the verdict path; v0.3 LangChain 
 - [ ] an adapter for the log shapes practitioners already have — OpenAI Chat Completions message lists first, then OpenTelemetry GenAI spans — so that `check-trace` can be run on a real recording without writing a converter by hand. This is the gap between the tool and its first user
 - [ ] v0.8 — the recall gap is the verifier checking *where*, not *whether*. On real trajectories 5 of 23 reachable misses are a real source misread (a 1946 date taken for a 1937 one), which is exactly this. One deterministic candidate: require the funding span to contain the claim's content words, measured on this benchmark before it is adopted. Separately: let the proposer post a paraphrase together with the verbatim span behind it, and verify the span
 - [ ] coverage for the remainder of a sentence the segmenter claimed only in part ("Revenue rose, and the CEO resigned" with a claim over the first clause): today the remainder is logged as uncredited characters, not posted as a claim
-- [ ] adapters: LangSmith and OpenTelemetry exports, so a team can audit yesterday's logs without changing code — and a benchmark on such traces, three or more steps, where the last hop is not verbatim by construction; LlamaIndex; Claude Citations ingested as pre-verified credits
+- [ ] adapters: LangSmith exports, and the OTel reader checked against real exports rather than the specification alone — and a benchmark on such traces, three or more steps, where the last hop is not verbatim by construction; LlamaIndex; Claude Citations ingested as pre-verified credits
 - [ ] HTML ledger view: the answer colour-coded by status, click a sentence to unfold its chain to the root
 - [ ] PyPI release
 

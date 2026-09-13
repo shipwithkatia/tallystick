@@ -1,0 +1,34 @@
+$ tallystick check-trace examples/logs/laundered_search.json
+
+Read as openai: 7 artifact(s) from examples/logs/laundered_search.json. The report below judges that reading.
+
+Can this run be checked?   7 pieces of text across 5 steps
+----------------------------------------------------------------------------
+  A check starts at the answer and walks back until it reaches text the
+  model did not write. This run gives it 5 pieces of text to walk through:
+
+      3 of 5   (60%)   the model's own words - a plan, a summary,
+                       a note. The check can ask each one what it
+                       rests on, and keep walking back.
+
+      2 of 5           a tool's reply - a search result, a page, a
+                       row from a table. The walk stops here and
+                       takes the tool's word for it.
+
+  2 further pieces of text are documents kept word for word - 100 characters.
+  Reaching one of those is how a walk is meant to end, so they are not
+  part of the 5 above and count neither for you nor against you.
+
+  The higher that 60% is, the more of the run a check can follow.
+
+CAN BE CHECKED - nothing in the recording is in the way, but only 60% of what
+the walk goes through is the model's own words.
+  2 steps recorded only a tool's reply and nothing the model wrote,
+  so there is nothing to ask at those steps. They are:
+    a2.tools, a4.tools
+  For scale: across 443 runs where a person marked where the agent went
+  wrong, runs below 80% had that point out of reach 59% of the time,
+  against 29% above it - mostly because there is more out of reach to
+  begin with, not because a low number predicts trouble.
+
+exit: 0

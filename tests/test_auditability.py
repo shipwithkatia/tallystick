@@ -38,7 +38,7 @@ def test_a_fully_recorded_run_is_auditable_and_nothing_is_opaque():
     # for, so it is left out of the fraction rather than counted against it
     assert a.derived == 2 and a.judged_artifacts == 2 and a.reachable_share == 1.0
     assert a.ingest_steps == ("s1",) and a.opaque_steps == ()
-    assert "AUDITABLE" in report(a)
+    assert "CAN BE CHECKED" in report(a)
 
 
 def test_a_step_that_recorded_only_a_tool_result_is_opaque_but_not_a_defect():
@@ -51,8 +51,8 @@ def test_a_step_that_recorded_only_a_tool_result_is_opaque_but_not_a_defect():
     assert a.derived == 2 and a.tool_results == 1 and a.judged_artifacts == 3
     assert a.verdict == "auditable"          # a boundary is not a defect
     text = report(a)
-    assert "Record the model's own text for each of:" in text and "\n    s2" in text
-    assert "on trust" in text
+    assert "nothing to ask at that step" in text and "\n    s2" in text
+    assert "takes the tool's word for it" in text
 
 
 def test_the_share_gates_the_verdict_only_when_it_is_asked_for():
@@ -333,7 +333,7 @@ def test_the_printed_share_is_floored_so_it_never_reads_above_the_line():
     a = check(_run(arts, steps), min_reachable=0.8)
     assert 0.795 < a.reachable_share < 0.8               # 40/50
     text = report(a)
-    assert "  79%" in text and "Below the 80%" in text   # never "80% ... below 80%"
+    assert "(79%)" in text and "Below the 80%" in text   # never "80% ... below 80%"
 
 
 def test_a_file_that_is_not_a_trace_is_refused_rather_than_diagnosed(tmp_path):
@@ -432,7 +432,7 @@ def test_the_thin_warning_follows_the_line_the_caller_asked_for():
     # the AgentHallu paragraph is a fact about being under 80%, so it stays tied
     # to 80% whatever line the caller passed - a 90% trace gated at 95% must not
     # be told what happens below 80%
-    assert "443 labelled" in report(a)                    # 75%: still under 80%
+    assert "443 runs" in report(a)                    # 75%: still under 80%
     thick = [dict(SUM, artifact_id=f"s{i}", content=f"Sentence {i} here.") for i in range(9)]
     thick_steps = [{"step_id": "g", "kind": "generate", "inputs": [],
                     "outputs": [x["artifact_id"] for x in thick]},
@@ -440,7 +440,7 @@ def test_the_thin_warning_follows_the_line_the_caller_asked_for():
                    {"step_id": "an", "kind": "answer", "inputs": ["s0", "t"], "outputs": ["f"]}]
     c = check(_run(thick + [TOOL, ANS], thick_steps), min_reachable=0.95)   # share 10/11 = 90%
     text = report(c)
-    assert "443 labelled" not in text and "Below the 95%" in text
+    assert "443 runs" not in text and "Below the 95%" in text
 
 
 def test_a_trace_with_only_one_of_the_two_keys_still_loads():
@@ -484,12 +484,12 @@ def test_the_report_says_what_it_counts_over_and_which_way_is_better():
     text = report(a)
     assert a.judged_artifacts == 4 and a.artifacts == 5
     # the denominator is printed, and it is the judged count, not every artifact
-    assert "What a chain passes through: 4 piece(s) of text" in text
+    assert "gives it 4 pieces of text to walk through" in text
     assert "5 piece(s)" not in text
     # the direction is on screen, not left to be inferred
-    assert "Higher is better" in text
+    assert "the more of the run a check can follow" in text
     # the document's characters are the document's, not the tool result's too
-    assert f"{len(DOC['content'])} character(s)" in text
+    assert f"{len(DOC['content'])} characters" in text
     assert f"{a.root_chars} character(s)" not in text
 
 

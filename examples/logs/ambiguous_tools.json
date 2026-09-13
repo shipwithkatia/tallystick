@@ -1,0 +1,36 @@
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": "Who won the prize in 2031?"
+    },
+    {
+      "role": "assistant",
+      "content": "I will check and answer.",
+      "tool_calls": [
+        {
+          "type": "function",
+          "function": {
+            "name": "web_search",
+            "arguments": "{}"
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "final_answer",
+            "arguments": "{}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "content": "Nothing found."
+    },
+    {
+      "role": "tool",
+      "content": "The 2031 prize went to Alice Nguyen."
+    }
+  ]
+}

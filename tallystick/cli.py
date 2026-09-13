@@ -2,11 +2,18 @@
 
     tallystick audit       run.json      close the books on a posted trace
     tallystick check-trace raw.json      can this trace be audited at all?
+    tallystick convert     log.json -o raw.json
+                                         read someone else's log as a trace
     tallystick propose     raw.json -o run.json
                                          let a model post claims and credits,
                                          then audit the file it wrote
 
 `audit` is the default: `tallystick run.json` works.
+
+`check-trace`, `convert` and `propose` take `--from openai|otel` and will read
+a log that was never written for this tool. `audit` does not: it needs a posted
+trace, and a converted log has no claims on it yet. That is the boundary -
+converting is reading, posting is a separate act, and neither is a verdict.
 
 The exit code is the product decision here: 0 when every claim in the final answer
 traces back to a root, 1 otherwise, 2 when the audit could not run at all (a
@@ -31,11 +38,119 @@ import sys
 from pathlib import Path
 
 from .auditability import DEFAULT_MIN_REACHABLE, check_trace, report
+from .convert import FORMATS, hint_for, read_any
+from .adapters.openai_chat import DEFAULT_MAX_TOOL_CHARS
 from .io import load_run, load_run_file, read_json_file
 from .ledger import close_books
 from .report import chain_view, summary
+from .types import TraceError
 
-SUBCOMMANDS = ("audit", "check-trace", "propose")
+SUBCOMMANDS = ("audit", "check-trace", "convert", "propose")
+
+
+def _add_source_args(parser: argparse.ArgumentParser) -> None:
+    """The flags that let a command read a log this project did not write."""
+    parser.add_argument(
+        "--from", dest="source", default="auto", choices=FORMATS,
+        help="what the input file is. 'auto' (the default) reads a tallystick "
+             "trace as one and converts an unmistakable OpenAI chat log or "
+             "OpenTelemetry GenAI span export; where two readers could both "
+             "claim the file it refuses and asks, because reading it the wrong "
+             "way would produce a confident audit of a run that did not happen")
+    parser.add_argument(
+        "--tool-returns-model-text", dest="model_text_tools", action="append",
+        default=[], metavar="NAME",
+        help="a tool that hands the model's own words back (a final_answer "
+             "tool, a note store, a scratchpad): recorded as the model's text, "
+             "not as evidence. Repeatable")
+    parser.add_argument(
+        "--tool-returns-verbatim", dest="verbatim_tools", action="append",
+        default=[], metavar="NAME",
+        help="a tool that returns external text exactly as fetched (a file "
+             "reader, a retriever handing back the passage): recorded as a "
+             "document. Repeatable. A search API that answers with its own "
+             "summary is not one of these")
+    parser.add_argument(
+        "--max-tool-chars", type=int, default=DEFAULT_MAX_TOOL_CHARS,
+        metavar="N",
+        help=f"cut a tool result longer than this and record the cut "
+             f"(default {DEFAULT_MAX_TOOL_CHARS})")
+
+
+def _hint(args: argparse.Namespace, seen: dict) -> str:
+    """When a file claimed to be a trace and would not load, say what would
+    read it. `load_run` is right to report the malformed field; it just has no
+    idea the file was never a trace to begin with.
+
+    Uses the copy already parsed, never a second read of the path: re-reading
+    doubled the cost of every failure and hung outright on a process
+    substitution, which has no second reader. Exit 2 means "could not run" -
+    it must not mean "stopped running"."""
+    if getattr(args, "source", "auto") not in ("auto", "tallystick"):
+        return ""
+    raw = seen.get("raw")
+    return hint_for(raw) if raw is not None else ""
+
+
+def _reading_notes(meta: dict) -> list[str]:
+    """Everything the reading itself left out or had to decide, wrapped for a
+    terminal. A reader that lost a message and said nothing turns its own bug
+    into a finding against the user's recorder, which is the failure this whole
+    project is about."""
+    import textwrap
+
+    lines: list[str] = []
+    if meta.get("reader_confidence"):
+        lines.append(f"reader: {meta['reader_confidence']}")
+    for key, label in (("model_text_tools", "read as the model's own text"),
+                       ("verbatim_tools", "read as external text, verbatim")):
+        named = meta.get(key) or []
+        if named:
+            lines.append(f"tools {label}: {', '.join(map(str, named))}")
+    for key, label in (("skipped_empty", "message(s) held no text"),
+                       ("dropped_messages", "not placed by this reader"),
+                       ("truncated", "cut to --max-tool-chars"),
+                       ("guessed_tool_names", "tool name(s) matched by position"),
+                       ("unmatched_tool_results",
+                        "result(s) whose call id matched nothing open"),
+                       ("unresolved_tool_results",
+                        "result(s) read as the model's own text, unresolved"),
+                       # The one decision the reader makes without being told
+                       # anything, and the one that can override an explicit
+                       # --tool-returns-verbatim. It was not reported at all
+                       # until review asked why.
+                       ("echoed_back_tool_results",
+                        "result(s) that quoted their own call back, so read as "
+                        "the model's text")):
+        items = meta.get(key) or []
+        if items:
+            shown = ", ".join(str(i) for i in items[:6])
+            more = f" (+{len(items) - 6} more)" if len(items) > 6 else ""
+            lines.append(f"left out - {label}: {shown}{more}")
+    notes = list(meta.get("notes") or [])
+    notes += list((meta.get("otel") or {}).get("notes") or [])
+    for note in notes:
+        wrapped = textwrap.wrap(f"note: {note}", width=74,
+                                subsequent_indent="      ")
+        lines.extend(wrapped)
+    return lines
+
+
+def _read_raw(args: argparse.Namespace, seen: dict | None = None):
+    """Read the input file in whatever shape it is. Returns (raw, source).
+
+    `seen` keeps the parsed input, so a later error message can look at what
+    the file actually was without reading the path a second time."""
+    source = getattr(args, "source", "auto")
+    raw = read_json_file(args.trace)
+    if seen is not None:
+        seen["raw"] = raw
+    return read_any(
+        raw, source=source, name=str(args.trace),
+        max_tool_chars=getattr(args, "max_tool_chars", DEFAULT_MAX_TOOL_CHARS),
+        model_text_tools=getattr(args, "model_text_tools", None) or None,
+        verbatim_tools=getattr(args, "verbatim_tools", None) or None,
+    )
 
 
 def _write_json(path: str, payload) -> None:
@@ -58,10 +173,10 @@ def _audit(args: argparse.Namespace) -> int:
 
     if not balance.final_claim_ids:
         # Nothing was audited. That must not leave as exit 1: "the books do not
-        # balance" is a verdict about the run, and the likeliest way to meet
-        # this is to audit a raw trace before posting anything to it. Reporting
-        # an unposted file as a failed audit is the exact confusion the exit
-        # codes exist to prevent.
+        # balance" is a verdict about the run, and a beginner meets this by
+        # auditing a raw trace before posting anything to it - the likeliest
+        # first mistake there is. Reporting their unposted file as a failed
+        # audit is the exact confusion the exit codes exist to prevent.
         if not run.claims:
             print("tallystick: this trace has no claims posted on it yet, so "
                   "there is nothing to audit.\n"
@@ -131,18 +246,49 @@ def _check_trace(args: argparse.Namespace) -> int:
         print(f"tallystick: --min-reachable must be a share between 0 and 1, "
               f"got {args.min_reachable}", file=sys.stderr)
         return 2
+    seen: dict = {}
     try:
-        raw = read_json_file(args.trace)
-        run = load_run(raw)          # one read, one parse; `_meta` comes from `raw`
+        raw, source = _read_raw(args, seen)  # one read; `_meta` comes from `raw`
+        run = load_run(raw)
     except (OSError, ValueError) as exc:
-        print(f"tallystick: cannot read this trace: {exc}", file=sys.stderr)
+        print(f"tallystick: cannot read this trace: {exc}.{_hint(args, seen)}",
+              file=sys.stderr)
         return 2
     meta = raw.get("_meta") if isinstance(raw, dict) else None
     result = check_trace(run, min_reachable=args.min_reachable,
                    meta=meta if isinstance(meta, dict) else None)
+    notes = _reading_notes(meta if isinstance(meta, dict) else {})
+    if not args.quiet and (source != "tallystick" or notes):
+        # Said before the report, because every number below is a number about
+        # the reading as much as about the run - and because a reading that
+        # lost something must not reach the user as a defect in their recorder.
+        # This holds for a file converted earlier too: `convert` writes its
+        # `_meta` into the trace precisely so the next command can say it again.
+        read_by = meta.get("source") if isinstance(meta, dict) else None
+        by = source if source != "tallystick" else (read_by or "tallystick")
+        print(f"Read as {by}: {len(run.artifacts)} artifact(s) from "
+              f"{args.trace}. The report below judges that reading.")
+        for line in notes:
+            print(f"  {line}")
+        print()
     if args.json_out:
+        payload = result.as_dict()
+        # A CI job runs --quiet --json and never sees the terminal. Without
+        # this it records a verdict with no trace of what the reading dropped,
+        # guessed, or could not vouch for - which is the verdict meaning less
+        # than it says, in the one place nobody is watching.
+        if isinstance(meta, dict):
+            reading = {k: meta[k] for k in
+                       ("source", "reader_confidence", "skipped_empty",
+                        "dropped_messages", "truncated", "guessed_tool_names",
+                        "unmatched_tool_results", "unresolved_tool_results",
+                        "echoed_back_tool_results",
+                        "model_text_tools", "verbatim_tools",
+                        "notes", "otel") if k in meta}
+            if reading:
+                payload["reading"] = reading
         try:
-            _write_json(args.json_out, result.as_dict())
+            _write_json(args.json_out, payload)
         except OSError as exc:
             print(f"tallystick: cannot write {args.json_out}: {exc}", file=sys.stderr)
             return 2
@@ -151,13 +297,52 @@ def _check_trace(args: argparse.Namespace) -> int:
     return 0 if result.verdict == "auditable" else 1
 
 
+def _convert(args: argparse.Namespace) -> int:
+    """Read someone else's log and write a tallystick trace. Exit 0 when the
+    file was written, 2 when it could not be read or written. There is no
+    verdict here and so no exit 1: converting is reading, not judging."""
+    seen: dict = {}
+    try:
+        raw, source = _read_raw(args, seen)
+        run = load_run(raw)            # a converter that writes an unloadable
+    except (OSError, ValueError) as exc:   # file is worse than one that refuses
+        print(f"tallystick: cannot read this log: {exc}.{_hint(args, seen)}",
+              file=sys.stderr)
+        return 2
+
+    try:
+        _write_json(args.out, raw)
+    except OSError as exc:
+        print(f"tallystick: cannot write {args.out}: {exc}", file=sys.stderr)
+        return 2
+
+    meta = raw.get("_meta") if isinstance(raw, dict) else {}
+    meta = meta if isinstance(meta, dict) else {}
+    kinds = {}
+    for art in run.artifacts.values():
+        kinds[art.kind.value] = kinds.get(art.kind.value, 0) + 1
+    print(f"read as {source} -> {args.out}")
+    print(f"  {len(run.artifacts)} artifact(s): " +
+          ", ".join(f"{n} {k}" for k, n in sorted(kinds.items())) +
+          f"; {len(run.steps)} step(s)")
+
+    # Everything the reading left out, before anyone draws a conclusion from
+    # what it kept.
+    for line in _reading_notes(meta):
+        print(f"  {line}")
+    if not args.quiet:
+        print(f"\nNext: tallystick check-trace {args.out}")
+    return 0
+
+
 def _propose(args: argparse.Namespace) -> int:
     # The model side is imported here and nowhere else in the verdict path, so
     # `tallystick audit` never loads an SDK.
     from .propose import FakeProposer, post_run
 
     try:
-        run = load_run_file(args.trace)
+        raw, _source = _read_raw(args)
+        run = load_run(raw)
     except (OSError, ValueError) as exc:
         print(f"tallystick: cannot read this trace: {exc}", file=sys.stderr)
         return 2
@@ -233,10 +418,22 @@ def build_parser() -> argparse.ArgumentParser:
     c.add_argument("--json", dest="json_out", metavar="PATH",
                    help="write the machine-readable report here")
     c.add_argument("--quiet", action="store_true", help="exit code only")
+    _add_source_args(c)
     c.set_defaults(func=_check_trace)
+
+    v = sub.add_parser("convert",
+                       help="read an OpenAI chat log or OTel span export as a trace")
+    v.add_argument("trace", metavar="LOG", help="path to the log to read")
+    v.add_argument("-o", "--out", required=True, metavar="PATH",
+                   help="where to write the tallystick trace")
+    v.add_argument("--quiet", action="store_true",
+                   help="counts only, without the next-step line")
+    _add_source_args(v)
+    v.set_defaults(func=_convert)
 
     p = sub.add_parser("propose", help="let a model post claims and credits")
     p.add_argument("trace", help="path to a raw run JSON (artifacts + steps)")
+    _add_source_args(p)
     p.add_argument("-o", "--out", required=True, metavar="PATH",
                    help="where to write the posted trace")
     p.add_argument("--proposer", default="anthropic", choices=["anthropic", "fake"],

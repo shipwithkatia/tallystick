@@ -358,10 +358,18 @@ def check_trace(run: Run, *, min_reachable: Optional[float] = None,
 check = check_trace
 
 _HEADLINE = {
-    "auditable": "AUDITABLE - no defect stands in the audit's way.",
-    "partial": "PARTIAL - the audit will run, but its silence will not mean much.",
-    "unauditable": "UNAUDITABLE - the audit cannot start on this trace.",
+    "auditable": "CAN BE CHECKED - nothing in the recording is in the way.",
+    "partial": ("PARTLY - a check will run, but if it finds nothing that means "
+                "'nothing found\nhere', not 'nothing here'."),
+    "unauditable": ("CANNOT BE CHECKED - there is no answer to work back from, "
+                    "or nothing the model\nwrote. A check has no question to ask."),
 }
+
+
+def _n(count: int, one: str, many: str = "") -> str:
+    """"1 step" and "2 steps", not "1 step(s)". A report a person is meant to
+    read on their first day should not make them parse a parenthesis."""
+    return f"{count} {one if count == 1 else (many or one + 's')}"
 
 
 def _wrap(subjects: List[str], indent: str, width: int = 76) -> List[str]:
@@ -403,43 +411,67 @@ def report(a: Auditability, *, examples: int = 5) -> str:
     below_default = share is not None and share < DEFAULT_MIN_REACHABLE
     line = a.min_reachable
     lines = [
-        f"Auditability - {a.steps} step(s), {a.artifacts} artifact(s)",
+        f"Can this run be checked?   {_n(a.artifacts, 'piece')} of text "
+        f"across {_n(a.steps, 'step')}",
         "-" * 76,
-        f"  What a chain passes through: {a.judged_artifacts} piece(s) of text",
-        f"    {a.derived - a.empty_derived:<4} {pct:>5}  written by the model - "
-        "the audit can ask what it rests on",
-        f"    {a.tool_results - a.empty_tool_results:<4}        returned by a tool - "
-        "a chain stops here, on trust",
     ]
-    if a.documents:
-        lines += textwrap.wrap(
-            f"Plus {a.documents} document(s), {a.root_chars - a.tool_result_chars} "
-            "character(s) of external text kept verbatim - which is what a trace is "
-            "for, so it is not counted in the share.",
-            width=76, initial_indent="  ", subsequent_indent="  ")
+    lines += textwrap.wrap(
+        "A check starts at the answer and walks back until it reaches text the "
+        f"model did not write. This run gives it "
+        f"{_n(a.judged_artifacts, 'piece')} of text to walk through:",
+        width=74, initial_indent="  ", subsequent_indent="  ")
     lines += [
         "",
-        "  Higher is better: the more of a run the model wrote down, the more of it",
-        "  an audit can follow.",
+        f"      {a.derived - a.empty_derived} of {a.judged_artifacts}   ({pct})   "
+        "the model's own words - a plan, a summary,",
+        "                       a note. The check can ask each one what it",
+        "                       rests on, and keep walking back.",
+        "",
+        f"      {a.tool_results - a.empty_tool_results} of {a.judged_artifacts}           "
+        "a tool's reply - a search result, a page, a",
+        "                       row from a table. The walk stops here and",
+        "                       takes the tool's word for it.",
         "",
     ]
+    if a.documents:
+        # The count and the word "characters" are kept on one line on purpose:
+        # wrapped apart, "(26" and "characters)" read as two different things.
+        chars = a.root_chars - a.tool_result_chars
+        lines.append(
+            f"  {_n(a.documents, 'further piece')} of text "
+            f"{'is a document' if a.documents == 1 else 'are documents'} kept "
+            f"word for word - {_n(chars, 'character')}.")
+        lines += textwrap.wrap(
+            "Reaching one of those is how a walk is meant to end, so "
+            f"{'it is' if a.documents == 1 else 'they are'} not part of the "
+            f"{a.judged_artifacts} above and "
+            f"{'counts' if a.documents == 1 else 'count'} neither for you nor "
+            "against you.",
+            width=74, initial_indent="  ", subsequent_indent="  ") + [""]
+    if share is not None:
+        lines += textwrap.wrap(
+            f"The higher that {pct} is, the more of the run a check can follow.",
+            width=74, initial_indent="  ", subsequent_indent="  ") + [""]
+
     if a.verdict == "auditable" and below_default:
-        lines.append(f"AUDITABLE - no defect stands in the audit's way, but only {pct} of "
-                     "what a chain\npasses through is the model's own.")
+        lines.append("CAN BE CHECKED - nothing in the recording is in the way, but "
+                     f"only {pct} of what\nthe walk goes through is the model's own "
+                     "words.")
     else:
         lines.append(_HEADLINE[a.verdict])
     if a.opaque_steps:
         lines += [
-            f"  {len(a.opaque_steps)} step(s) recorded a tool result and nothing the model "
-            "wrote, so the audit",
-            "  cannot ask what happened there. Record the model's own text for each of:",
+            f"  {_n(len(a.opaque_steps), 'step')} recorded only a tool's reply and "
+            f"nothing the model wrote,",
+            f"  so there is nothing to ask "
+            f"{'at that step. It is:' if len(a.opaque_steps) == 1 else 'at those steps. They are:'}",
         ] + _wrap(list(a.opaque_steps), "    ")
     if below_default:
         lines += [
-            "  Across AgentHallu's 443 labelled trajectories, runs below 80% had the",
-            "  hallucination beyond the audit's reach 59% of the time, against 29% above",
-            "  it - mostly because there is more out of reach to begin with. Read a clean",
-            "  audit of a thin recording as 'nothing found here', not 'nothing there'.",
+            "  For scale: across 443 runs where a person marked where the agent went",
+            "  wrong, runs below 80% had that point out of reach 59% of the time,",
+            "  against 29% above it - mostly because there is more out of reach to",
+            "  begin with, not because a low number predicts trouble.",
         ]
     if line is not None and share is not None and share < line:
         lines.append(f"  Below the {line:.0%} you asked for.")

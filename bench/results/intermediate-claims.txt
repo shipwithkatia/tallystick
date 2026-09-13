@@ -1,0 +1,27 @@
+Auditing the model's drafts, not only its answer
+================================================================
+posted files that reproduce the rows: 224   (mismatched and skipped: 1)   (no data: 3)
+
+Claims on artifacts the model wrote that are not the final answer:
+  draft claims                                       8332
+    a credit was requested                           1017
+      and it failed                                   379
+    never asked - no credit was ever requested       7315
+      and it closed                                   638
+
+Only 12% of them was ever asked about. The rest audit as unsupported because
+nobody asked, not because an answer was looked for and not found - so the whole
+population below is a measurement of the harness, and only the asked subset is
+evidence about the idea.
+
+Traces with at least one FAILING draft claim that was actually asked:
+  group                      with  without   share
+  reachable, missed             2       21   9%
+  reachable, flagged           31        0   100%
+  beyond the boundary          11       50   18%
+  clean                        43       66   39%
+
+Read the first and last rows against each other. If auditing drafts found what
+the audit of answers misses, the missed traces would fire more often than the
+clean ones. The 'flagged' row is not evidence either way: those traces are
+flagged already, so their chains are exactly the ones credits were requested for.

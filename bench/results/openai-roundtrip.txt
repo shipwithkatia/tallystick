@@ -1,0 +1,72 @@
+OpenAI reader against the native AgentHallu reader
+================================================================
+trajectories read      693  (2 file(s) skipped: not a trajectory)
+identical              665  (96%)
+different              28
+
+where they differ:
+    25  root/derived differs on 1 artifact(s)
+     2  root/derived differs on 2 artifact(s)
+     1  root/derived differs on 5 artifact(s)
+
+artifact kinds, native reader vs OpenAI reader:
+  document          693     693
+  final_answer      693     693
+  intermediate     3063    3097
+  tool_result      3055    3021
+
+first disagreements:
+  BFCL/117.json: 19 vs 19 artifacts
+  Camel/009.json: 16 vs 16 artifacts
+  Camel/019.json: 6 vs 6 artifacts
+  Camel/088.json: 8 vs 8 artifacts
+  Camel/090.json: 12 vs 12 artifacts
+  Magentic_One/077.json: 18 vs 18 artifacts
+  Magentic_One/079.json: 8 vs 8 artifacts
+  OpenDeepSearch/017.json: 9 vs 9 artifacts
+  OpenDeepSearch/020.json: 25 vs 25 artifacts
+  OpenDeepSearch/022.json: 9 vs 9 artifacts
+
+with every tool_call_id and tool name stripped:
+  identical              664  (96%)
+  artifacts read as the wrong kind  35
+  With neither, a result can only be matched to its call by the
+  order the calls were declared in. Three of the laundering
+  defects found in review of this release lived on that matching
+  code - and this corpus can decide almost nothing about it:
+       204  parallel tool batches
+       118  of them calling more than one distinct tool
+         1  of those mixing a tool that hands back the model's
+            own text with one that does not - the only shape where
+            a mis-assignment can move an artifact across the root
+            line and change a verdict
+  So this pass is a regression guard, not evidence: the coverage for
+  that code is in tests/test_convert.py, written from the failing
+  inputs review found, because the corpus does not contain them.
+
+with no --tool-returns-model-text flags at all:
+  identical              493  (71%)
+  The headline above names this corpus's four echo tools. Without
+  them a final_answer tool's output is a root, and the two readers
+  part on a third of the corpus. That is not a defect in either:
+  it is the size of what only the operator knows, and the reason
+  the flag exists.
+
+if the interpreter were named --tool-returns-model-text:
+  identical              631  (91%)
+  roots turned into model text  215, of which:
+       129  code that called a web tool - fetched text, not computed
+        56  no search and no final_answer - plausibly computed
+        24  code calling final_answer - an echo the native reader missed
+         6  an interpreter error message
+  -> worse, and not for the obvious reason: most of what the flag
+     would demote is web text surfaced through the interpreter, not
+     a computed value - and a few are echoes the native reader's own
+     8-character guard let through. The flag is for a tool that
+     ALWAYS hands back the model's words. An interpreter does not.
+
+what this comparison cannot see:
+  34 interpreter output(s) in this corpus meet every condition of
+  the native reader's echo test except its 8-character minimum. Both
+  readers call them roots, so they agree, and they are counted above
+  as agreement. Agreement is not correctness.

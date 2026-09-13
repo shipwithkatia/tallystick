@@ -1,0 +1,18 @@
+{
+  "steps": [
+    {
+      "node": "agent",
+      "output": "done"
+    }
+  ],
+  "messages": [
+    {
+      "role": "user",
+      "content": "How much is delivery?"
+    },
+    {
+      "role": "assistant",
+      "content": "Delivery is 450."
+    }
+  ]
+}
