@@ -25,6 +25,11 @@ stands in the audit's way. `1` — the audit will run, but read its silence as
 "nothing found here", not "nothing there". `2` — the file could not be read;
 never confuse this with a verdict about your agent.
 
+`1` also covers a reading that found a tool result ending in a line the model
+wrote in an earlier call, when nobody has reviewed it yet. The reason is printed
+as `unreviewed_echo_warnings`, even with `--quiet`, and `--accept-echo-warnings`
+confirms it. None of these six logs has one.
+
 ## The two flags, on these files
 
 `laundered_search.json` reports 60% until you say what only you know: that

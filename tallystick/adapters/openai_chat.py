@@ -68,7 +68,9 @@ and read in the next: the line is the model's, but the same match also happens
 when a tool confirms what the model guessed, and the log cannot tell the two
 apart. Such results stay evidence and are named in
 `_meta.echoes_from_earlier_turns`; if the tool is one that hands text back,
-say so with `model_text_tools`.
+say so with `model_text_tools`. `check-trace` exits 1 on any such report, with
+the reason `unreviewed_echo_warnings`, until it is confirmed with
+`--accept-echo-warnings`: a warning nobody read must not pass a run.
 
 **A tool result longer than `max_tool_chars` is cut**, and the cut is recorded
 in `_meta.truncated` so the audit can say "not recorded" rather than "not

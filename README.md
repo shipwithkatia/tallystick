@@ -119,6 +119,15 @@ Neither is guessed from the log. By default every tool result is treated as a
 wall the audit cannot see past, which counts against your recording rather
 than quietly in its favour.
 
+One thing the reading reports instead of deciding. A tool result whose last
+line the model had already written into an earlier call — a note read back, a
+variable an interpreter kept — may be the model's own words handed back or a
+real confirmation, and the log cannot say which. It stays evidence, it is named
+above the report, and `check-trace` exits 1 with `unreviewed_echo_warnings`
+until you have looked: name the tool with `--tool-returns-model-text`, or
+confirm with `--accept-echo-warnings`. `--quiet` still prints each warning, so a
+CI job cannot pass on one nobody saw.
+
 **2. Audit a run whose claims are already posted.** Deterministic, offline, no
 SDK needed:
 
@@ -241,7 +250,10 @@ or none. The **notes** are worth knowing and are nobody's bug — above all two
 artifacts holding the same string, which real agents produce constantly and which
 breaks any tooling that matches artifacts by their text. Exit 0 when no defect
 stands in the way, 1 when one does or the recording is thinner than a
-`--min-reachable` you passed, 2 when the file cannot be read.
+`--min-reachable` you passed, 2 when the file cannot be read. Exit 1 also when
+the reading reported an echo from an earlier turn that nobody has reviewed
+(`unreviewed_echo_warnings`); `--accept-echo-warnings` clears that reason and no
+other.
 
 The three verdicts say what they license you to conclude. **CAN BE CHECKED**: nothing
 in the recording stops the audit; a clean result from it means something. **PARTLY**:
