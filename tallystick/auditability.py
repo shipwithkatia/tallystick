@@ -41,7 +41,7 @@ The share itself is counting: it says how much of this run the audit cannot
 look at. Nothing about it is in doubt.
 
 The banding is mostly arithmetic. Replace the human label with a step drawn at
-random from the same trajectory and the same ordering appears - 10% against
+random from the same trajectory and the same ordering appears - 13% against
 45% - because a trace with more tool-only steps makes any step more likely to
 be tool-only. So "below the line, more hallucinations are out of reach" is
 largely a restatement of "below the line, more of everything is out of reach".
