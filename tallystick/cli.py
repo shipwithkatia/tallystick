@@ -31,7 +31,7 @@ import sys
 from pathlib import Path
 
 from .auditability import DEFAULT_MIN_REACHABLE, check_trace, report
-from .io import load_run, load_run_file
+from .io import load_run, load_run_file, read_json_file
 from .ledger import close_books
 from .report import chain_view, summary
 
@@ -55,6 +55,31 @@ def _audit(args: argparse.Namespace) -> int:
         print(f"tallystick: cannot audit this trace: {exc}", file=sys.stderr)
         return 2
     balance = close_books(run)
+
+    if not balance.final_claim_ids:
+        # Nothing was audited. That must not leave as exit 1: "the books do not
+        # balance" is a verdict about the run, and the likeliest way to meet
+        # this is to audit a raw trace before posting anything to it. Reporting
+        # an unposted file as a failed audit is the exact confusion the exit
+        # codes exist to prevent.
+        if not run.claims:
+            print("tallystick: this trace has no claims posted on it yet, so "
+                  "there is nothing to audit.\n"
+                  "  A raw trace records what the run produced; the claims say "
+                  "which sentences of the answer\n"
+                  "  are being checked and what each one rests on. Post them "
+                  "first:\n"
+                  f"    tallystick propose {args.trace} -o posted.json\n"
+                  "  Or, to ask whether this trace can be audited at all, with "
+                  "no model and no cost:\n"
+                  f"    tallystick check-trace {args.trace}", file=sys.stderr)
+        else:
+            print("tallystick: this trace has claims, but none of them is in a "
+                  "final answer, so there is\n"
+                  "  nothing to audit. An audit works backwards from what the "
+                  "user saw; without a claim\n"
+                  "  there, it has no question to ask.", file=sys.stderr)
+        return 2
 
     if args.chain:
         if args.chain not in balance.audits:
@@ -107,7 +132,7 @@ def _check_trace(args: argparse.Namespace) -> int:
               f"got {args.min_reachable}", file=sys.stderr)
         return 2
     try:
-        raw = json.loads(Path(args.trace).read_text(encoding="utf-8"))
+        raw = read_json_file(args.trace)
         run = load_run(raw)          # one read, one parse; `_meta` comes from `raw`
     except (OSError, ValueError) as exc:
         print(f"tallystick: cannot read this trace: {exc}", file=sys.stderr)

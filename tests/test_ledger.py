@@ -477,3 +477,63 @@ def test_a_group_may_not_span_two_claims():
     run.entries[0].group = "g1"          # e1 belongs to sum_1, not ans_1
     with pytest.raises(TraceError, match="spans claims"):
         close_books(run)
+
+
+def test_auditing_a_trace_with_no_claims_is_could_not_run_not_a_verdict(tmp_path, capsys):
+    """The likeliest first mistake: auditing a raw trace before posting
+    anything to it. Answering "BOOKS DO NOT BALANCE" with exit 1 says the agent
+    failed a check that never ran - the one confusion the exit codes exist to
+    prevent."""
+    from tallystick.cli import main
+    raw = {"artifacts": [{"artifact_id": "a", "kind": "final_answer",
+                          "content": "Revenue rose 14%."}],
+           "steps": [{"step_id": "s1", "inputs": [], "outputs": ["a"]}]}
+    path = tmp_path / "raw.json"
+    path.write_text(json.dumps(raw), encoding="utf-8")
+    assert main([str(path)]) == 2
+    err = capsys.readouterr().err
+    assert "no claims posted on it yet" in err
+    assert "tallystick propose" in err
+
+
+def test_a_posted_trace_with_no_claim_in_the_answer_is_also_could_not_run(tmp_path, capsys):
+    from tallystick.cli import main
+    raw = {"artifacts": [{"artifact_id": "m", "kind": "intermediate",
+                          "content": "Revenue rose 14%."},
+                         {"artifact_id": "a", "kind": "final_answer",
+                          "content": "Revenue rose."}],
+           "steps": [{"step_id": "s1", "inputs": [], "outputs": ["m"]},
+                     {"step_id": "s2", "inputs": ["m"], "outputs": ["a"]}],
+           "claims": [{"claim_id": "c1", "artifact_id": "m",
+                       "start": 0, "end": 17}]}
+    path = tmp_path / "posted.json"
+    path.write_text(json.dumps(raw), encoding="utf-8")
+    assert main([str(path)]) == 2
+    assert "none of them is in a final answer" in capsys.readouterr().err
+
+
+def test_a_file_saved_with_a_byte_order_mark_just_opens(tmp_path):
+    """Windows Notepad and several exporters write one. Plain utf-8 fails on
+    the first character with a message about BOMs, which tells someone who did
+    not choose the encoding nothing at all."""
+    from tallystick.cli import main
+    raw = {"artifacts": [{"artifact_id": "a", "kind": "final_answer",
+                          "content": "Выручка выросла."}],
+           "steps": [{"step_id": "s1", "inputs": [], "outputs": ["a"]}]}
+    path = tmp_path / "bom.json"
+    path.write_bytes(b"\xef\xbb\xbf" + json.dumps(raw, ensure_ascii=False).encode())
+    assert main(["check-trace", str(path), "--quiet"]) in (0, 1)
+
+
+def test_a_file_in_another_encoding_is_refused_in_words_not_codec_terms(tmp_path, capsys):
+    """Guessing the encoding would change the letters - and every promise this
+    tool makes is about letters being the same."""
+    from tallystick.cli import main
+    raw = {"artifacts": [{"artifact_id": "a", "kind": "final_answer",
+                          "content": "Выручка выросла."}],
+           "steps": [{"step_id": "s1", "inputs": [], "outputs": ["a"]}]}
+    path = tmp_path / "cp1251.json"
+    path.write_bytes(json.dumps(raw, ensure_ascii=False).encode("cp1251"))
+    assert main(["check-trace", str(path)]) == 2
+    err = capsys.readouterr().err
+    assert "not saved as UTF-8" in err and "Save As" in err

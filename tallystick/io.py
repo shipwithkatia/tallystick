@@ -160,10 +160,33 @@ def load_run(data: Dict[str, Any]) -> Run:
     return run
 
 
-def load_run_file(path: str | Path) -> Run:
-    """Read a JSON trace file and build a Run. Raises TraceError or OSError."""
+def read_json_file(path: str | Path):
+    """Read a JSON file the way people's files actually arrive.
+
+    `utf-8-sig` rather than `utf-8`: Windows Notepad, Excel exports and several
+    logging libraries write a byte-order mark, and plain utf-8 then fails on the
+    first character with a message about BOMs that tells a non-programmer
+    nothing. utf-8-sig reads both, and strips the mark if it is there.
+
+    Any other encoding is refused rather than guessed. Guessing would decode
+    someone's text into different characters, and a tool whose whole claim is
+    "this quote is verbatim in that source" cannot afford to silently change
+    the letters it is comparing."""
     try:
-        data = json.loads(Path(path).read_text(encoding="utf-8"))
+        text = Path(path).read_text(encoding="utf-8-sig")
+    except UnicodeDecodeError:
+        raise TraceError(
+            f"{path} is not saved as UTF-8, so its text cannot be read without "
+            f"guessing what the characters are - and guessing would change the "
+            f"letters this tool compares. Re-save the file as UTF-8 "
+            f"(in most editors: Save As, and choose UTF-8) and try again"
+        ) from None
+    try:
+        return json.loads(text)
     except json.JSONDecodeError as exc:
         raise TraceError(f"{path} is not valid JSON: {exc}") from None
-    return load_run(data)
+
+
+def load_run_file(path: str | Path) -> Run:
+    """Read a JSON trace file and build a Run. Raises TraceError or OSError."""
+    return load_run(read_json_file(path))
