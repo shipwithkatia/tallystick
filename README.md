@@ -125,8 +125,10 @@ variable an interpreter kept — may be the model's own words handed back or a
 real confirmation, and the log cannot say which. It stays evidence, it is named
 above the report, and `check-trace` exits 1 with `unreviewed_echo_warnings`
 until you have looked: name the tool with `--tool-returns-model-text`, or
-confirm with `--accept-echo-warnings`. `--quiet` still prints each warning, so a
-CI job cannot pass on one nobody saw.
+confirm it, tool by tool, with `--accept-echo-warning NAME`. A confirmation
+covers only the tool it names, so a new warning about another tool still fails
+the build. `--quiet` still prints each warning, so a CI job cannot pass on one
+nobody saw.
 
 **2. Audit a run whose claims are already posted.** Deterministic, offline, no
 SDK needed:
@@ -252,8 +254,8 @@ breaks any tooling that matches artifacts by their text. Exit 0 when no defect
 stands in the way, 1 when one does or the recording is thinner than a
 `--min-reachable` you passed, 2 when the file cannot be read. Exit 1 also when
 the reading reported an echo from an earlier turn that nobody has reviewed
-(`unreviewed_echo_warnings`); `--accept-echo-warnings` clears that reason and no
-other.
+(`unreviewed_echo_warnings`); `--accept-echo-warning NAME` clears it for that
+tool and clears no other reason.
 
 The three verdicts say what they license you to conclude. **CAN BE CHECKED**: nothing
 in the recording stops the audit; a clean result from it means something. **PARTLY**:

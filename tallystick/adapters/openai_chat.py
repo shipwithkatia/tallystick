@@ -69,8 +69,8 @@ when a tool confirms what the model guessed, and the log cannot tell the two
 apart. Such results stay evidence and are named in
 `_meta.echoes_from_earlier_turns`; if the tool is one that hands text back,
 say so with `model_text_tools`. `check-trace` exits 1 on any such report, with
-the reason `unreviewed_echo_warnings`, until it is confirmed with
-`--accept-echo-warnings`: a warning nobody read must not pass a run.
+the reason `unreviewed_echo_warnings`, until each tool is confirmed by name with
+`--accept-echo-warning NAME`: a warning nobody read must not pass a run.
 
 **A tool result longer than `max_tool_chars` is cut**, and the cut is recorded
 in `_meta.truncated` so the audit can say "not recorded" rather than "not
@@ -581,6 +581,9 @@ def to_trace(data: Any, *, name: str = "",
     # Results whose last line the model wrote into a call of an EARLIER turn:
     # kept as evidence and reported - see `_hands_back_what_it_was_given`.
     earlier_echoes: List[str] = []
+    # The same warnings as data. `check-trace` confirms them by tool name, and a
+    # name parsed back out of the text above could be forged by a tool's name.
+    earlier_echo_details: List[Dict[str, str]] = []
     # The calls of the turn now open, as (name, arguments), so a result the log
     # can only place among several of them is weighed against all of them.
     batch_calls: List[Tuple[str, str]] = []
@@ -821,6 +824,8 @@ def to_trace(data: Any, *, name: str = "",
                 kind = "tool_result"
             if earlier_line:
                 earlier_echoes.append(f"tool[{k}] ({tool}): {_short(earlier_line)}")
+                earlier_echo_details.append(
+                    {"result": f"tool[{k}]", "tool": tool, "line": _short(earlier_line)})
             artifacts.append({"artifact_id": aid, "kind": kind,
                               "title": tool, "content": content})
             if cut:
@@ -909,6 +914,7 @@ def to_trace(data: Any, *, name: str = "",
         "unresolved_tool_results": unresolved,
         "echoed_back_tool_results": echoed_back,
         "echoes_from_earlier_turns": earlier_echoes,
+        "echo_warning_details": earlier_echo_details,
         "notes": notes,
     }
     return {"artifacts": artifacts, "steps": steps, "_meta": meta}

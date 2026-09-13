@@ -27,8 +27,8 @@ never confuse this with a verdict about your agent.
 
 `1` also covers a reading that found a tool result ending in a line the model
 wrote in an earlier call, when nobody has reviewed it yet. The reason is printed
-as `unreviewed_echo_warnings`, even with `--quiet`, and `--accept-echo-warnings`
-confirms it. None of these six logs has one.
+as `unreviewed_echo_warnings`, even with `--quiet`, and `--accept-echo-warning NAME`
+confirms it for one tool. None of these six logs has one.
 
 ## The two flags, on these files
 

@@ -26,7 +26,7 @@ the run a provenance audit can look at, and what would have to be recorded for
 the rest. No model, no claims, no cost - and a `partial` verdict there is why a
 later clean audit may mean less than it looks. It also exits 1 while the reading
 reports an echo from an earlier turn that nobody has reviewed
-(`unreviewed_echo_warnings`, cleared by `--accept-echo-warnings`).
+(`unreviewed_echo_warnings`, cleared tool by tool with `--accept-echo-warning NAME`).
 
 `propose` is the only place the verdict path touches the model side, and it does so
 lazily, inside the subcommand, so `tallystick audit` never imports an SDK.
@@ -49,40 +49,130 @@ from .types import TraceError
 
 SUBCOMMANDS = ("audit", "check-trace", "convert", "propose")
 
-#: The reason `check-trace` gives for exit 1 when an echo warning is unreviewed,
-#: and the flag that confirms it. Named once, because the terminal, `--quiet`,
+#: The reason for exit 1 when an echo warning is unreviewed, and the flag that
+#: confirms one tool's warnings. Named once, because the terminal, `--quiet`,
 #: `--json` and the tests all have to say exactly the same thing.
 UNREVIEWED_ECHO = "unreviewed_echo_warnings"
-ACCEPT_ECHO_FLAG = "--accept-echo-warnings"
+ACCEPT_ECHO_FLAG = "--accept-echo-warning"
+_ECHO_FIELDS = ("result", "tool", "line")
 
 
-def _echo_gate_lines(warnings: list[str], accepted: bool, *, short: bool) -> list[str]:
-    """What `check-trace` says about echo warnings under the report. `short` is
-    the `--quiet` form: one summary line and one line per warning, because a
-    CI job that never shows the terminal must still leave the warning in its
-    log."""
-    shown = [f"  {w}" for w in warnings[:10]]
-    if len(warnings) > 10:
-        shown.append(f"  (+{len(warnings) - 10} more, all of them in --json)")
-    n = len(warnings)
+def _add_echo_gate_args(parser: argparse.ArgumentParser) -> None:
+    """The flag that confirms echo warnings, one tool at a time. There is no
+    flag that confirms them all: accepted once in CI, it would pass next
+    month's new warning about a different tool without a word."""
+    parser.add_argument(
+        ACCEPT_ECHO_FLAG, dest="accept_echo_warnings", action="append", default=[],
+        metavar="NAME",
+        help="confirm, for one tool, that you reviewed the results the reading "
+             "kept as evidence although they end in a line the model wrote in an "
+             "earlier call. Repeatable, one tool each time. A warning about any "
+             f"tool not named keeps the exit at 1 ({UNREVIEWED_ECHO}); a "
+             "confirmation clears that reason and no other")
+
+
+def _echo_warnings(meta) -> list[dict]:
+    """The reader's warnings about echoes from an earlier turn, one dict each:
+    `result`, `tool`, `line`, and `text` for the terminal.
+
+    The tool name is taken from the reader's structured record, never from the
+    warning text: a tool named `read_note): x` writes a warning that reads like
+    one about `read_note`, and a confirmation by name must not be foolable by a
+    name. A warning with no structured record - a trace written before it
+    existed, or edited by hand - has no known tool, and no name confirms it."""
+    if not isinstance(meta, dict):
+        return []
+    texts = [str(t) for t in meta.get("echoes_from_earlier_turns") or []]
+    details = meta.get("echo_warning_details")
+    details = details if isinstance(details, list) else []
+    warnings: list[dict] = []
+    for i in range(max(len(texts), len(details))):
+        record = details[i] if i < len(details) and isinstance(details[i], dict) else {}
+        result, tool, line = (str(record.get(k) or "") for k in _ECHO_FIELDS)
+        text = texts[i] if i < len(texts) else f"{result} ({tool}): {line}"
+        warnings.append({"result": result, "tool": tool, "line": line or text,
+                         "text": text})
+    return warnings
+
+
+def _split_echo_warnings(warnings: list[dict], names) -> tuple[list[dict], list[dict]]:
+    """(unreviewed, accepted). A warning is accepted only when its own tool was
+    named; a warning whose tool is unknown never is."""
+    confirmed = set(names or ())
+    accepted = [w for w in warnings if w["tool"] and w["tool"] in confirmed]
+    unreviewed = [w for w in warnings if w not in accepted]
+    return unreviewed, accepted
+
+
+def _gate_block(code: int, reasons: list[str], unreviewed: list[dict],
+                accepted: list[dict]) -> dict:
+    """The exit code and why, for --json. `verdict` alone would read "auditable"
+    on a run that exits 1 for an unreviewed echo."""
+    def plain(ws):
+        return [{k: w[k] for k in _ECHO_FIELDS} for w in ws]
+    return {"exit_code": code, "reasons": reasons,
+            "echo_warnings": {"accepted": plain(accepted), "unreviewed": plain(unreviewed)}}
+
+
+def _echo_gate_lines(unreviewed: list[dict], accepted: list[dict], *,
+                     short: bool) -> list[str]:
+    """What is said about echo warnings. `short` is the `--quiet` form, for
+    stderr: a CI job that never shows the terminal must still leave every
+    warning in its log."""
+    import shlex
+
+    def listed(ws, indent):
+        lines = [f"{indent}{w['text']}" for w in ws[:10]]
+        if len(ws) > 10:
+            lines.append(f"{indent}(+{len(ws) - 10} more, all of them in --json)")
+        return lines
+
+    lines: list[str] = []
+    if unreviewed:
+        n = len(unreviewed)
+        if short:
+            lines.append(f"tallystick: exit 1 - {UNREVIEWED_ECHO}: {n} tool result(s) end "
+                         f"in a line the model wrote in an earlier call; review them, "
+                         f"then pass --tool-returns-model-text NAME or "
+                         f"{ACCEPT_ECHO_FLAG} NAME")
+        else:
+            lines += [f"UNREVIEWED ECHO WARNINGS - exit 1 ({UNREVIEWED_ECHO})",
+                      f"  {n} tool result(s) end in a line the model wrote in an earlier",
+                      "  call. The reading kept them as evidence, so the verdict above",
+                      "  counts them as evidence: a clean result here is not yet a checked",
+                      "  one. For each tool: if it hands the model's own text back, pass",
+                      "  --tool-returns-model-text NAME; if its result is a real",
+                      "  confirmation, confirm that tool by name."]
+        lines += listed(unreviewed, "  " if short else "    ")
+        names = sorted({w["tool"] for w in unreviewed if w["tool"]})
+        if names:
+            lines.append("  to confirm: " + " ".join(
+                f"{ACCEPT_ECHO_FLAG} {shlex.quote(name)}" for name in names))
+        if any(not w["tool"] for w in unreviewed):
+            lines.append("  a warning with no recorded tool name cannot be confirmed; "
+                         "read the log again with this version")
     if accepted:
-        head = (f"tallystick: {n} echo warning(s) accepted with {ACCEPT_ECHO_FLAG}, "
-                f"kept as evidence:" if short else
-                f"Echo warnings accepted with {ACCEPT_ECHO_FLAG}: {n} tool result(s) "
-                f"ending in a line the model wrote in an earlier call are kept as "
-                f"evidence.")
-        return [head] + shown
-    if short:
-        return [f"tallystick: exit 1 - {UNREVIEWED_ECHO}: {n} tool result(s) end in a "
-                f"line the model wrote in an earlier call; review them, then pass "
-                f"--tool-returns-model-text NAME or {ACCEPT_ECHO_FLAG}"] + shown
-    return [f"UNREVIEWED ECHO WARNINGS - exit 1 ({UNREVIEWED_ECHO})",
-            f"  {n} tool result(s) end in a line the model wrote in an earlier call.",
-            "  The reading kept them as evidence, so the verdict above counts them",
-            "  as evidence: a clean result here is not yet a checked one. For each,",
-            "  if the tool hands the model's own text back, pass",
-            "  --tool-returns-model-text NAME; if it is a real confirmation, pass",
-            f"  {ACCEPT_ECHO_FLAG}."] + [f"  {line}" for line in shown]
+        lines.append(f"tallystick: {len(accepted)} echo warning(s) accepted by name with "
+                     f"{ACCEPT_ECHO_FLAG}, kept as evidence:" if short else
+                     f"Echo warnings accepted by name with {ACCEPT_ECHO_FLAG}: "
+                     f"{len(accepted)} tool result(s) kept as evidence.")
+        lines += listed(accepted, "  " if short else "    ")
+    return lines
+
+
+def _say_echo_gate(unreviewed: list[dict], accepted: list[dict], *, quiet: bool) -> None:
+    """Under the report - or, with --quiet, on stderr, which keeps stdout empty
+    for scripts while every CI log still records the warning."""
+    lines = _echo_gate_lines(unreviewed, accepted, short=quiet)
+    if not lines:
+        return
+    if quiet:
+        for line in lines:
+            print(line, file=sys.stderr)
+    else:
+        print()
+        for line in lines:
+            print(line)
 
 
 def _add_source_args(parser: argparse.ArgumentParser) -> None:
@@ -306,15 +396,14 @@ def _check_trace(args: argparse.Namespace) -> int:
     # as evidence, because the log cannot tell a value handed back from a value
     # confirmed - so the verdict counts it as evidence. Exiting 0 on that, with
     # nobody having looked, certifies a place nobody checked. It exits 1 until
-    # the operator confirms, and the confirmation clears that reason only.
-    echo_warnings: list[str] = []
-    if isinstance(meta, dict):
-        echo_warnings = [str(w) for w in meta.get("echoes_from_earlier_turns") or []]
-    accepted = bool(getattr(args, "accept_echo_warnings", False))
+    # the operator confirms each tool by name; a confirmation clears that
+    # reason only, and only for the tool it names.
+    unreviewed, accepted = _split_echo_warnings(
+        _echo_warnings(meta), getattr(args, "accept_echo_warnings", None))
     reasons: list[str] = []
     if result.verdict != "auditable":
         reasons.append(f"verdict:{result.verdict}")
-    if echo_warnings and not accepted:
+    if unreviewed:
         reasons.append(UNREVIEWED_ECHO)
     code = 1 if reasons else 0
     if not args.quiet and (source != "tallystick" or notes):
@@ -342,14 +431,12 @@ def _check_trace(args: argparse.Namespace) -> int:
                         "dropped_messages", "truncated", "guessed_tool_names",
                         "unmatched_tool_results", "unresolved_tool_results",
                         "echoed_back_tool_results", "echoes_from_earlier_turns",
+                        "echo_warning_details",
                         "model_text_tools", "verbatim_tools",
                         "notes", "otel") if k in meta}
             if reading:
                 payload["reading"] = reading
-        # The exit code and why, in the file a CI job keeps: `verdict` alone
-        # would read "auditable" on a run that exits 1 for an unreviewed echo.
-        payload["gate"] = {"exit_code": code, "reasons": reasons,
-                           "echo_warnings_accepted": accepted and bool(echo_warnings)}
+        payload["gate"] = _gate_block(code, reasons, unreviewed, accepted)
         try:
             _write_json(args.json_out, payload)
         except OSError as exc:
@@ -357,15 +444,7 @@ def _check_trace(args: argparse.Namespace) -> int:
             return 2
     if not args.quiet:
         print(report(result))
-        if echo_warnings:
-            print()
-            for line in _echo_gate_lines(echo_warnings, accepted, short=False):
-                print(line)
-    elif echo_warnings:
-        # --quiet keeps stdout empty for scripts; the warning goes to stderr,
-        # which every CI log records.
-        for line in _echo_gate_lines(echo_warnings, accepted, short=True):
-            print(line, file=sys.stderr)
+    _say_echo_gate(unreviewed, accepted, quiet=args.quiet)
     return code
 
 
@@ -492,12 +571,7 @@ def build_parser() -> argparse.ArgumentParser:
     c.add_argument("--quiet", action="store_true",
                    help="exit code only - except echo warnings, which are still "
                         "printed on stderr, one line each")
-    c.add_argument(ACCEPT_ECHO_FLAG, dest="accept_echo_warnings", action="store_true",
-                   help="confirm you have reviewed every tool result the reading "
-                        "kept as evidence although it ends in a line the model wrote "
-                        f"in an earlier call. Without it any such result makes the "
-                        f"exit 1 ({UNREVIEWED_ECHO}); it clears that reason and no "
-                        "other")
+    _add_echo_gate_args(c)
     _add_source_args(c)
     c.set_defaults(func=_check_trace)
 
