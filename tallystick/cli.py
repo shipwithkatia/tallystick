@@ -16,7 +16,8 @@ trace, and a converted log has no claims on it yet. That is the boundary -
 converting is reading, posting is a separate act, and neither is a verdict.
 
 The exit code is the product decision here: 0 when every claim in the final answer
-traces back to a root, 1 otherwise, 2 when the audit could not run at all (a
+traces back to a root and no echo warning carried over from the reading is left
+unconfirmed, 1 otherwise, 2 when the audit could not run at all (a
 malformed trace, a missing SDK or key, a proposer failure). A bad API key must never
 read as "books do not balance". That is what turns this from a report into a gate
 you can put in CI and fail a build on.
@@ -42,7 +43,7 @@ from pathlib import Path
 from .auditability import DEFAULT_MIN_REACHABLE, check_trace, report
 from .convert import FORMATS, hint_for, read_any
 from .adapters.openai_chat import DEFAULT_MAX_TOOL_CHARS
-from .io import load_run, load_run_file, read_json_file
+from .io import load_run, read_json_file
 from .ledger import close_books
 from .report import chain_view, summary
 from .types import TraceError
@@ -296,7 +297,10 @@ def _write_json(path: str, payload) -> None:
 
 def _audit(args: argparse.Namespace) -> int:
     try:
-        run = load_run_file(args.trace)
+        # What `load_run_file` does, in two steps, so the reading's `_meta` that
+        # `propose` carried into the posted trace is at hand for the echo gate.
+        raw = read_json_file(args.trace)
+        run = load_run(raw)
     except (OSError, ValueError) as exc:
         # TraceError is a ValueError; so is json.JSONDecodeError. Either way the
         # input is unusable, and that is a different failure from "books don't
@@ -330,6 +334,20 @@ def _audit(args: argparse.Namespace) -> int:
                   "  there, it has no question to ask.", file=sys.stderr)
         return 2
 
+    # The echo gate `check-trace` applies, on the posted copy. Books that
+    # balance on a note the model wrote itself are not a checked result until
+    # someone has looked, and a gate the second command walks around is not a
+    # gate. Exit 2 above stays 2: this decides between 0 and 1 only.
+    unreviewed, accepted = _split_echo_warnings(
+        _echo_warnings(raw.get("_meta") if isinstance(raw, dict) else None),
+        getattr(args, "accept_echo_warnings", None))
+    reasons: list[str] = []
+    if not balance.books_balance:
+        reasons.append("books_do_not_balance")
+    if unreviewed:
+        reasons.append(UNREVIEWED_ECHO)
+    code = 1 if reasons else 0
+
     if args.chain:
         if args.chain not in balance.audits:
             known = ", ".join(sorted(balance.audits)) or "(none)"
@@ -339,6 +357,7 @@ def _audit(args: argparse.Namespace) -> int:
         print(chain_view(run, balance, args.chain))
     elif not args.quiet:
         print(summary(run, balance))
+    _say_echo_gate(unreviewed, accepted, quiet=args.quiet)
 
     if args.json_out:
         payload = {
@@ -359,13 +378,14 @@ def _audit(args: argparse.Namespace) -> int:
                 for a in balance.audits.values()
             ],
         }
+        payload["gate"] = _gate_block(code, reasons, unreviewed, accepted)
         try:
             _write_json(args.json_out, payload)
         except OSError as exc:
             print(f"tallystick: cannot write {args.json_out}: {exc}", file=sys.stderr)
             return 2
 
-    return 0 if balance.books_balance else 1
+    return code
 
 
 def _check_trace(args: argparse.Namespace) -> int:
@@ -515,6 +535,13 @@ def _propose(args: argparse.Namespace) -> int:
               file=sys.stderr)
         return 2
 
+    # The reading's `_meta` goes into the posted trace: it holds the echo
+    # warnings `audit` gates on. Without it a warning ended at this file
+    # boundary, and the posted copy of a laundering log audited clean.
+    meta = raw.get("_meta") if isinstance(raw, dict) else None
+    if isinstance(meta, dict):
+        posted["_meta"] = meta
+
     try:
         _write_json(args.out, posted)
     except OSError as exc:
@@ -534,8 +561,9 @@ def _propose(args: argparse.Namespace) -> int:
     if args.no_audit:
         return 0
     print()
-    audit_args = argparse.Namespace(trace=args.out, chain=None, quiet=False,
-                                    json_out=None)
+    audit_args = argparse.Namespace(
+        trace=args.out, chain=None, quiet=False, json_out=None,
+        accept_echo_warnings=list(getattr(args, "accept_echo_warnings", None) or []))
     return _audit(audit_args)
 
 
@@ -553,7 +581,10 @@ def build_parser() -> argparse.ArgumentParser:
                    help="write the machine-readable balance here")
     a.add_argument("--chain", metavar="CLAIM_ID",
                    help="print the full provenance chain for one claim")
-    a.add_argument("--quiet", action="store_true", help="exit code only")
+    a.add_argument("--quiet", action="store_true",
+                   help="exit code only - except echo warnings carried over from "
+                        "the reading, which are still printed on stderr")
+    _add_echo_gate_args(a)
     a.set_defaults(func=_audit)
 
     c = sub.add_parser("check-trace",
@@ -597,6 +628,8 @@ def build_parser() -> argparse.ArgumentParser:
                    help="JSON list of canned proposer answers (for --proposer fake)")
     p.add_argument("--no-audit", action="store_true",
                    help="write the posted trace without auditing it")
+    # For the audit `propose` runs on the file it wrote.
+    _add_echo_gate_args(p)
     p.set_defaults(func=_propose)
     return parser
 

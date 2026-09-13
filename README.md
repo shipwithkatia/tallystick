@@ -141,7 +141,11 @@ tallystick examples/laundered_summary.json --chain ans_3   # the full chain for 
 
 Exit codes are the product decision here. **0** — every claim in the answer
 traces back to something outside the model. **1** — one does not, and the
-report names it and the step that introduced it. **2** — the audit could not
+report names it and the step that introduced it; or the posted trace still
+carries an echo warning from the reading that nobody confirmed
+(`unreviewed_echo_warnings`, cleared with `--accept-echo-warning NAME`).
+`propose` copies those warnings into the file it writes, so auditing the posted
+copy does not walk around the gate `check-trace` applies. **2** — the audit could not
 run at all: a malformed file, a missing key, a trace with no claims posted on
 it yet. A file that cannot be read must never read as "this agent failed".
 
