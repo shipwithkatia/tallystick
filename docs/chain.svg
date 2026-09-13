@@ -43,8 +43,8 @@
   <line x1="314" y1="112" x2="178" y2="112" stroke="#059669" stroke-width="2" marker-end="url(#ok)"/>
   <line x1="314" y1="140" x2="178" y2="140" stroke="#059669" stroke-width="2" marker-end="url(#ok)"/>
   <line x1="584" y1="168" x2="448" y2="168" stroke="#059669" stroke-width="2" marker-end="url(#ok)"/>
-  <line x1="314" y1="168" x2="230" y2="168" stroke="#dc2626" stroke-width="2" stroke-dasharray="5,4" marker-end="url(#bad)"/>
-  <text x="204" y="172" text-anchor="end" font-size="12" fill="#991b1b" font-weight="600">nothing</text>
+  <line x1="314" y1="168" x2="198" y2="168" stroke="#dc2626" stroke-width="2" stroke-dasharray="5,4" marker-end="url(#bad)"/>
+  <text x="110" y="172" text-anchor="middle" font-size="12" fill="#991b1b" font-weight="600">nothing</text>
 
   <!-- caption -->
   <text x="380" y="222" text-anchor="middle" fill="#111827" font-size="13">A one-hop check passes every answer sentence: each one really is in the summary.</text>
