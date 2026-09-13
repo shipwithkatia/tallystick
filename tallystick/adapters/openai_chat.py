@@ -56,13 +56,19 @@ recording rather than silently in its favour.
 **One reading overrides `verbatim_tools`, and it has to be said here.** A
 result whose last line is quoted in the arguments of the call it answered is
 read as the model's own text even when the tool was declared verbatim - the
-model wrote that line, whatever the tool usually does. On AgentHallu this
-overrides a plausible verbatim declaration 4 times in 3535 results, and 3 of
-the 4 are `echo '<the model's own paragraph>'`, where the declaration would
-have been the wrong reading. The fourth is `touch f && ls` returning the
-filename it was given: a real result, read as model text. Every override is
-named in `_meta.echoed_back_tool_results` with the line it fired on, so the
-decision can be checked rather than trusted.
+model wrote that line, whatever the tool usually does. That is right for
+`echo '<the model's own paragraph>'` and wrong for `touch f && ls` returning
+the filename it was given. Every override is named in
+`_meta.echoed_back_tool_results` with the line it fired on, so the decision can
+be checked rather than trusted.
+
+**A tool that hands back text from an EARLIER call is reported, not demoted.**
+An interpreter that kept a variable, a notes store, a file written in one turn
+and read in the next: the line is the model's, but the same match also happens
+when a tool confirms what the model guessed, and the log cannot tell the two
+apart. Such results stay evidence and are named in
+`_meta.echoes_from_earlier_turns`; if the tool is one that hands text back,
+say so with `model_text_tools`.
 
 **A tool result longer than `max_tool_chars` is cut**, and the cut is recorded
 in `_meta.truncated` so the audit can say "not recorded" rather than "not
@@ -78,7 +84,8 @@ not the one that happened.
 from __future__ import annotations
 
 import json
-from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
+import re
+from typing import Any, Dict, Iterable, Iterator, List, Optional, Set, Tuple
 
 DEFAULT_MAX_TOOL_CHARS = 20_000
 
@@ -116,6 +123,15 @@ _ESCAPES = {'n': '\n', 't': '\t', 'r': '\r', 'b': '\b', 'f': '\f',
             '"': '"', "'": "'", '/': '/', '\\': '\\'}
 
 
+def _hex(digits: str) -> int:
+    """`digits` read as hexadecimal, or -1 unless every character is a hex
+    digit. `int(s, 16)` alone would also accept a sign, spaces and underscores,
+    and decode text that was never an escape."""
+    if not digits or any(c not in "0123456789abcdefABCDEF" for c in digits):
+        return -1
+    return int(digits, 16)
+
+
 def _unescape(text: str) -> str:
     """A best-effort reading of the backslash escapes any JSON writer may have
     used, for COMPARISON ONLY - the recorded artifact is never touched by this.
@@ -141,20 +157,14 @@ def _unescape(text: str) -> str:
             continue
         nxt = text[i + 1]
         if nxt == 'u' and i + 5 < n:
-            try:
-                code = int(text[i + 2:i + 6], 16)
-            except ValueError:
-                code = -1
+            code = _hex(text[i + 2:i + 6])
             if code >= 0:
                 # An emoji or a mathematical letter is written as a PAIR of
                 # codes - a surrogate pair. Reading them apart leaves two
                 # fragments that match nothing, which is how emoji echoes got
                 # back through after this decoding replaced the old one.
                 if 0xD800 <= code <= 0xDBFF and text[i + 6:i + 8] == '\\u':
-                    try:
-                        low = int(text[i + 8:i + 12], 16)
-                    except ValueError:
-                        low = -1
+                    low = _hex(text[i + 8:i + 12])
                     if 0xDC00 <= low <= 0xDFFF:
                         out.append(chr(0x10000 + ((code - 0xD800) << 10)
                                        + (low - 0xDC00)))
@@ -162,6 +172,22 @@ def _unescape(text: str) -> str:
                         continue
                 out.append(chr(code))
                 i += 6
+                continue
+        # Two spellings JSON never writes but a model's own Python code does:
+        # `\U0001F1E6` for a character outside the Basic Multilingual Plane and
+        # `\xfc` for ü. Inside a JSON string the backslash arrives doubled, so
+        # these decode on the second pass, after the first has undone the JSON.
+        if nxt == 'U' and i + 9 < n:
+            code = _hex(text[i + 2:i + 10])
+            if 0 <= code <= 0x10FFFF:
+                out.append(chr(code))
+                i += 10
+                continue
+        if nxt == 'x' and i + 3 < n:
+            code = _hex(text[i + 2:i + 4])
+            if code >= 0:
+                out.append(chr(code))
+                i += 4
                 continue
         if nxt in _ESCAPES:
             out.append(_ESCAPES[nxt])
@@ -200,43 +226,134 @@ def _short(text: str, limit: int = 80) -> str:
     text = " ".join(text.split())
     return text if len(text) <= limit else text[:limit - 1] + "\u2026"
 
-def _hands_back_what_it_was_given(result: str, written: str) -> bool:
-    """Did this tool return text the model had already written?
-
-    `written` is what the model said in the turn this result answers: the
-    arguments of every call declared in it. Not the whole run.
-
-    Both widths have been tried and both were measured wrong. Comparing against
-    the answering call alone missed six ordinary shapes - an answer assigned to
-    a variable, an unquoted number, a method call on the literal, `r"..."`,
-    a triple-quoted literal, a call split across lines - because a result can only be placed
-    against the call it answers when the matching got that right. Comparing
-    against everything the model had ever written destroyed real evidence in
-    eight equally ordinary shapes: a search result confirming a candidate the
-    model had named out loud, a computed `True` where earlier code said
-    `return True`, an HTTP `200` where earlier code checked for 200.
-
-    The turn is the width that survives both. Everything in it was written at
-    once, by the model, for these calls - so a result echoing it is echoing this
-    call or its siblings, whichever the matching picked. A model's guess in an
-    earlier message, or a value it used in an earlier script, is not in it.
-
-    One exception, for the one shape the turn cannot hold: a call that carried
-    no arguments at all (a notes store read back with `{}`) has nothing of its
-    own to echo, so there the whole of what the model wrote before is used
-    instead. Nothing is lost by widening where there is nothing to narrow.
+def _echo_line(result: str) -> str:
+    """The line an echo test weighs - the last non-empty one - or "" when the
+    result has no line that could be an echo at all.
 
     Why the LAST line and not the whole result: an interpreter prints its work
     before its answer, and a search tool often echoes the query in a header. A
     header match would demote real evidence; a final-line match is the shape of
-    a value handed back.
+    a value handed back."""
+    lines = [ln.strip() for ln in result.splitlines() if ln.strip()]
+    if not lines:
+        return ""
+    last = lines[-1]
+    # A line with no letter or digit is punctuation, not an answer.
+    if not any(ch.isalnum() for ch in last):
+        return ""
+    # A single character is a fragment unless it is the whole reply. A stray
+    # trailing "e" at the end of a Wikipedia dump matched the letter "e" in the
+    # model's own writing and demoted the only real evidence in that run; a
+    # tool whose entire reply is "0" is a different thing, and stays caught.
+    if len(last) < 2 and result.strip() != last:
+        return ""
+    return last
 
-    What keeps it from eating real evidence. A line with no letter or digit in
-    it is punctuation, not an answer. Below ECHO_MIN_CHARS a line must stand as
-    a whole token - `"B"` in `answer = "B"` does, the comma in
-    `{"city":"Paris","units":"m"}` does not, and neither does a JSON key. Above
-    it, appearing at all is enough: a sentence that long does not turn up inside
-    someone else's writing by accident.
+
+def _spellings(text: str) -> Tuple[str, str, str]:
+    """`text` as written, unescaped once, and unescaped twice. Twice, because
+    two layers happen: the model's own code escapes its quotes and the JSON
+    layer escapes them again. A third layer has no example behind it."""
+    once = _unescape(text)
+    return text, once, _unescape(once)
+
+
+def _stands_in(line: str, spellings: Iterable[str]) -> bool:
+    """Does `line` stand in any of these spellings of the model's text? Below
+    ECHO_MIN_CHARS it must stand as a whole token - `"B"` in `answer = "B"`
+    does, the comma in `{"city":"Paris","units":"m"}` does not, and neither does
+    a JSON key. Above it, appearing at all is enough: a sentence that long does
+    not turn up inside someone else's writing by accident."""
+    for haystack in spellings:
+        if line not in haystack:
+            continue
+        if len(line) >= ECHO_MIN_CHARS or _is_whole_token(haystack, line):
+            return True
+    return False
+
+
+_LITERAL_DQ = re.compile(r'"((?:[^"\\\n]|\\.)*)"')
+_LITERAL_SQ = re.compile(r"'((?:[^'\\\n]|\\.)*)'")
+_WORD = re.compile(r"[^\W_]+")
+
+
+def _values(obj: Any) -> Iterator[str]:
+    """Every string and number inside parsed call arguments, as text."""
+    if isinstance(obj, str):
+        yield obj
+    elif isinstance(obj, (int, float)) and not isinstance(obj, bool):
+        yield str(obj)
+    elif isinstance(obj, dict):
+        for value in obj.values():
+            yield from _values(value)
+    elif isinstance(obj, list):
+        for value in obj:
+            yield from _values(value)
+
+
+def _pieces(args: str) -> Set[str]:
+    """The whole lines, string literals and words of one call's arguments - what
+    a later result's last line is looked up in, to report an echo from an
+    earlier turn.
+
+    A lookup, not the substring test the rule uses, because the rule weighs one
+    call and this weighs the whole run so far. Scanning everything written
+    before for every result is quadratic in the length of the run: a 400-turn
+    CodeAct log took four seconds that way. The cost is reach - a line the model
+    wrote only as part of a longer string is not found here. That costs a
+    warning, never a demotion: this check only ever adds a report.
+
+    Arguments are parsed as JSON where they are JSON, so a literal inside the
+    model's code is read with its quotes where the model put them, and each
+    string is also read with its own escapes undone."""
+    try:
+        texts = list(_values(json.loads(args)))
+    except (TypeError, ValueError):
+        texts = []
+    if not texts:
+        texts = list(_spellings(args))
+    texts += [_unescape(t) for t in texts if "\\" in t]
+    found: Set[str] = set()
+    for text in texts:
+        found.update(ln.strip() for ln in text.splitlines() if ln.strip())
+        for pattern in (_LITERAL_DQ, _LITERAL_SQ):
+            for match in pattern.finditer(text):
+                literal = match.group(1).strip()
+                if literal:
+                    found.add(literal)
+                    if "\\" in literal:
+                        found.add(_unescape(literal).strip())
+        found.update(_WORD.findall(text))
+    return found
+
+
+def _hands_back_what_it_was_given(result: str, sent: str) -> bool:
+    """Did this tool return text the model wrote into the call it answered?
+
+    `sent` is the arguments of that call. Where the log does not say which call
+    a result answers - no id, and more than one open call it could be - `sent`
+    is the arguments of every call it could be, and `to_trace` marks the
+    demotion as uncertain: such a result is never elected as the answer.
+
+    Why only the answering call. Three widths were tried on the same inputs
+    (tests/test_openai_chat_wide_context.py, tests/test_openai_chat_turn_width.py).
+    The whole run destroyed real evidence: a search confirming a candidate the
+    model had named, a computed `True` where earlier code said `return True`.
+    The turn did the same between unrelated calls declared together - two
+    translations demoting each other - and still missed an interpreter that
+    kept a variable from an earlier turn. The answering call is the one place
+    where a match means the model gave this tool the text it got back. The six
+    literal shapes that once slipped past this width (a literal held in a
+    variable, an unquoted number, `"x".strip()`, `r"..."`, triple quotes, a call
+    split across lines) were defeated by a quoting check, not by the width, and
+    all six are caught here.
+
+    An echo from an earlier call - a stateful interpreter, a notes store, a file
+    written then read back - is not demoted. `to_trace` looks the line up among
+    the whole lines, string literals and words of earlier turns' arguments (see
+    `_pieces`) and REPORTS a match in `_meta.echoes_from_earlier_turns`: the log
+    cannot tell a value handed back from a value confirmed, and the operator
+    can, with --tool-returns-model-text.
 
     Why this rule is allowed to be wrong. It can only move an artifact OUT of
     the root set - from evidence to model text. A mistake makes the audit
@@ -244,38 +361,22 @@ def _hands_back_what_it_was_given(result: str, written: str) -> bool:
     recorded as a source, which is the failure this library exists to catch).
     That asymmetry is the whole licence for running it without the operator
     declaring anything, so any change that gives it a second effect voids the
-    licence until the argument is made again.
+    licence until the argument is made again. Electing an uncertain demotion as
+    the answer would be such an effect, which is why it is barred.
 
-    What it costs, counted on AgentHallu with no flags passed: it reads 190 of
-    3535 tool results (5.4%) as the model's own words. Against the reader
-    written for that corpus by hand it is stricter on 34 artifacts and laxer on
-    none. Every one of them is named in `_meta.echoed_back_tool_results`
-    together with the line it fired on, so the decision can be checked rather
-    than trusted.
+    What it costs, counted on AgentHallu (bench/openai_roundtrip.py). With no
+    flags passed it reads 189 of 3535 tool results (5.3%) as the model's own
+    words, and reports another 54 as echoes from an earlier turn, kept as
+    evidence; with the corpus's four echo tools declared, 3 are reported. Against
+    the reader written for that corpus by hand, with those four declared, it is
+    stricter on 33 artifacts and laxer on none. Every decision is named in
+    `_meta` together with the line it fired on, so it can be checked rather than
+    trusted.
     """
-    lines = [ln.strip() for ln in result.splitlines() if ln.strip()]
-    if not lines or not written:
+    last = _echo_line(result)
+    if not last or not sent:
         return False
-    last = lines[-1]
-    if not any(ch.isalnum() for ch in last):
-        return False
-    # A single character is a fragment unless it is the whole reply. A stray
-    # trailing "e" at the end of a Wikipedia dump matched the letter "e" in the
-    # model's own writing and demoted the only real evidence in that run; a
-    # tool whose entire reply is "0" is a different thing, and stays caught.
-    if len(last) < 2 and result.strip() != last:
-        return False
-
-    # Twice, because two layers happen: the model's own code escapes its quotes
-    # and the JSON layer escapes them again. A third layer has no example behind
-    # it, and each pass is linear in the text.
-    once = _unescape(written)
-    for haystack in (written, once, _unescape(once)):
-        if last not in haystack:
-            continue
-        if len(last) >= ECHO_MIN_CHARS or _is_whole_token(haystack, last):
-            return True
-    return False
+    return _stands_in(last, _spellings(sent))
 
 
 def _text(value: Any, _depth: int = 0) -> str:
@@ -475,13 +576,19 @@ def to_trace(data: Any, *, name: str = "",
     unmatched: List[str] = []
     unresolved: List[str] = []
     echoed_back: List[str] = []   # results that quoted their own call back
-    # Everything the model has written in this run so far: its own message text
-    # and the arguments of every call it has made. Grown as the log is read, so
-    # a result is only ever weighed against what came BEFORE it.
-    written: List[str] = []
-    # The arguments of the calls declared in the turn now open. This, not the
-    # whole run, is what a result is weighed against - see the rule's docstring.
-    batch_args: List[str] = []
+    # Results whose last line the model wrote into a call of an EARLIER turn:
+    # kept as evidence and reported - see `_hands_back_what_it_was_given`.
+    earlier_echoes: List[str] = []
+    # The calls of the turn now open, as (name, arguments), so a result the log
+    # can only place among several of them is weighed against all of them.
+    batch_calls: List[Tuple[str, str]] = []
+    # The lines, literals and words of every call from turns already closed.
+    # Each call is read once, when its turn closes, and each result is a set
+    # lookup - so reading a long run stays linear, not quadratic.
+    earlier_pieces: Set[str] = set()
+    # Artifacts demoted against more than one call the log could not tell apart.
+    # They are the model's text, but not known to be the one the user saw.
+    unconfident_ids: Set[str] = set()
     step_ids: Set[str] = set()
 
     def step_id(base: str) -> str:
@@ -536,7 +643,6 @@ def to_trace(data: Any, *, name: str = "",
                               "inputs": list(seen), "outputs": [aid]})
                 seen.append(aid)
                 model_text.append(len(artifacts) - 1)
-                written.append(content)
                 last_turn = aid
             else:
                 if message.get("content") is not None:
@@ -553,7 +659,11 @@ def to_trace(data: Any, *, name: str = "",
                 open_calls = []
                 doubt = set()
                 batch_ids = set()
-                batch_args = []
+                # The turn before this one is closed: its arguments become what
+                # a later result is checked against for an echo from earlier.
+                for _named, prior in batch_calls:
+                    earlier_pieces |= _pieces(prior)
+                batch_calls = []
             for call in calls:
                 if not isinstance(call, dict):
                     continue
@@ -563,8 +673,7 @@ def to_trace(data: Any, *, name: str = "",
                 args_sent = _args_text(fn.get("arguments")
                                       if "arguments" in fn else call.get("arguments"))
                 open_calls.append((cid, named, args_sent))
-                written.append(args_sent)
-                batch_args.append(args_sent)
+                batch_calls.append((named, args_sent))
                 if cid:
                     call_args[cid] = args_sent
                 if cid:
@@ -593,6 +702,9 @@ def to_trace(data: Any, *, name: str = "",
             # exists to catch. Ambiguity is not evidence.
             open_names = {n for _cid, n, _a in open_calls}
             sent = ""                      # arguments of the call this answered
+            # False where `sent` is the arguments of several calls, because the
+            # log does not say which one of them this result answers.
+            confident = True
             tool, expected, matched = named_itself, "", False
 
             if cid and cid in tool_names and cid not in reused_ids:
@@ -623,15 +735,20 @@ def to_trace(data: Any, *, name: str = "",
                 # about them, and the fall-through below applies instead.
                 unmatched.append(f"tool[{k}] (id {cid})")
             elif named_itself:
-                for i, (_call_id, called, a_sent) in enumerate(open_calls):
+                # A name does not tell two open calls of the same tool apart,
+                # and their results may come back in either order: the result
+                # is weighed against every open call bearing its name.
+                same_name = [a for _c, n, a in open_calls if n == named_itself]
+                for i, (_call_id, called, _a) in enumerate(open_calls):
                     if called == named_itself:
-                        expected, matched, sent = called, True, a_sent
+                        expected, matched = called, True
+                        sent, confident = "\n".join(same_name), len(same_name) == 1
                         open_calls.pop(i)
                         break
                 if not matched:
                     unmatched.append(f"tool[{k}] ({named_itself})")
             elif open_calls:
-                _cid_popped, expected, sent = open_calls.pop(0)
+                _cid_popped, expected, _a = open_calls.pop(0)
                 tool = expected
                 # Doubt is contagious within a batch. Once one result has been
                 # placed by position alone, the calls left in the queue are not
@@ -642,6 +759,10 @@ def to_trace(data: Any, *, name: str = "",
                 # next guess look certain.
                 candidates = open_names | doubt
                 matched = len(candidates) == 1
+                # Placed by position, the result may answer any call of this
+                # turn still in question - so it is weighed against all of them.
+                could_be = [a for n, a in batch_calls if n in candidates]
+                sent, confident = "\n".join(could_be), len(could_be) == 1
                 if not matched:
                     doubt |= candidates
                 guessed.append(f"tool[{k}] -> {tool}"
@@ -667,13 +788,14 @@ def to_trace(data: Any, *, name: str = "",
             # Asked BEFORE the cut: the echoed value is the last line, and
             # truncating to a prompt-size knob would hide it behind a
             # mid-document line - a root recorded because a limit was low.
-            turn = "\n".join(batch_args)
-            # A call that carried no arguments has nothing of its own to echo,
-            # so there - and only there - the whole of what the model wrote
-            # before is used instead.
-            if not any(ch.isalnum() for ch in turn):
-                turn = "\n".join(written)
-            handed_back = _hands_back_what_it_was_given(content, turn)
+            handed_back = _hands_back_what_it_was_given(content, sent)
+            # Also asked before the cut, for the same reason. Only for a result
+            # that stays evidence: this is a report, never a demotion.
+            earlier_line = ""
+            if not handed_back and tool not in echo and not ambiguous and earlier_pieces:
+                line = _echo_line(content)
+                if line and line in earlier_pieces:
+                    earlier_line = line
             if len(content) > max_tool_chars:
                 content = content[:max_tool_chars]
                 cut = True
@@ -695,12 +817,16 @@ def to_trace(data: Any, *, name: str = "",
                 kind = "document"           # external text stored as fetched
             else:
                 kind = "tool_result"
+            if earlier_line:
+                earlier_echoes.append(f"tool[{k}] ({tool}): {_short(earlier_line)}")
             artifacts.append({"artifact_id": aid, "kind": kind,
                               "title": tool, "content": content})
             if cut:
                 truncated.append(aid)
             if ambiguous:
                 unsure_ids.add(aid)
+            if handed_back and not confident and tool not in echo:
+                unconfident_ids.add(aid)
             if kind == "intermediate":
                 # Model text is produced by the turn that wrote it, not by the
                 # tool step: it must be funded like anything else the model said.
@@ -721,7 +847,11 @@ def to_trace(data: Any, *, name: str = "",
     # The last thing the model said in words is what the user saw.
     # An artifact that is only on the model's side because the reading could
     # not place it is not evidence that the user saw it.
-    if model_text and artifacts[model_text[-1]]["artifact_id"] in unsure_ids:
+    # The same holds for a result demoted against several calls the log could
+    # not tell apart: it is the model's text, but not known to be the text the
+    # user saw. Only a demotion against the one call a result answered - or a
+    # tool the operator declared - may be elected.
+    if model_text and artifacts[model_text[-1]]["artifact_id"] in (unsure_ids | unconfident_ids):
         # The last thing on the model's side is only there because the reading
         # could not place it. Promoting it would assert the user saw it;
         # promoting the one before it would assert the user saw THAT. Neither
@@ -776,6 +906,7 @@ def to_trace(data: Any, *, name: str = "",
         "unmatched_tool_results": unmatched,
         "unresolved_tool_results": unresolved,
         "echoed_back_tool_results": echoed_back,
+        "echoes_from_earlier_turns": earlier_echoes,
         "notes": notes,
     }
     return {"artifacts": artifacts, "steps": steps, "_meta": meta}

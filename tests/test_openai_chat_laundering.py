@@ -163,6 +163,12 @@ def test_positional_guess_swapped_without_flags():
 def test_note_read_back_in_a_later_turn():
     # The module docstring names a notes store as a tool that hands the model's
     # words back; read_note's own arguments are empty, so the rule never looks.
+    #
+    # Relaxed after the proverka3 review, by the scheme agreed there: an echo
+    # from an earlier turn is not demoted blindly, because the same match is
+    # also a tool confirming what the model guessed. Either outcome passes -
+    # read as model text, or named in _meta - exactly as in
+    # test_openai_chat_turn_width.py group B. What fails is silence.
     trace = oc.to_trace([
         QUESTION,
         {"role": "assistant", "content": None,
@@ -173,7 +179,13 @@ def test_note_read_back_in_a_later_turn():
         _tool(ECHO, "read_note", "c2"),
         {"role": "assistant", "content": ECHO},
     ])
-    _assert_model_text(trace, ECHO)
+    art = _tool_artifact(trace, ECHO)
+    label = f"tool[{art['artifact_id'][1:]}]"
+    named = [entry for value in trace["_meta"].values() if isinstance(value, list)
+             for entry in value if isinstance(entry, str) and label in entry]
+    assert art["kind"] not in ROOTS or named, (
+        f"{label} hands back a note the model saved in an earlier turn; it is read "
+        f"as {art['kind']!r} and nothing in _meta names it")
 
 
 # --- a run whose answer is a tool result --------------------------------------

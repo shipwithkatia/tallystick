@@ -121,7 +121,14 @@ def _reading_notes(meta: dict) -> list[str]:
                        # until review asked why.
                        ("echoed_back_tool_results",
                         "result(s) that quoted their own call back, so read as "
-                        "the model's text")):
+                        "the model's text"),
+                       # Not a demotion: the log cannot tell a value handed back
+                       # from an earlier turn from one a tool confirmed. Said
+                       # here so the operator can decide with
+                       # --tool-returns-model-text.
+                       ("echoes_from_earlier_turns",
+                        "result(s) ending in a line the model wrote in an "
+                        "earlier call, kept as evidence")):
         items = meta.get(key) or []
         if items:
             shown = ", ".join(str(i) for i in items[:6])
@@ -282,7 +289,7 @@ def _check_trace(args: argparse.Namespace) -> int:
                        ("source", "reader_confidence", "skipped_empty",
                         "dropped_messages", "truncated", "guessed_tool_names",
                         "unmatched_tool_results", "unresolved_tool_results",
-                        "echoed_back_tool_results",
+                        "echoed_back_tool_results", "echoes_from_earlier_turns",
                         "model_text_tools", "verbatim_tools",
                         "notes", "otel") if k in meta}
             if reading:

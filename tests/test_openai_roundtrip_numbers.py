@@ -93,13 +93,13 @@ def test_committed_results_file_is_what_the_bench_prints(files, tmp_path, capsys
     assert out.read_text(encoding="utf-8") == committed
 
 
-def test_commit_message_headline_665_of_693_identical(trajectories):
+def test_commit_message_headline_666_of_693_identical(trajectories):
     same = sum(
         rt.shape(agenthallu.to_trace(obj, name=p.name))
         == rt.shape(oc.to_trace(rt.render(obj), name=p.name,
                                 model_text_tools=agenthallu.ECHO_TOOLS))
         for p, obj in trajectories)
-    assert (same, len(trajectories)) == (665, 693)
+    assert (same, len(trajectories)) == (666, 693)
 
 
 def test_commit_message_ids_stripped_agreement_is_96_percent(files, trajectories):
@@ -112,12 +112,12 @@ def test_commit_message_no_flags_agreement_is_71_percent(files, trajectories):
     assert f"{same / len(trajectories):.0%}" == "71%", f"{same}/{len(trajectories)}"
 
 
-def test_commit_message_rule_fires_190_times(rule_calls):
+def test_commit_message_rule_fires_189_times(rule_calls):
     fires = _fires(rule_calls)
     declared = sum(t in agenthallu.ECHO_TOOLS for t, _r, _a in fires)
     counts = {"all": len(fires), "on declared echo tools": declared,
               "on other tools": len(fires) - declared}
-    assert 190 in counts.values(), counts
+    assert 189 in counts.values(), counts
 
 
 def test_commit_message_rule_alone_catches_136_of_460_echo_tool_results(rule_calls):
