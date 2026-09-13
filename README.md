@@ -6,6 +6,10 @@ Provenance accounting for LLM agent runs: every claim in the final answer is tra
 
 ![One hop is not enough: the answer quotes the summary, the summary invented a sentence, and the chain breaks at the summarise step](docs/chain.svg)
 
+**Status:** research prototype, v0.7.x. Interfaces may change between versions. Every number in this README names the run it came from; the per-trace row files are committed under `bench/results/`, and the limits of each measurement are stated next to it.
+
+Issues and corrections are welcome — especially a case where the audit is wrong.
+
 ## The Problem
 
 Teams shipping multi-step agents (retrieve → tool call → summarise → answer) check the answer against its sources with a citation checker, RAGAS faithfulness, or an LLM judge. All of those look at **one hop**: does the answer quote its immediate context?
@@ -185,9 +189,10 @@ The share itself is counting: it says how much of a run the audit cannot look at
 
 **The banding is mostly arithmetic, and the script proves that against itself.** Swap
 the human label for a step drawn at random from the same trajectory — a label that
-knows nothing about where the hallucination is — and the same ordering appears, 10%
-against 45%, because a trace with more tool-only steps makes *any* step more likely to
-be tool-only. So "below the line, more hallucinations are out of reach" is largely a
+knows nothing about where the hallucination is — and the same ordering appears in
+every one of the five draws the script prints, 13% above the line against 46% below
+on average (7–15% against 44–47% across the draws), because a trace with more
+tool-only steps makes *any* step more likely to be tool-only. So "below the line, more hallucinations are out of reach" is largely a
 restatement of "below the line, more of everything is out of reach", and the
 significance test the script prints rejects for the placebo too, which is why it is
 printed beside it rather than quoted alone.

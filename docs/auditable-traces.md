@@ -171,8 +171,18 @@ model's own words rather than a tool's output — is reported either way; by
 default it is context, not a verdict, because a run that legitimately leans on
 tools is not a broken run, it is a run whose clean audit means less.
 
-On the AgentHallu corpus, traces at or above 80% held 5 of their 24 labelled
-hallucinations beyond the audit's reach (21%) and traces below it 56 of 91
-(62%). Two caveats: the line is read off that corpus rather than held out, and
-stratified by agent framework the association is not significant (p ≈ 0.19).
-Treat it as a fact about a recording and a rule to test, not as a predictor.
+On all 443 labelled AgentHallu trajectories, traces at or above 80% held 24 of
+their 84 labelled hallucinations beyond the audit's reach (29%) and traces below
+it 212 of 359 (59%) — `bench/results/auditability-agenthallu.txt`, reproducible
+with `python bench/auditability_agenthallu.py --data <AgentHallu>`.
+
+Three caveats, and they matter more than the number. The line is read off that
+corpus rather than held out. Most of the gap is arithmetic rather than
+prediction: replacing the human label with a step drawn at random from the same
+trajectory reproduces the ordering in every one of the five draws — 13% above
+the line against 46% below on average, 7–15% against 44–47% across draws —
+because a trace with more tool-only steps makes *any* step more likely to be
+tool-only. And the significance test the script prints
+rejects for the placebo too, so it is printed beside it rather than quoted
+alone. Treat the share as a fact about a recording, not as a predictor of where
+a hallucination is.
