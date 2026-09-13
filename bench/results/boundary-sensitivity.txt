@@ -1,0 +1,37 @@
+Beyond the boundary: how far the number moves if you disagree
+====================================================================
+
+all labelled trajectories: 443 labelled
+  beyond the boundary                      236/443   53.3%
+
+  1. if a tool call counted as model text at that step:
+     labelled steps that carry a call at all        236 of 236
+     of those, longer than 200 characters          96 of 236
+     share if every long one is called reachable    31.6%
+     -> the honest range is 32% to 53%
+
+  2. traces whose labelled step called a tool this project reads
+     as handing the model's own words back            12   (each one LOWERS the share)
+
+  3. CodeAct runs, which the harness excludes by default:
+     with them       236/443   53.3%
+     without them    236/412   57.3%   (the published figure is the lower of the two)
+
+the scored subset: 115 labelled
+  beyond the boundary                       61/115   53.0%
+
+  1. if a tool call counted as model text at that step:
+     labelled steps that carry a call at all         61 of 61
+     of those, longer than 200 characters          12 of 61
+     share if every long one is called reachable    42.6%
+     -> the honest range is 43% to 53%
+
+  2. traces whose labelled step called a tool this project reads
+     as handing the model's own words back             5   (each one LOWERS the share)
+
+  3. CodeAct runs, which the harness excludes by default:
+     with them        61/115   53.0%
+     without them     61/115   53.0%   (the published figure is the lower of the two)
+
+Every figure above inherits AgentHallu's human labels, and nothing in
+this repository can check whether they point at the right step.
