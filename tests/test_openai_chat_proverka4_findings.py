@@ -15,9 +15,11 @@ Groups:
   F  confirming the tool a positional guess named accepts another tool's echo (1)
   E  a missing tool name is recorded as "tool", and "tool" confirms it (2)
   T  reading one wide turn without ids grows with the square of the turn (2)
+  W  a warning addresses the reader's expanded message list, not the file,
+     and does not give the call id (1)
   P  `from tallystick import audit`, the path the README recommends for tests,
-     says the books balance on a posted trace `tallystick audit` exits 1 on (2)
-  K  controls, passing on proverka4 (7)
+     returns a balance instead of refusing on an unreviewed echo (2)
+  K  controls, passing on proverka4 (8)
 
 "Not silent" is one of two outcomes, as in test_openai_chat_turn_width.py
 group B, but checked more tightly: the result is not a root, OR
@@ -40,6 +42,7 @@ from __future__ import annotations
 import io
 import json
 import os
+import re
 import subprocess
 import sys
 from contextlib import redirect_stderr, redirect_stdout
@@ -288,6 +291,65 @@ def test_a_wide_turn_without_ids_reads_in_linear_time(mode):
     _read_wide_turn(mode)
 
 
+# --- W: where a warning points ----------------------------------------------
+
+# Message [4] of this file carries BOTH tool results. The reader splits it into
+# two tool messages, so the note's echo becomes tool[5] - and message [5] of the
+# file is the final answer. The call id, u3, is not printed at all.
+ANTHROPIC_TWO_RESULTS = [
+    QUESTION,
+    {"role": "assistant", "content": [
+        {"type": "tool_use", "id": "u1", "name": "save_note", "input": {"text": ECHO}}]},
+    {"role": "user", "content": [
+        {"type": "tool_result", "tool_use_id": "u1", "content": "saved"}]},
+    {"role": "assistant", "content": [
+        {"type": "tool_use", "id": "u2", "name": "web_search", "input": {"q": "capital of australia"}},
+        {"type": "tool_use", "id": "u3", "name": "read_note", "input": {"key": "capital"}}]},
+    {"role": "user", "content": [
+        {"type": "tool_result", "tool_use_id": "u2", "content": "Canberra is the capital city of Australia."},
+        {"type": "tool_result", "tool_use_id": "u3", "content": ECHO}]},
+    ANSWER,
+]
+
+
+def _warning_lines(tmp_path, messages):
+    """The printed warning lines - those quoting the matched text - from
+    `check-trace --quiet` (stderr) and from the terminal's warning block."""
+    log = tmp_path / "log.json"
+    log.write_text(json.dumps(messages), encoding="utf-8")
+    runs = {}
+    for mode, flags in (("quiet", ["--quiet"]), ("terminal", [])):
+        out, err = io.StringIO(), io.StringIO()
+        with redirect_stdout(out), redirect_stderr(err):
+            main(["check-trace", str(log), *flags])
+        runs[mode] = (out.getvalue(), err.getvalue())
+    quiet = [ln for ln in runs["quiet"][1].splitlines() if ECHO in ln]
+    block = runs["terminal"][0].split("UNREVIEWED ECHO WARNINGS", 1)
+    terminal = [ln for ln in block[1].splitlines() if ECHO in ln] if len(block) == 2 else []
+    return {"--quiet stderr": quiet, "terminal": terminal}
+
+
+def _names_position(line, k):
+    """`k` stands in the line as a number of its own."""
+    return re.search(rf"(?<!\d){k}(?!\d)", line) is not None
+
+
+def test_a_warning_names_the_message_in_the_file_and_the_call_id(tmp_path):
+    # DECIDED (2026-09-14): a warning's number is there so a person can find the
+    # place in THEIR file, so it addresses the file - counted from 0, like the
+    # existing tool[k] labels and a JSON array - not the list after parsing.
+    # And it gives the call id when the log has one: an id can be searched for
+    # and does not move when the file is reformatted.
+    lines = _warning_lines(tmp_path, ANTHROPIC_TWO_RESULTS)
+    assert all(lines.values()), f"the log must produce the echo warning in both outputs: {lines}"
+    for where, found in lines.items():
+        for line in found:
+            assert "u3" in line, f"{where}: the warning does not give the call id u3: {line!r}"
+            assert _names_position(line, 4) and not _names_position(line, 5), (
+                f"{where}: the warning must point at message 4 of the file, which holds the "
+                f"result, not 5, which is the final answer: {line!r}")
+
+
 # --- P: the Python API the README recommends for tests ----------------------
 
 def _posted_notes_trace(tmp_path):
@@ -310,18 +372,27 @@ def _posted_notes_trace(tmp_path):
 
 
 @pytest.mark.parametrize("given", ["path", "dict"])
-def test_readme_python_audit_does_not_pass_an_unreviewed_echo(tmp_path, given):
+def test_readme_python_audit_refuses_an_unreviewed_echo(tmp_path, given):
     # README: `balance = audit("run.json"); assert balance.books_balance  # drop
     # straight into a test suite`. On this file `tallystick audit` exits 1 with
-    # unreviewed_echo_warnings (control below); the Python path says balanced.
-    # The README line itself is the contract: it must not pass. A fix that
-    # raises instead also fails this test, on purpose - that decision belongs to
-    # whoever changes the API, and should change this test with it.
+    # unreviewed_echo_warnings (control below); audit() says the books balance.
+    #
+    # DECIDED (2026-09-14), not open for the fixing session: while an echo
+    # warning is unreviewed, audit() RAISES. Returning books_balance False
+    # would mix "the books do not balance" with "this could not be checked",
+    # the distinction exit codes 1 and 2 exist for. The error must name the
+    # reason, unreviewed_echo_warnings, so that a crash for any other cause
+    # does not pass this test.
     posted, data = _posted_notes_trace(tmp_path)
-    balance = audit(str(posted) if given == "path" else data)
-    assert not balance.books_balance, (
-        "audit() reports the books balanced on a posted trace whose echo warning "
-        "nobody reviewed; `tallystick audit` exits 1 on the same file")
+    source = str(posted) if given == "path" else data
+    try:
+        balance = audit(source)
+    except Exception as exc:  # noqa: BLE001 - the type is not decided, the reason is
+        assert "unreviewed_echo_warnings" in str(exc), (
+            f"audit() raised, but not for the unreviewed echo warning: {exc!r}")
+        return
+    pytest.fail(f"audit() returned a balance (books_balance={balance.books_balance}) "
+                f"instead of raising on an unreviewed echo warning")
 
 
 # --- K: controls, passing on proverka4 --------------------------------------
@@ -356,6 +427,14 @@ def test_control_the_cli_audit_exits_1_on_the_posted_notes_trace(tmp_path):
     posted, _data = _posted_notes_trace(tmp_path)
     with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
         assert main(["audit", str(posted)]) == 1
+
+
+def test_control_an_openai_warning_names_its_file_message(tmp_path):
+    # With one tool message per result, the reader's index and the file's agree:
+    # the same position check passes on proverka4.
+    lines = _warning_lines(tmp_path, _notes(ECHO))
+    assert all(lines.values())
+    assert all(_names_position(ln, 4) for found in lines.values() for ln in found)
 
 
 def test_control_python_audit_passes_a_balanced_trace_without_warnings():
