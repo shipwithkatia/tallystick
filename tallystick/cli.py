@@ -37,11 +37,12 @@ from __future__ import annotations
 
 import argparse
 import json
+import shlex
 import sys
 from pathlib import Path
 
 from .auditability import DEFAULT_MIN_REACHABLE, check_trace, report
-from .convert import FORMATS, hint_for, read_any
+from .convert import FORMATS, describe, detect, hint_for, looks_like_trace, read_any
 from .adapters.openai_chat import DEFAULT_MAX_TOOL_CHARS
 from .io import load_run, read_json_file
 from .ledger import close_books
@@ -295,7 +296,38 @@ def _write_json(path: str, payload) -> None:
         json.dump(payload, fh, indent=2, ensure_ascii=False)
 
 
+_TRACE_SHAPE = ("`audit` needs a posted tallystick trace: a JSON object with 'artifacts'\n"
+                "  and 'steps', and the claims posted on them. docs/auditable-traces.md\n"
+                "  describes the format.")
+
+
+def _cannot_audit(path, raw, exc: Exception) -> str:
+    """Why `audit` refused its input, in words the person holding the wrong file
+    can act on.
+
+    The likeliest wrong file is the one most people have: a chat log. "trace
+    must be an object, got list" is true and ends their attempt there. So a
+    file another reader would take is named for what it looks like, with the
+    shape `audit` wants and the two commands that get there. A file that claims
+    to be a trace keeps the loader's precise error - "artifacts[0] is missing
+    'artifact_id'" is the help for that one."""
+    if raw is None or looks_like_trace(raw):
+        return f"cannot audit this trace: {exc}"
+    found = detect(raw)
+    if not found:
+        return f"cannot audit this file: {exc}. It is not a tallystick trace.\n  {_TRACE_SHAPE}"
+    what = "an OpenAI chat log" if found == ["openai"] else describe(found)
+    quoted = shlex.quote(str(path))
+    return (f"cannot audit this file: it looks like {what}, not a tallystick trace.\n"
+            f"  {_TRACE_SHAPE}\n"
+            f"  A log like this is read first, with no model and no cost:\n"
+            f"    tallystick check-trace {quoted}\n"
+            f"  and the claims are posted on it with:\n"
+            f"    tallystick propose {quoted} -o posted.json")
+
+
 def _audit(args: argparse.Namespace) -> int:
+    raw = None
     try:
         # What `load_run_file` does, in two steps, so the reading's `_meta` that
         # `propose` carried into the posted trace is at hand for the echo gate.
@@ -305,7 +337,7 @@ def _audit(args: argparse.Namespace) -> int:
         # TraceError is a ValueError; so is json.JSONDecodeError. Either way the
         # input is unusable, and that is a different failure from "books don't
         # balance" - hence exit code 2, not 1.
-        print(f"tallystick: cannot audit this trace: {exc}", file=sys.stderr)
+        print(f"tallystick: {_cannot_audit(args.trace, raw, exc)}", file=sys.stderr)
         return 2
     balance = close_books(run)
 
