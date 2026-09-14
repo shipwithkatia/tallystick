@@ -1,35 +1,37 @@
 OpenAI reader against the native AgentHallu reader
 ================================================================
 trajectories read      693  (2 file(s) skipped: not a trajectory)
-identical              641  (92%)
-different              52
+identical              582  (84%)
+different              111
 
 where they differ:
-    47  root/derived differs on 1 artifact(s)
-     4  root/derived differs on 2 artifact(s)
-     1  root/derived differs on 5 artifact(s)
+    86  root/derived differs on 1 artifact(s)
+    13  root/derived differs on 2 artifact(s)
+     8  root/derived differs on 3 artifact(s)
+     3  root/derived differs on 5 artifact(s)
+     1  root/derived differs on 6 artifact(s)
 
 artifact kinds, native reader vs OpenAI reader:
   document          693     693
   final_answer      693     693
-  intermediate     3063    3123
-  tool_result      3055    2995
+  intermediate     3063    3220
+  tool_result      3055    2898
 
 first disagreements:
-  BFCL/014.json: 11 vs 11 artifacts
-  BFCL/024.json: 8 vs 8 artifacts
-  BFCL/053.json: 15 vs 15 artifacts
-  BFCL/063.json: 16 vs 16 artifacts
-  BFCL/065.json: 10 vs 10 artifacts
-  BFCL/091.json: 25 vs 25 artifacts
-  BFCL/112.json: 11 vs 11 artifacts
-  BFCL/118.json: 8 vs 8 artifacts
-  BFCL/119.json: 13 vs 13 artifacts
-  BFCL/123.json: 10 vs 10 artifacts
+  BFCL/000.json: 20 vs 20 artifacts
+  BFCL/001.json: 14 vs 14 artifacts
+  BFCL/002.json: 25 vs 25 artifacts
+  BFCL/003.json: 9 vs 9 artifacts
+  BFCL/005.json: 9 vs 9 artifacts
+  BFCL/006.json: 11 vs 11 artifacts
+  BFCL/007.json: 9 vs 9 artifacts
+  BFCL/009.json: 9 vs 9 artifacts
+  BFCL/010.json: 8 vs 8 artifacts
+  BFCL/011.json: 14 vs 14 artifacts
 
 with every tool_call_id and tool name stripped:
-  identical              639  (92%)
-  artifacts read as the wrong kind  63
+  identical              590  (85%)
+  artifacts read as the wrong kind  148
   With neither, a result can only be matched to its call by the
   order the calls were declared in. Three of the laundering
   defects found in review of this release lived on that matching
@@ -45,7 +47,7 @@ with every tool_call_id and tool name stripped:
   inputs review found, because the corpus does not contain them.
 
 with no --tool-returns-model-text flags at all:
-  identical              470  (68%)
+  identical              420  (61%)
   The headline above names this corpus's four echo tools. Without
   them a final_answer tool's output is a root, and the two readers
   part on a third of the corpus. That is not a defect in either:
@@ -53,10 +55,10 @@ with no --tool-returns-model-text flags at all:
   the flag exists.
 
 if the interpreter were named --tool-returns-model-text:
-  identical              607  (88%)
-  roots turned into model text  241, of which:
-       129  code that called a web tool - fetched text, not computed
-        81  no search and no final_answer - plausibly computed
+  identical              548  (79%)
+  roots turned into model text  338, of which:
+       169  no search and no final_answer - plausibly computed
+       138  code that called a web tool - fetched text, not computed
         24  code calling final_answer - an echo the native reader missed
          7  an interpreter error message
   -> worse, and not for the obvious reason: most of what the flag

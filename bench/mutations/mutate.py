@@ -44,7 +44,7 @@ GATE = "tallystick/echo_gate.py"
 _SPLIT = '(accepted if w["tool"] and w["tool"] in confirmed else unreviewed).append(w)'
 
 #: name -> [(file, exact snippet, replacement)]. Each snippet must occur once.
-#: Snippets follow the code as of proverka6; on an older ref they report STALE.
+#: Snippets follow the code as of proverka7; on an older ref they report STALE.
 MUTATIONS = {
     "M0_none": [],
     # The reader never reports an echo from an earlier turn.
@@ -52,14 +52,9 @@ MUTATIONS = {
     # The gate never blocks: every warning counts as reviewed.
     "M2_gate_never_blocks": [(GATE, _SPLIT, "accepted.append(w)")],
     # The answering-call rule never demotes.
-    "M3_rule_never_demotes": [
-        (OC, "    if last and _stands_in(last, _spellings(sent)):\n        return True\n"
-             "    return _contains_own_text(result, sent)",
-         "    return False")],
+    "M3_rule_never_demotes": [(OC, '    if not sent:\n        return False\n    return bool(_is_a_value_of(result, sent, whole_only=True))', "    return False")],
     # The answering-call rule demotes every tool result.
-    "M4_rule_demotes_every_result": [
-        (OC, "    if not sent:\n        return False\n    last = _echo_line(result)\n",
-         "    return True\n")],
+    "M4_rule_demotes_every_result": [(OC, '    if not sent:\n        return False\n    return bool(_is_a_value_of(result, sent, whole_only=True))', "    return True")],
     # M1, and every tool result is written into guessed_tool_names: a test that
     # only asks "is this result named anywhere in _meta" passes again.
     "M5_no_report_but_every_result_in_guessed": [
@@ -75,6 +70,60 @@ MUTATIONS = {
     "M8_audit_ignores_books": [(CLI, "if not balance.books_balance:", "if False:")],
     # The reader stops writing the structured warning records.
     "M9_no_details_recorded": [(OC, "        \"echo_warning_details\": earlier_echo_details,\n", "")],
+
+    # --- proverka7 -----------------------------------------------------------
+    # Eleven boundaries of the rewritten echo path. Every one of these went
+    # unnoticed by the whole suite in the sixth review, or guards something the
+    # sixth review found broken; each now has a test that fails without it.
+
+    # A one-character match counts as a value, whatever the reply is.
+    "K1_no_one_character_guard": [
+        (OC, "        if form in values and (len(form) > 1 or form == whole):",
+             "        if form in values:")],
+    # The reply itself is no longer a candidate: only what stands inside it.
+    "K4_no_whole_reply_candidate": [
+        (OC, "    for text in _reply_texts(result):\n        yield from _forms(text)\n",
+             "    for text in _reply_texts(result):\n")],
+    # A reply that is JSON carrying one value no longer offers that value.
+    "K6_no_single_json_value": [
+        (OC, "                values = _json_values(stripped)\n"
+             "                if len(values) == 1:\n"
+             "                    yield from _forms(values[0])",
+             "                values = ()\n"
+             "                if values:\n"
+             "                    pass")],
+    # An external declaration vouches even for a tool the log never named -
+    # the protection commit 7760068 states in words and nothing tested.
+    "K9_external_vouches_without_a_name": [
+        (OC, "vouched = name_known and dkey in external", "vouched = dkey in external")],
+    # A reply is never unescaped before it is compared.
+    "K14_never_unescape_the_reply": [(OC, "UNESCAPE_RESULT_CHARS = 2000", "UNESCAPE_RESULT_CHARS = 0")],
+    # The arguments are compared only as written, with no escapes undone.
+    "K15_no_unescaped_spellings": [
+        (OC, "    once = _unescape(text)\n    return text, once, _unescape(once)",
+             "    return text, text, text")],
+    # Partial coverage never reaches the warning threshold.
+    "K16_coverage_never_warns": [(OC, "WARN_SHARE = 0.10", "WARN_SHARE = 1.10")],
+    # A line of the reply is no longer a candidate for the demotion.
+    "K17_no_line_candidate": [
+        (OC, "            lines = [ln.strip() for ln in text.splitlines() if ln.strip()]\n            for line in lines:\n                yield from _forms(line)\n",
+             "            lines = [ln.strip() for ln in text.splitlines() if ln.strip()]\n")],
+    # Trailing punctuation is not trimmed at all. What fixes the sixth review's
+    # second hole is that the same trimming runs over the arguments AND over
+    # the reply; trimming a run rather than one mark at a time turns out to
+    # change nothing once both sides do it, and this mutation is the one that
+    # does.
+    "K18_no_trailing_punctuation_trim": [
+        (OC, "            if value and value[-1] in _TRAILING:", "            if False:")],
+    # Declarations are compared byte for byte again.
+    "K19_declarations_compared_byte_for_byte": [
+        (OC, "return str(name).strip().casefold()", "return str(name)")],
+    # The placeholder is kept out of the declarations twice - `_declared` drops
+    # the name, and a result whose name the log never gave carries no key at
+    # all. Either guard alone holds, so the mutation removes both.
+    "K20_the_placeholder_can_be_declared": [
+        (OC, 'dkey = _key(tool) if named_by_log else ""', "dkey = _key(tool)"),
+        (OC, "        if key and key != PLACEHOLDER:", "        if key:")],
 }
 
 FOCUS = ("test_openai_chat_", "test_check_trace_echo_gate", "test_audit_echo_gate",

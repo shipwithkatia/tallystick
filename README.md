@@ -117,9 +117,16 @@ tallystick check-trace my_log.json --tool-returns-verbatim  read_file
 
 A third declaration is for a tool whose result is external evidence in its own
 words — a search API's summary, an API response. Declaring it means you vouch
-for the tool, so echo warnings about it are cleared. It never clears a result
-found inside the arguments of the very call it answers: the reader established
-that one itself, and it stays the model's own text.
+for the tool, so echo warnings about it are cleared. It never clears a
+**demotion**: where the reply IS a value the answering call carried — the whole
+reply, one of its lines, the single value of a JSON reply — the reader
+established that itself, and it stays the model's own text whatever you declare.
+
+Tool names in all three declarations are matched with case and surrounding
+spaces ignored, and a name that matches no tool in the log is reported rather
+than left to do nothing in silence. The name `tool` cannot be declared: it is
+what this reader writes in where the log gives a call no name at all, so
+declaring it would reach every unnamed result in the file.
 
 ```bash
 tallystick check-trace my_log.json --tool-returns-external web_search

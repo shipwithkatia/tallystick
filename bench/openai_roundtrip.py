@@ -44,11 +44,18 @@ model text (`_echoes_answer`), which nothing in a message list makes visible.
 
 It also cannot see a bug both readers share - though this one it now half
 sees. `_echoes_answer` only fires on an answer of eight characters or more, and
-the OpenAI reader has no such floor for a value quoted in its own call, so six
-of those short echoes are now read as model text by the general reader and as
-roots by the native one. They appear above as *disagreements*, which is the
-wrong word for them: the general reader is the stricter one there. The rest are
-still read as roots by both, counted here as agreement, and reported below.
+the OpenAI reader has no such floor for a value the answering call carried, so
+those short echoes are read as model text by the general reader and as roots by
+the native one. They appear above as *disagreements*, which is the wrong word
+for them: the general reader is the stricter one there.
+
+Every disagreement this harness has ever found has gone that way - the general
+reader stricter, never laxer - and the direction is worth stating carefully.
+The report below counts how many artifacts differ; it does not count which way,
+so "laxer on none" is a claim about these 693 trajectories that has to be
+measured separately, and it is a measurement rather than a property of the
+code. The sixth review's three-character bypass was a laxer case, and this
+corpus does not contain one.
 """
 
 from __future__ import annotations

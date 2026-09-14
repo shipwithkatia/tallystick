@@ -294,6 +294,14 @@ def _reading_notes(meta: dict, undeclared=None) -> list[str]:
         named = meta.get(key) or []
         if named:
             lines.append(f"tools {label}: {', '.join(map(str, named))}")
+    unknown = meta.get("declarations_not_in_log") or []
+    if unknown:
+        # Said out loud, because the alternative is a declaration that does
+        # nothing in silence: the names are compared case folded and trimmed,
+        # so a name that still matches nothing is a name that is not in the log.
+        lines.append(f"declared but not in this log: {', '.join(map(str, unknown))} "
+                     f"- no tool of that name was called, so the declaration "
+                     f"changed nothing")
     if undeclared and undeclared[0]:
         # One line and no verdict: a tool result is a root by design, so a tool
         # nobody declared is not a suspicious place. Counted so it is visible;
