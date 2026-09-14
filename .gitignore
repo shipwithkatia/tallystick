@@ -38,3 +38,6 @@ bench/work/
 # AgentHallu benchmark work dir (clone + posted files)
 bench/work-agenthallu/
 *.docx
+
+# Local working notes, never published
+CLAUDE.md
