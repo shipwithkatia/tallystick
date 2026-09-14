@@ -598,7 +598,8 @@ def to_messages(data: Any) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
 def to_trace(data: Any, *, name: str = "",
              max_tool_chars: int = DEFAULT_MAX_TOOL_CHARS,
              model_text_tools: Optional[Iterable[str]] = None,
-             verbatim_tools: Optional[Iterable[str]] = None) -> Dict[str, Any]:
+             verbatim_tools: Optional[Iterable[str]] = None,
+             external_tools: Optional[Iterable[str]] = None) -> Dict[str, Any]:
     """Return a raw trace dict for a GenAI span export."""
     messages, span_meta = to_messages(data)
     if not messages:
@@ -612,7 +613,8 @@ def to_trace(data: Any, *, name: str = "",
             "reader can still read but less precisely) and record the run again")
     trace = _messages_to_trace(messages, name=name, max_tool_chars=max_tool_chars,
                                model_text_tools=model_text_tools,
-                               verbatim_tools=verbatim_tools)
+                               verbatim_tools=verbatim_tools,
+                               external_tools=external_tools)
     meta = trace["_meta"]
     meta["source"] = "otel-genai"
     meta["otel"] = span_meta

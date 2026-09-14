@@ -1,6 +1,7 @@
 $ tallystick check-trace examples/logs/ambiguous_tools.json
 
 Read as openai: 4 artifact(s) from examples/logs/ambiguous_tools.json. The report below judges that reading.
+  undeclared tools: 2 result(s) from 2 tool name(s) nobody declared (final_answer, web_search) - counted, not blocked
   left out - tool name(s) matched by position: tool[2] -> web_search (by position only), tool[3] -> final_answer (by position only)
   note: this log stops on a tool's reply, so it does not record what the
         user saw: the model's last message before it is a step, not an

@@ -1,6 +1,7 @@
 $ tallystick check-trace examples/logs/laundered_search.json
 
 Read as openai: 7 artifact(s) from examples/logs/laundered_search.json. The report below judges that reading.
+  undeclared tools: 2 result(s) from 2 tool name(s) nobody declared (save_note, web_search) - counted, not blocked
 
 Can this run be checked?   7 pieces of text across 5 steps
 ----------------------------------------------------------------------------

@@ -77,6 +77,80 @@ def _add_echo_gate_args(parser: argparse.ArgumentParser) -> None:
              "confirmation clears that reason and no other")
 
 
+#: The reason for exit 1 in strict mode: a tool in the log was declared neither
+#: as returning the model's text, nor text verbatim, nor external evidence.
+UNDECLARED_TOOLS = "undeclared_tools"
+_DECLARATIONS = ("model_text_tools", "verbatim_tools", "external_tools")
+
+
+def _add_strict_args(parser: argparse.ArgumentParser) -> None:
+    """Strict mode, off by default. A tool result is a root by design - the
+    audit stops there on purpose - so a tool nobody declared is not a suspicious
+    place, and blocking on it would block every real trace: on AgentHallu 95.5%
+    of trajectories, with the corpus's four echo tools declared. It is for an
+    operator whose tool set is fixed and who wants every tool in it named."""
+    parser.add_argument(
+        "--require-declared-tools", dest="require_declared_tools", action="store_true",
+        help=f"strict mode, for a fixed tool set: exit 1 ({UNDECLARED_TOOLS}) while "
+             "any tool in the log is declared neither with --tool-returns-model-text, "
+             "--tool-returns-verbatim nor --tool-returns-external. Off by default: "
+             "a tool result is a root by design, and the report counts undeclared "
+             "tools either way")
+
+
+def _undeclared_tool_results(raw):
+    """How many tool results came from tools the operator declared nothing
+    about, and their names: `(results, sorted names)`. None when the trace
+    carries no reading of a log - a native trace has no declarations to count
+    against. Counted over the reading's tool artifacts (ids `t<k>`), by the name
+    each carries, whatever the reading made of it."""
+    if not isinstance(raw, dict):
+        return None
+    meta = raw.get("_meta")
+    if not isinstance(meta, dict) or "model_text_tools" not in meta:
+        return None
+    declared = {str(t) for key in _DECLARATIONS for t in meta.get(key) or []}
+    names = [str(a.get("title") or "") for a in raw.get("artifacts") or []
+             if isinstance(a, dict) and str(a.get("artifact_id", "")).startswith("t")]
+    undeclared = [name for name in names if name not in declared]
+    return len(undeclared), sorted(set(undeclared))
+
+
+def _strict_blocks(args: argparse.Namespace, undeclared) -> bool:
+    return bool(getattr(args, "require_declared_tools", False)
+                and undeclared and undeclared[0])
+
+
+def _say_strict(args: argparse.Namespace, undeclared, blocked: bool) -> None:
+    """Why strict mode failed - under the report, or on stderr with --quiet -
+    and, where the trace has no reading, that the flag had nothing to check."""
+    if not getattr(args, "require_declared_tools", False):
+        return
+    if undeclared is None:
+        print("tallystick: --require-declared-tools: this trace carries no reading "
+              "of a log, so it has no tool declarations to check; nothing blocked",
+              file=sys.stderr)
+        return
+    if not blocked:
+        return
+    results, names = undeclared
+    shown = ", ".join(names)
+    if args.quiet:
+        print(f"tallystick: exit 1 - {UNDECLARED_TOOLS}: {results} tool result(s) from "
+              f"{len(names)} tool name(s) nobody declared: {shown}; declare each with "
+              f"--tool-returns-model-text, --tool-returns-verbatim or "
+              f"--tool-returns-external", file=sys.stderr)
+        return
+    print()
+    for line in (f"UNDECLARED TOOLS - exit 1 ({UNDECLARED_TOOLS}, --require-declared-tools)",
+                 f"  {results} tool result(s) from {len(names)} tool name(s) nobody "
+                 f"declared: {shown}",
+                 "  Declare each: --tool-returns-model-text NAME if it hands the model's",
+                 "  text back, --tool-returns-verbatim NAME if it returns text as fetched,",
+                 "  --tool-returns-external NAME if its result is external evidence."):
+        print(line)
+
+
 def _gate_block(code: int, reasons: list[str], unreviewed: list[dict],
                 accepted: list[dict]) -> dict:
     """The exit code and why, for --json. `verdict` alone would read "auditable"
@@ -175,6 +249,14 @@ def _add_source_args(parser: argparse.ArgumentParser) -> None:
              "document. Repeatable. A search API that answers with its own "
              "summary is not one of these")
     parser.add_argument(
+        "--tool-returns-external", dest="external_tools", action="append",
+        default=[], metavar="NAME",
+        help="a tool whose result is external evidence in its own words (a "
+             "search API's summary, an API response): counted as declared, and "
+             "its echo warnings are cleared - you vouch for it. A result found in "
+             "the arguments of the very call it answers is still read as the "
+             "model's own text. Repeatable")
+    parser.add_argument(
         "--max-tool-chars", type=int, default=DEFAULT_MAX_TOOL_CHARS,
         metavar="N",
         help=f"cut a tool result longer than this and record the cut "
@@ -196,7 +278,7 @@ def _hint(args: argparse.Namespace, seen: dict) -> str:
     return hint_for(raw) if raw is not None else ""
 
 
-def _reading_notes(meta: dict) -> list[str]:
+def _reading_notes(meta: dict, undeclared=None) -> list[str]:
     """Everything the reading itself left out or had to decide, wrapped for a
     terminal. A reader that lost a message and said nothing turns its own bug
     into a finding against the user's recorder, which is the failure this whole
@@ -207,10 +289,19 @@ def _reading_notes(meta: dict) -> list[str]:
     if meta.get("reader_confidence"):
         lines.append(f"reader: {meta['reader_confidence']}")
     for key, label in (("model_text_tools", "read as the model's own text"),
-                       ("verbatim_tools", "read as external text, verbatim")):
+                       ("verbatim_tools", "read as external text, verbatim"),
+                       ("external_tools", "declared as external evidence")):
         named = meta.get(key) or []
         if named:
             lines.append(f"tools {label}: {', '.join(map(str, named))}")
+    if undeclared and undeclared[0]:
+        # One line and no verdict: a tool result is a root by design, so a tool
+        # nobody declared is not a suspicious place. Counted so it is visible;
+        # --require-declared-tools is the mode that blocks on it.
+        results, names = undeclared
+        shown = ", ".join(names[:6]) + (f" (+{len(names) - 6} more)" if len(names) > 6 else "")
+        lines.append(f"undeclared tools: {results} result(s) from {len(names)} tool "
+                     f"name(s) nobody declared ({shown}) - counted, not blocked")
     for key, label in (("skipped_empty", "message(s) held no text"),
                        ("dropped_messages", "not placed by this reader"),
                        ("truncated", "cut to --max-tool-chars"),
@@ -261,6 +352,7 @@ def _read_raw(args: argparse.Namespace, seen: dict | None = None):
         max_tool_chars=getattr(args, "max_tool_chars", DEFAULT_MAX_TOOL_CHARS),
         model_text_tools=getattr(args, "model_text_tools", None) or None,
         verbatim_tools=getattr(args, "verbatim_tools", None) or None,
+        external_tools=getattr(args, "external_tools", None) or None,
     )
 
 
@@ -348,11 +440,15 @@ def _audit(args: argparse.Namespace) -> int:
     unreviewed, accepted = _split_echo_warnings(
         _echo_warnings(raw.get("_meta") if isinstance(raw, dict) else None),
         getattr(args, "accept_echo_warnings", None))
+    undeclared = _undeclared_tool_results(raw)
+    strict = _strict_blocks(args, undeclared)
     reasons: list[str] = []
     if not balance.books_balance:
         reasons.append("books_do_not_balance")
     if unreviewed:
         reasons.append(UNREVIEWED_ECHO)
+    if strict:
+        reasons.append(UNDECLARED_TOOLS)
     code = 1 if reasons else 0
 
     if args.chain:
@@ -365,6 +461,7 @@ def _audit(args: argparse.Namespace) -> int:
     elif not args.quiet:
         print(summary(run, balance))
     _say_echo_gate(unreviewed, accepted, quiet=args.quiet)
+    _say_strict(args, undeclared, strict)
 
     if args.json_out:
         payload = {
@@ -418,7 +515,8 @@ def _check_trace(args: argparse.Namespace) -> int:
     meta = raw.get("_meta") if isinstance(raw, dict) else None
     result = check_trace(run, min_reachable=args.min_reachable,
                    meta=meta if isinstance(meta, dict) else None)
-    notes = _reading_notes(meta if isinstance(meta, dict) else {})
+    undeclared = _undeclared_tool_results(raw)
+    notes = _reading_notes(meta if isinstance(meta, dict) else {}, undeclared)
     # A tool result ending in a line the model wrote in an earlier call is kept
     # as evidence, because the log cannot tell a value handed back from a value
     # confirmed - so the verdict counts it as evidence. Exiting 0 on that, with
@@ -432,6 +530,9 @@ def _check_trace(args: argparse.Namespace) -> int:
         reasons.append(f"verdict:{result.verdict}")
     if unreviewed:
         reasons.append(UNREVIEWED_ECHO)
+    strict = _strict_blocks(args, undeclared)
+    if strict:
+        reasons.append(UNDECLARED_TOOLS)
     code = 1 if reasons else 0
     if not args.quiet and (source != "tallystick" or notes):
         # Said before the report, because every number below is a number about
@@ -459,8 +560,11 @@ def _check_trace(args: argparse.Namespace) -> int:
                         "unmatched_tool_results", "unresolved_tool_results",
                         "echoed_back_tool_results", "echoes_from_earlier_turns",
                         "echo_warning_details",
-                        "model_text_tools", "verbatim_tools",
+                        "model_text_tools", "verbatim_tools", "external_tools",
                         "notes", "otel") if k in meta}
+            if undeclared is not None:
+                reading["undeclared_tool_results"] = {
+                    "results": undeclared[0], "tools": undeclared[1]}
             if reading:
                 payload["reading"] = reading
         payload["gate"] = _gate_block(code, reasons, unreviewed, accepted)
@@ -472,6 +576,7 @@ def _check_trace(args: argparse.Namespace) -> int:
     if not args.quiet:
         print(report(result))
     _say_echo_gate(unreviewed, accepted, quiet=args.quiet)
+    _say_strict(args, undeclared, strict)
     return code
 
 
@@ -506,7 +611,7 @@ def _convert(args: argparse.Namespace) -> int:
 
     # Everything the reading left out, before anyone draws a conclusion from
     # what it kept.
-    for line in _reading_notes(meta):
+    for line in _reading_notes(meta, _undeclared_tool_results(raw)):
         print(f"  {line}")
     if not args.quiet:
         print(f"\nNext: tallystick check-trace {args.out}")
@@ -570,7 +675,8 @@ def _propose(args: argparse.Namespace) -> int:
     print()
     audit_args = argparse.Namespace(
         trace=args.out, chain=None, quiet=False, json_out=None,
-        accept_echo_warnings=list(getattr(args, "accept_echo_warnings", None) or []))
+        accept_echo_warnings=list(getattr(args, "accept_echo_warnings", None) or []),
+        require_declared_tools=getattr(args, "require_declared_tools", False))
     return _audit(audit_args)
 
 
@@ -592,6 +698,7 @@ def build_parser() -> argparse.ArgumentParser:
                    help="exit code only - except echo warnings carried over from "
                         "the reading, which are still printed on stderr")
     _add_echo_gate_args(a)
+    _add_strict_args(a)
     a.set_defaults(func=_audit)
 
     c = sub.add_parser("check-trace",
@@ -610,6 +717,7 @@ def build_parser() -> argparse.ArgumentParser:
                    help="exit code only - except echo warnings, which are still "
                         "printed on stderr, one line each")
     _add_echo_gate_args(c)
+    _add_strict_args(c)
     _add_source_args(c)
     c.set_defaults(func=_check_trace)
 
@@ -637,6 +745,7 @@ def build_parser() -> argparse.ArgumentParser:
                    help="write the posted trace without auditing it")
     # For the audit `propose` runs on the file it wrote.
     _add_echo_gate_args(p)
+    _add_strict_args(p)
     p.set_defaults(func=_propose)
     return parser
 

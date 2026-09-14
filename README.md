@@ -115,6 +115,33 @@ tallystick check-trace my_log.json --tool-returns-model-text save_note
 tallystick check-trace my_log.json --tool-returns-verbatim  read_file
 ```
 
+A third declaration is for a tool whose result is external evidence in its own
+words — a search API's summary, an API response. Declaring it means you vouch
+for the tool, so echo warnings about it are cleared. It never clears a result
+found inside the arguments of the very call it answers: the reader established
+that one itself, and it stays the model's own text.
+
+```bash
+tallystick check-trace my_log.json --tool-returns-external web_search
+```
+
+The report counts, on one line, how many tool results came from tools you
+declared nothing about, and from how many names. That line blocks nothing. A
+tool result is where the audit stops by design, and how much of a run is out of
+reach is what the rest of `check-trace` already reports.
+
+**Strict mode, for a team whose tool set is fixed.** `--require-declared-tools`
+turns that count into a gate: exit 1 with `undeclared_tools` until every tool
+in the log is declared one of the three ways. `audit` and `propose` take the same
+flag and use the declarations recorded when the log was read. It is off by
+default because it would fail almost every real run: on the AgentHallu corpus,
+95.5% of trajectories, even with their four echo-returning tools declared.
+
+```bash
+tallystick check-trace my_log.json --require-declared-tools \
+  --tool-returns-verbatim read_file --tool-returns-external web_search
+```
+
 Neither is guessed from the log. By default every tool result is treated as a
 wall the audit cannot see past, which counts against your recording rather
 than quietly in its favour.
@@ -239,6 +266,7 @@ reads a raw trace and says so before a single model call is spent:
 $ tallystick check-trace examples/logs/laundered_search.json
 
 Read as openai: 7 artifact(s) from examples/logs/laundered_search.json. The report below judges that reading.
+  undeclared tools: 2 result(s) from 2 tool name(s) nobody declared (save_note, web_search) - counted, not blocked
 
 Can this run be checked?   7 pieces of text across 5 steps
 ----------------------------------------------------------------------------

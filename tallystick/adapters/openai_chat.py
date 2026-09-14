@@ -700,18 +700,33 @@ def looks_like_openai(data: Any) -> bool:
 def to_trace(data: Any, *, name: str = "",
              max_tool_chars: int = DEFAULT_MAX_TOOL_CHARS,
              model_text_tools: Optional[Iterable[str]] = None,
-             verbatim_tools: Optional[Iterable[str]] = None) -> Dict[str, Any]:
-    """Return a raw trace dict (`artifacts`, `steps`, `_meta`) for a chat log."""
+             verbatim_tools: Optional[Iterable[str]] = None,
+             external_tools: Optional[Iterable[str]] = None) -> Dict[str, Any]:
+    """Return a raw trace dict (`artifacts`, `steps`, `_meta`) for a chat log.
+
+    `external_tools` are tools the operator declares as returning external
+    evidence in their own words. The declaration clears the WARNINGS about such
+    a tool - an echo from another call, a result matched to no call - because
+    those are guesses, and the operator is taking on what this reader cannot
+    know. It never clears a DEMOTION: a result found in the arguments of the
+    very call it answers is a finding, not a guess, and one flag must not switch
+    off the only part of the protection that works for certain."""
     if max_tool_chars < 1:
         raise ValueError("max_tool_chars must be at least 1")
     messages, notes = _expand(_messages_of(data))
     echo: Set[str] = set(model_text_tools or ())
     verbatim: Set[str] = set(verbatim_tools or ())
+    external: Set[str] = set(external_tools or ())
     overlap = sorted(echo & verbatim)
     if overlap:
         raise ValueError(
             f"{overlap} is named as both a tool that returns the model's own text "
             f"and a tool that returns external text verbatim; it cannot be both")
+    overlap = sorted(external & (echo | verbatim))
+    if overlap:
+        raise ValueError(
+            f"{overlap} is declared as returning external evidence and also as "
+            f"returning the model's own text or text verbatim; it cannot be both")
 
     artifacts: List[Dict[str, Any]] = []
     steps: List[Dict[str, Any]] = []
@@ -1025,7 +1040,11 @@ def to_trace(data: Any, *, name: str = "",
             # Also asked before the cut, for the same reason. Only for a result
             # that stays evidence: a warning is a report, never a demotion.
             warning: Optional[Tuple[str, str]] = None      # (kind, the line)
-            if not handed_back and tool not in echo and not ambiguous:
+            # A tool declared external, known by its own name, gets no warning:
+            # the operator vouched for it. `handed_back` above was decided
+            # before this and is not touched by the declaration.
+            vouched = name_known and tool in external
+            if not handed_back and tool not in echo and not ambiguous and not vouched:
                 if unplaced:
                     warning = ("unmatched", _matched_line(content))
                 else:
@@ -1163,6 +1182,7 @@ def to_trace(data: Any, *, name: str = "",
         "max_tool_chars": max_tool_chars,
         "model_text_tools": sorted(echo),
         "verbatim_tools": sorted(verbatim),
+        "external_tools": sorted(external),
         "guessed_tool_names": guessed,
         "unmatched_tool_results": unmatched,
         "unresolved_tool_results": unresolved,

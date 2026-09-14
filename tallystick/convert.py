@@ -109,7 +109,8 @@ def describe(names: Iterable[str]) -> str:
 def read_any(data: Any, *, source: str = "auto", name: str = "",
              max_tool_chars: int = DEFAULT_MAX_TOOL_CHARS,
              model_text_tools: Optional[Iterable[str]] = None,
-             verbatim_tools: Optional[Iterable[str]] = None
+             verbatim_tools: Optional[Iterable[str]] = None,
+             external_tools: Optional[Iterable[str]] = None
              ) -> Tuple[Dict[str, Any], str]:
     """Return `(raw trace dict, the format it was read as)`.
 
@@ -132,7 +133,8 @@ def read_any(data: Any, *, source: str = "auto", name: str = "",
         try:
             return _READERS[source](data, name=name, max_tool_chars=max_tool_chars,
                                     model_text_tools=model_text_tools,
-                                    verbatim_tools=verbatim_tools), source
+                                    verbatim_tools=verbatim_tools,
+                                    external_tools=external_tools), source
         except ValueError as exc:
             raise TraceError(f"cannot read this as {_NAMES[source]}: {exc}") from None
 
@@ -155,6 +157,7 @@ def read_any(data: Any, *, source: str = "auto", name: str = "",
     try:
         return _READERS[only](data, name=name, max_tool_chars=max_tool_chars,
                               model_text_tools=model_text_tools,
-                              verbatim_tools=verbatim_tools), only
+                              verbatim_tools=verbatim_tools,
+                              external_tools=external_tools), only
     except ValueError as exc:
         raise TraceError(f"cannot read this as {_NAMES[only]}: {exc}") from None

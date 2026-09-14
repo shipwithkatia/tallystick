@@ -1,6 +1,7 @@
 $ tallystick check-trace examples/logs/clean_run.json
 
 Read as openai: 5 artifact(s) from examples/logs/clean_run.json. The report below judges that reading.
+  undeclared tools: 1 result(s) from 1 tool name(s) nobody declared (read_file) - counted, not blocked
 
 Can this run be checked?   5 pieces of text across 3 steps
 ----------------------------------------------------------------------------
