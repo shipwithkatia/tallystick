@@ -26,8 +26,10 @@ you can put in CI and fail a build on.
 the run a provenance audit can look at, and what would have to be recorded for
 the rest. No model, no claims, no cost - and a `partial` verdict there is why a
 later clean audit may mean less than it looks. It also exits 1 while the reading
-reports an echo from an earlier turn that nobody has reviewed
+reports a result that may hand back the model's own text - a line from another
+call, or a result matched to no call - that nobody has reviewed
 (`unreviewed_echo_warnings`, cleared tool by tool with `--accept-echo-warning NAME`).
+`tallystick.audit()` raises `UnreviewedEchoWarnings` in the same place.
 
 `propose` is the only place the verdict path touches the model side, and it does so
 lazily, inside the subcommand, so `tallystick audit` never imports an SDK.
@@ -43,6 +45,9 @@ from pathlib import Path
 
 from .auditability import DEFAULT_MIN_REACHABLE, check_trace, report
 from .convert import FORMATS, describe, detect, hint_for, looks_like_trace, read_any
+from .echo_gate import FIELDS as _ECHO_FIELDS, UNREVIEWED_ECHO
+from .echo_gate import echo_warnings as _echo_warnings
+from .echo_gate import split_echo_warnings as _split_echo_warnings
 from .adapters.openai_chat import DEFAULT_MAX_TOOL_CHARS
 from .io import load_run, read_json_file
 from .ledger import close_books
@@ -51,12 +56,10 @@ from .types import TraceError
 
 SUBCOMMANDS = ("audit", "check-trace", "convert", "propose")
 
-#: The reason for exit 1 when an echo warning is unreviewed, and the flag that
-#: confirms one tool's warnings. Named once, because the terminal, `--quiet`,
-#: `--json` and the tests all have to say exactly the same thing.
-UNREVIEWED_ECHO = "unreviewed_echo_warnings"
+#: The flag that confirms one tool's echo warnings. The reason it clears,
+#: UNREVIEWED_ECHO, lives in echo_gate with the rest of the gate, because
+#: `tallystick.audit()` applies the same gate from Python.
 ACCEPT_ECHO_FLAG = "--accept-echo-warning"
-_ECHO_FIELDS = ("result", "tool", "line")
 
 
 def _add_echo_gate_args(parser: argparse.ArgumentParser) -> None:
@@ -67,43 +70,11 @@ def _add_echo_gate_args(parser: argparse.ArgumentParser) -> None:
         ACCEPT_ECHO_FLAG, dest="accept_echo_warnings", action="append", default=[],
         metavar="NAME",
         help="confirm, for one tool, that you reviewed the results the reading "
-             "kept as evidence although they end in a line the model wrote in an "
-             "earlier call. Repeatable, one tool each time. A warning about any "
+             "kept as evidence although they may hand back the model's own text "
+             "(a line it wrote in another call, or a result matched to no call). "
+             "Repeatable, one tool each time. A warning about any "
              f"tool not named keeps the exit at 1 ({UNREVIEWED_ECHO}); a "
              "confirmation clears that reason and no other")
-
-
-def _echo_warnings(meta) -> list[dict]:
-    """The reader's warnings about echoes from an earlier turn, one dict each:
-    `result`, `tool`, `line`, and `text` for the terminal.
-
-    The tool name is taken from the reader's structured record, never from the
-    warning text: a tool named `read_note): x` writes a warning that reads like
-    one about `read_note`, and a confirmation by name must not be foolable by a
-    name. A warning with no structured record - a trace written before it
-    existed, or edited by hand - has no known tool, and no name confirms it."""
-    if not isinstance(meta, dict):
-        return []
-    texts = [str(t) for t in meta.get("echoes_from_earlier_turns") or []]
-    details = meta.get("echo_warning_details")
-    details = details if isinstance(details, list) else []
-    warnings: list[dict] = []
-    for i in range(max(len(texts), len(details))):
-        record = details[i] if i < len(details) and isinstance(details[i], dict) else {}
-        result, tool, line = (str(record.get(k) or "") for k in _ECHO_FIELDS)
-        text = texts[i] if i < len(texts) else f"{result} ({tool}): {line}"
-        warnings.append({"result": result, "tool": tool, "line": line or text,
-                         "text": text})
-    return warnings
-
-
-def _split_echo_warnings(warnings: list[dict], names) -> tuple[list[dict], list[dict]]:
-    """(unreviewed, accepted). A warning is accepted only when its own tool was
-    named; a warning whose tool is unknown never is."""
-    confirmed = set(names or ())
-    accepted = [w for w in warnings if w["tool"] and w["tool"] in confirmed]
-    unreviewed = [w for w in warnings if w not in accepted]
-    return unreviewed, accepted
 
 
 def _gate_block(code: int, reasons: list[str], unreviewed: list[dict],
@@ -133,26 +104,30 @@ def _echo_gate_lines(unreviewed: list[dict], accepted: list[dict], *,
     if unreviewed:
         n = len(unreviewed)
         if short:
-            lines.append(f"tallystick: exit 1 - {UNREVIEWED_ECHO}: {n} tool result(s) end "
-                         f"in a line the model wrote in an earlier call; review them, "
+            lines.append(f"tallystick: exit 1 - {UNREVIEWED_ECHO}: {n} tool result(s) may "
+                         f"hand back the model's own text; review them, "
                          f"then pass --tool-returns-model-text NAME or "
                          f"{ACCEPT_ECHO_FLAG} NAME")
         else:
             lines += [f"UNREVIEWED ECHO WARNINGS - exit 1 ({UNREVIEWED_ECHO})",
-                      f"  {n} tool result(s) end in a line the model wrote in an earlier",
-                      "  call. The reading kept them as evidence, so the verdict above",
-                      "  counts them as evidence: a clean result here is not yet a checked",
-                      "  one. For each tool: if it hands the model's own text back, pass",
-                      "  --tool-returns-model-text NAME; if its result is a real",
-                      "  confirmation, confirm that tool by name."]
+                      f"  {n} tool result(s) may hand back text the model wrote: a line",
+                      "  from another call, earlier or in the same turn, or a result the",
+                      "  reading matched to no call. They were kept as evidence, so the",
+                      "  verdict above counts them as evidence: a clean result here is not",
+                      "  yet a checked one. Each warning names the message in your file",
+                      "  and the call id. For each tool: if it hands the model's own text",
+                      "  back, pass --tool-returns-model-text NAME; if its result is a",
+                      "  real confirmation, confirm that tool by name."]
         lines += listed(unreviewed, "  " if short else "    ")
         names = sorted({w["tool"] for w in unreviewed if w["tool"]})
         if names:
             lines.append("  to confirm: " + " ".join(
                 f"{ACCEPT_ECHO_FLAG} {shlex.quote(name)}" for name in names))
         if any(not w["tool"] for w in unreviewed):
-            lines.append("  a warning with no recorded tool name cannot be confirmed; "
-                         "read the log again with this version")
+            lines.append("  a warning with no tool known by name - the log names none, the "
+                         "result was placed by position between several tools, or the trace "
+                         "predates these records - cannot be confirmed by name; declare the "
+                         "tool with --tool-returns-model-text, or record names and call ids")
     if accepted:
         lines.append(f"tallystick: {len(accepted)} echo warning(s) accepted by name with "
                      f"{ACCEPT_ECHO_FLAG}, kept as evidence:" if short else
@@ -256,8 +231,8 @@ def _reading_notes(meta: dict) -> list[str]:
                        # here so the operator can decide with
                        # --tool-returns-model-text.
                        ("echoes_from_earlier_turns",
-                        "result(s) ending in a line the model wrote in an "
-                        "earlier call, kept as evidence")):
+                        "result(s) kept as evidence that may hand back the "
+                        "model's own text")):
         items = meta.get(key) or []
         if items:
             shown = ", ".join(str(i) for i in items[:6])

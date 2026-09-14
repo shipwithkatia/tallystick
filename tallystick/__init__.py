@@ -17,7 +17,8 @@ books say so without anyone being asked to judge.
 """
 
 from .auditability import Auditability, check_trace
-from .io import load_run, load_run_file
+from .echo_gate import UnreviewedEchoWarnings, echo_warnings, split_echo_warnings
+from .io import load_run, load_run_file, read_json_file
 from .ledger import ChainHop, ClaimAudit, ClaimStatus, TrialBalance, close_books
 from .report import chain_view, summary
 from .types import (
@@ -32,14 +33,28 @@ __all__ = [
     "TrialBalance", "ClaimAudit", "ClaimStatus", "ChainHop",
     "summary", "chain_view",
     "Run", "Step", "Artifact", "ArtifactKind", "Claim", "Entry",
-    "Account", "AccountType", "TraceError",
+    "Account", "AccountType", "TraceError", "UnreviewedEchoWarnings",
 ]
 
 
-def audit(source) -> TrialBalance:
-    """Close the books on a run given as a path, a dict, or a Run."""
+def audit(source, *, accept_echo_warnings=()) -> TrialBalance:
+    """Close the books on a run given as a path, a dict, or a Run.
+
+    Raises `UnreviewedEchoWarnings` while the trace carries an echo warning
+    nobody confirmed - exactly where `tallystick audit` exits 1 with
+    `unreviewed_echo_warnings`. It raises instead of returning a balance with
+    books_balance False, because that would read "the books do not balance"
+    when the truth is "they were not checked". After reviewing the results,
+    pass the tools by name: `audit(path, accept_echo_warnings=["read_note"])`.
+
+    A `Run` built in Python carries no reading, so it has no warnings to gate."""
     if isinstance(source, Run):
         return close_books(source)
-    if isinstance(source, dict):
-        return close_books(load_run(source))
-    return close_books(load_run_file(source))
+    raw = source if isinstance(source, dict) else read_json_file(source)
+    run = load_run(raw)
+    unreviewed, _accepted = split_echo_warnings(
+        echo_warnings(raw.get("_meta") if isinstance(raw, dict) else None),
+        accept_echo_warnings)
+    if unreviewed:
+        raise UnreviewedEchoWarnings(unreviewed)
+    return close_books(run)

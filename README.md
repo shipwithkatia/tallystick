@@ -119,15 +119,21 @@ Neither is guessed from the log. By default every tool result is treated as a
 wall the audit cannot see past, which counts against your recording rather
 than quietly in its favour.
 
-One thing the reading reports instead of deciding. A tool result whose last
-line the model had already written into an earlier call — a note read back, a
-variable an interpreter kept — may be the model's own words handed back or a
-real confirmation, and the log cannot say which. It stays evidence, it is named
-above the report, and `check-trace` exits 1 with `unreviewed_echo_warnings`
-until you have looked: name the tool with `--tool-returns-model-text`, or
-confirm it, tool by tool, with `--accept-echo-warning NAME`. A confirmation
-covers only the tool it names, so a new warning about another tool still fails
-the build. `--quiet` still prints each warning, so a CI job cannot pass on one
+One thing the reading reports instead of deciding. A tool result that hands
+back a line the model had already written into another call — a note read
+back, a variable an interpreter kept, a file saved and read in the same turn —
+may be the model's own words or a real confirmation, and the log cannot say
+which. Neither can a result the reading matched to no call, because a gateway
+renamed the tool or rewrote the id. Such a result stays evidence, and it is
+named above the report with the message's position in your file (counted from
+0) and the call id, so you can find it. `check-trace` and `audit` exit 1 with
+`unreviewed_echo_warnings` until you have looked: name the tool with
+`--tool-returns-model-text`, or confirm it, tool by tool, with
+`--accept-echo-warning NAME`. A confirmation covers only the tool it names, so a
+new warning about another tool still fails the build. A warning about a result
+placed by position between several tools, or about a tool the log gives no
+name, cannot be confirmed by any name: declare the tool, or record names and
+call ids. `--quiet` still prints each warning, so a CI job cannot pass on one
 nobody saw.
 
 **2. Audit a run whose claims are already posted.** Deterministic, offline, no
@@ -198,6 +204,29 @@ balance.laundering_rate            # share that cite something real but unfunded
 balance.injection_points()         # failing claims, each with the step that broke
 ```
 
+**Where the terminal exits 1 for an unreviewed echo warning, Python raises.**
+`audit()` applies the same gate as `tallystick audit`. On a posted trace that
+still carries an echo warning nobody confirmed, it raises
+`tallystick.UnreviewedEchoWarnings`, whose message starts with
+`unreviewed_echo_warnings` and lists each warning. It does not return a balance
+with `books_balance` False: that would say "the books do not balance", and the
+truth is "the books were not checked" — the difference the exit codes 1 and 2
+exist for. After reviewing the results, confirm by name:
+
+```python
+from tallystick import UnreviewedEchoWarnings, audit
+
+try:
+    balance = audit("posted.json")
+except UnreviewedEchoWarnings as exc:
+    print(exc)                     # which results, which tools, what to pass
+    balance = audit("posted.json", accept_echo_warnings=["read_note"])
+```
+
+The other outcomes are unchanged: books that do not balance return normally with
+`books_balance` False (the terminal's exit 1), and a file that cannot be read
+raises `TraceError` (the terminal's exit 2).
+
 The trace format is plain JSON — artifacts, steps with inputs/outputs, claims by character span, entries — documented in `tallystick/io.py`. `examples/laundered_summary.json` is a complete posted trace; `examples/raw_research_run.json` is the same run before posting; `examples/balanced_run.json` is the same run with an honest summariser, and it balances. A `Run` can also be built in Python from the exported `Artifact`, `Step`, `Claim` and `Entry` types; it gets the same validation as a file.
 
 ### Before the audit: can this trace be audited at all?
@@ -257,7 +286,7 @@ artifacts holding the same string, which real agents produce constantly and whic
 breaks any tooling that matches artifacts by their text. Exit 0 when no defect
 stands in the way, 1 when one does or the recording is thinner than a
 `--min-reachable` you passed, 2 when the file cannot be read. Exit 1 also when
-the reading reported an echo from an earlier turn that nobody has reviewed
+the reading kept a result that may hand back the model's own text and nobody has reviewed it
 (`unreviewed_echo_warnings`); `--accept-echo-warning NAME` clears it for that
 tool and clears no other reason.
 

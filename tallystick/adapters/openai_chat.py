@@ -54,23 +54,30 @@ a `tool_result`, the audit stops there, and `check-trace` counts it against the
 recording rather than silently in its favour.
 
 **One reading overrides `verbatim_tools`, and it has to be said here.** A
-result whose last line is quoted in the arguments of the call it answered is
-read as the model's own text even when the tool was declared verbatim - the
+result that hands back text from the arguments of the call it answered - as its
+last line, or as at least half of it anywhere inside it - is read as the
+model's own text even when the tool was declared verbatim - the
 model wrote that line, whatever the tool usually does. That is right for
 `echo '<the model's own paragraph>'` and wrong for `touch f && ls` returning
 the filename it was given. Every override is named in
 `_meta.echoed_back_tool_results` with the line it fired on, so the decision can
 be checked rather than trusted.
 
-**A tool that hands back text from an EARLIER call is reported, not demoted.**
+**A tool that hands back text from ANOTHER call is reported, not demoted.**
 An interpreter that kept a variable, a notes store, a file written in one turn
-and read in the next: the line is the model's, but the same match also happens
-when a tool confirms what the model guessed, and the log cannot tell the two
-apart. Such results stay evidence and are named in
-`_meta.echoes_from_earlier_turns`; if the tool is one that hands text back,
-say so with `model_text_tools`. `check-trace` exits 1 on any such report, with
-the reason `unreviewed_echo_warnings`, until each tool is confirmed by name with
-`--accept-echo-warning NAME`: a warning nobody read must not pass a run.
+and read in the next - or saved and read back inside one turn: the text is the
+model's, but the same match also happens when a tool confirms what the model
+guessed, and the log cannot tell the two apart. So is a result the reading could
+not match to any call (a gateway renamed the tool, or rewrote the id): nothing
+says which arguments to weigh it against. Such results stay evidence and are
+recorded in `_meta.echo_warning_details`, and as text in
+`_meta.echoes_from_earlier_turns` (a name kept for the files already written),
+each with the message's position in the FILE, counted from 0, and the call id
+where the log has one. If the tool is one that hands text back, say so with
+`model_text_tools`. `check-trace` and `audit` exit 1 on any such report, with
+the reason `unreviewed_echo_warnings`, and `tallystick.audit()` raises, until
+each tool is confirmed by name with `--accept-echo-warning NAME`: a warning
+nobody read must not pass a run.
 
 **A tool result longer than `max_tool_chars` is cut**, and the cut is recorded
 in `_meta.truncated` so the audit can say "not recorded" rather than "not
@@ -85,6 +92,7 @@ not the one that happened.
 
 from __future__ import annotations
 
+import functools
 import json
 import re
 from typing import Any, Dict, Iterable, Iterator, List, Optional, Set, Tuple
@@ -293,49 +301,200 @@ def _values(obj: Any) -> Iterator[str]:
             yield from _values(value)
 
 
-def _pieces(args: str) -> Set[str]:
-    """The whole lines, string literals and words of one call's arguments - what
-    a later result's last line is looked up in, to report an echo from an
-    earlier turn.
+def _norm(text: str) -> str:
+    """`text` with every run of whitespace made one space: a paragraph reflowed
+    onto one line is still the same paragraph."""
+    return " ".join(text.split())
 
-    A lookup, not the substring test the rule uses, because the rule weighs one
-    call and this weighs the whole run so far. Scanning everything written
-    before for every result is quadratic in the length of the run: a 400-turn
-    CodeAct log took four seconds that way. The cost is reach - a line the model
-    wrote only as part of a longer string is not found here. That costs a
-    warning, never a demotion: this check only ever adds a report.
+
+_NOT_ALNUM = re.compile(r"[\W_]+")
+
+
+def _alnum(text: str) -> int:
+    """How many letters and digits `text` holds - the measure of how much of a
+    result a piece of it is, which punctuation and JSON braces should not move."""
+    return len(_NOT_ALNUM.sub("", text))
+
+
+@functools.lru_cache(maxsize=512)
+def _pieces(args: str) -> frozenset:
+    """The whole values, lines, string literals and words of one call's
+    arguments, each also with its whitespace collapsed - what a result is looked
+    up in: for an echo from another call of the turn or of an earlier turn, and,
+    among calls the log cannot tell apart, for the one it answered.
+
+    A lookup, not a scan, because these checks weigh many calls. Scanning
+    everything written before for every result is quadratic in the length of
+    the run - a 400-turn CodeAct log took four seconds that way. Each call is
+    read once (hence the cache), and each result costs a handful of set lookups.
+    The cost is reach: a line the model wrote only inside a longer string is not
+    found here.
 
     Arguments are parsed as JSON where they are JSON, so a literal inside the
     model's code is read with its quotes where the model put them, and each
     string is also read with its own escapes undone."""
     try:
         texts = list(_values(json.loads(args)))
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, RecursionError):
         texts = []
     if not texts:
         texts = list(_spellings(args))
     texts += [_unescape(t) for t in texts if "\\" in t]
     found: Set[str] = set()
     for text in texts:
-        found.update(ln.strip() for ln in text.splitlines() if ln.strip())
+        whole = _norm(text)
+        if whole:
+            found.add(whole)
+        for ln in text.splitlines():
+            ln = ln.strip()
+            if ln:
+                found.add(ln)
+                found.add(_norm(ln))
         for pattern in (_LITERAL_DQ, _LITERAL_SQ):
             for match in pattern.finditer(text):
                 literal = match.group(1).strip()
                 if literal:
                     found.add(literal)
+                    found.add(_norm(literal))
                     if "\\" in literal:
-                        found.add(_unescape(literal).strip())
+                        found.add(_norm(_unescape(literal)))
         found.update(_WORD.findall(text))
-    return found
+    return frozenset(found)
+
+
+def _contains_own_text(result: str, sent: str) -> bool:
+    """Does a phrase from the call's own arguments stand inside its result as a
+    whole unit, and make up most of it?
+
+    The answering call's text is looked for INSIDE the result, not only as its
+    last line: as a JSON value (`{"echo": "<text>"}`, indented JSON ending in
+    `}`), as a line followed by `[Execution time: 0.01s]`, after a label
+    (`Saved note: <text>`), as a quoted literal (`'<text>'` from a REPL), or as
+    the whole result reflowed onto one line. See `_echo_candidates`.
+
+    Not as an arbitrary substring. Measured on AgentHallu, a bare "a piece of the
+    arguments makes up half of the result" demoted 101 more results than the
+    last-line rule, and among them real facts the tool reported about the
+    argument: `rm: cannot remove 'X': No such file or directory`,
+    `{"matches": ["./project/test_results.json"]}`, `'findings_report' removed`.
+    So the unit must be a phrase - it holds a space - because identifiers, paths
+    and URLs are what a tool legitimately repeats in a status or an error, and a
+    sentence the model wrote is what a tool hands back. And it must be more than
+    half of the result's letters and digits, which keeps a search result that
+    quotes its query in a header as evidence."""
+    pieces = _pieces(sent)
+    return any(len(c) >= ECHO_MIN_CHARS and " " in c and c in pieces
+               for c in _echo_candidates(result))
+
+
+_TRAILING = ".,;:!?"
+
+
+#: Results longer than this are not unescaped for the candidate search: decoding
+#: is a character-by-character pass, and a long page that is ALSO escaped JSON
+#: is not the shape of a value handed back.
+UNESCAPE_RESULT_CHARS = 2000
+
+
+@functools.lru_cache(maxsize=256)
+def _echo_candidates(result: str) -> Tuple[str, ...]:
+    """The strings in a result that could be text the model handed in, with
+    whitespace collapsed, each holding MORE than half of the result's letters
+    and digits: the whole result, each line, a line without its trailing
+    punctuation or without a `label: ` in front, each quoted literal, and each
+    JSON value.
+
+    That is how a note read back as `{"text": "..."}`, as indented JSON, as
+    `capital: ...`, with a period added or a status line after it, or as `'...'`
+    is found by lookup, in time linear in the result. The half rule keeps a page
+    that merely contains a line the model once wrote from being called its echo;
+    it also lets a line of a long page be skipped by its length alone, before
+    anything is counted. Cached: the rule and the warnings ask about the same
+    result."""
+    found: List[str] = []
+    seen: Set[str] = set()
+    texts = [result]
+    if "\\" in result and len(result) <= UNESCAPE_RESULT_CHARS:
+        texts.append(_unescape(result))
+    for text in texts:
+        total = _alnum(text)
+        if not total:
+            continue
+
+        def add(piece: str, total: int = total) -> None:
+            if 2 * len(piece) <= total:
+                return              # too short to be most of the result
+            piece = _norm(piece)
+            if piece and piece not in seen and 2 * _alnum(piece) > total:
+                seen.add(piece)
+                found.append(piece)
+
+        add(text)
+        floor = total // 2          # no string this long or shorter is most of it
+        for ln in text.splitlines():
+            if len(ln) <= floor:
+                continue            # skipped by length, before anything is counted
+            ln = ln.strip()
+            add(ln)
+            add(ln.rstrip(_TRAILING))
+            _label, sep, rest = ln.partition(": ")
+            if sep:
+                add(rest)
+        for pattern in (_LITERAL_DQ, _LITERAL_SQ):
+            for match in pattern.finditer(text):
+                if len(match.group(1)) > floor:
+                    add(match.group(1))
+        stripped = text.strip()
+        if stripped[:1] in ("{", "[", '"'):
+            try:
+                values = list(_values(json.loads(stripped)))
+            except (TypeError, ValueError, RecursionError):
+                values = []
+            for value in values:
+                add(value)
+    return tuple(found)
+
+
+def _stands_among(result: str, piece_sets: Iterable[frozenset]) -> bool:
+    """Is some candidate of `result` a piece of one of these calls?"""
+    sets = [s for s in piece_sets if s]
+    return bool(sets) and any(c in s for c in _echo_candidates(result) for s in sets)
+
+
+class _Call:
+    """One declared tool call, its arguments read into pieces once, when it is
+    declared. `named` is False where the log gave no name and the reader's
+    placeholder `tool` stands in for one."""
+
+    __slots__ = ("cid", "name", "named", "args", "pieces", "done")
+
+    def __init__(self, cid: str, name: str, named: bool, args: str):
+        self.cid, self.name, self.named, self.args = cid, name, named, args
+        self.pieces = _pieces(args)
+        self.done = False
+
+
+#: How each kind of warning is worded in the text a person reads.
+_WARNING_KINDS = {
+    "earlier_turn": "a line the model wrote in an earlier call",
+    "same_turn": "a line the model wrote in another call of this turn",
+    "unmatched": "a result the reading matched to no call",
+}
 
 
 def _hands_back_what_it_was_given(result: str, sent: str) -> bool:
     """Did this tool return text the model wrote into the call it answered?
 
-    `sent` is the arguments of that call. Where the log does not say which call
-    a result answers - no id, and more than one open call it could be - `sent`
-    is the arguments of every call it could be, and `to_trace` marks the
-    demotion as uncertain: such a result is never elected as the answer.
+    `sent` is the arguments of that call, and empty where the log does not say
+    which of several calls a result answers - no id, and more than one open call
+    it could be. `to_trace` then looks the result up among the pieces of every
+    call it could be (`_stands_among`) and marks such a demotion uncertain: it is
+    never elected as the answer. This is asked once per tool result either way,
+    which tests/test_openai_roundtrip_numbers.py counts on.
+
+    Two tests, and either one demotes: the result's last line stands in the
+    arguments (`_stands_in`), or a phrase from the arguments stands inside the
+    result as a whole unit and makes up most of it (`_contains_own_text`).
 
     Why only the answering call. Three widths were tried on the same inputs
     (tests/test_openai_chat_wide_context.py, tests/test_openai_chat_turn_width.py).
@@ -350,12 +509,13 @@ def _hands_back_what_it_was_given(result: str, sent: str) -> bool:
     split across lines) were defeated by a quoting check, not by the width, and
     all six are caught here.
 
-    An echo from an earlier call - a stateful interpreter, a notes store, a file
-    written then read back - is not demoted. `to_trace` looks the line up among
-    the whole lines, string literals and words of earlier turns' arguments (see
-    `_pieces`) and REPORTS a match in `_meta.echoes_from_earlier_turns`: the log
-    cannot tell a value handed back from a value confirmed, and the operator
-    can, with --tool-returns-model-text.
+    An echo from another call - a stateful interpreter, a notes store, a file
+    written then read back, in an earlier turn or in the same one - is not
+    demoted, and neither is a result matched to no call. `to_trace` looks the
+    result's candidates (`_echo_candidates`) up among the pieces of the other
+    calls (`_pieces`) and REPORTS a match, or the missing match, in
+    `_meta.echo_warning_details`: the log cannot tell a value handed back from a
+    value confirmed, and the operator can, with --tool-returns-model-text.
 
     Why this rule is allowed to be wrong. It can only move an artifact OUT of
     the root set - from evidence to model text. A mistake makes the audit
@@ -366,19 +526,23 @@ def _hands_back_what_it_was_given(result: str, sent: str) -> bool:
     licence until the argument is made again. Electing an uncertain demotion as
     the answer would be such an effect, which is why it is barred.
 
-    What it costs, counted on AgentHallu (bench/openai_roundtrip.py). With no
-    flags passed it reads 189 of 3535 tool results (5.3%) as the model's own
-    words, and reports another 54 as echoes from an earlier turn, kept as
-    evidence; with the corpus's four echo tools declared, 3 are reported. Against
-    the reader written for that corpus by hand, with those four declared, it is
-    stricter on 33 artifacts and laxer on none. Every decision is named in
-    `_meta` together with the line it fired on, so it can be checked rather than
-    trusted.
+    What it costs, counted afresh on AgentHallu for proverka6 (the corpus as
+    bench/openai_roundtrip.py renders it). It reads 216 of 3535 tool results
+    (6.1%) as the model's own words, the same with and without flags, and by
+    itself catches 136 of the 460 results of the corpus's four echo tools. It
+    reports 26 results as possible echoes kept as evidence with no flags (24 from
+    an earlier turn, 2 from the same turn), and 6 with the four echo tools
+    declared (4 and 2). Against the reader written for that corpus by hand, with
+    those four declared, it is stricter on 60 artifacts and laxer on none. Every
+    decision is named in `_meta` together with the line it fired on, so it can
+    be checked rather than trusted.
     """
-    last = _echo_line(result)
-    if not last or not sent:
+    if not sent:
         return False
-    return _stands_in(last, _spellings(sent))
+    last = _echo_line(result)
+    if last and _stands_in(last, _spellings(sent)):
+        return True
+    return _contains_own_text(result, sent)
 
 
 def _text(value: Any, _depth: int = 0) -> str:
@@ -439,7 +603,10 @@ def _expand(messages: List[Dict[str, Any]]) -> Tuple[List[Dict[str, Any]], List[
     reading is visible rather than magic."""
     out: List[Dict[str, Any]] = []
     notes: List[str] = []
-    for message in messages:
+    # Every message this returns carries `_file_index`, its position in the
+    # list the person has on disk, so a warning can point at THEIR file: once a
+    # message with two tool_result blocks is split, positions after it move.
+    for file_index, message in enumerate(messages):
         role = str(message.get("role", ""))
         content = message.get("content")
         blocks = content if isinstance(content, list) else []
@@ -450,7 +617,7 @@ def _expand(messages: List[Dict[str, Any]]) -> Tuple[List[Dict[str, Any]], List[
             # and any text in the same message was written after them.
             for b in blocks:
                 if isinstance(b, dict) and b.get("type") == "tool_result":
-                    out.append({"role": "tool",
+                    out.append({"_file_index": file_index, "role": "tool",
                                 "tool_call_id": str(b.get("tool_use_id")
                                                     or b.get("id") or ""),
                                 "name": str(b.get("name") or ""),
@@ -461,7 +628,7 @@ def _expand(messages: List[Dict[str, Any]]) -> Tuple[List[Dict[str, Any]], List[
             # kind of part it was: a remainder dropped here would vanish from
             # `skipped_empty` and `dropped_messages` both.
             if keep:
-                out.append({**message, "content": keep})
+                out.append({**message, "content": keep, "_file_index": file_index})
             notes.append(f"a tool_result block on a {role} message was read as a "
                          f"tool result, not as a root")
             continue
@@ -485,10 +652,11 @@ def _expand(messages: List[Dict[str, Any]]) -> Tuple[List[Dict[str, Any]], List[
             keep = [b for b in blocks
                     if not (isinstance(b, dict) and b.get("type") == "tool_use")]
             content = keep if blocks else message.get("content")
-            out.append({**message, "content": content, "tool_calls": calls})
+            out.append({**message, "content": content, "tool_calls": calls,
+                        "_file_index": file_index})
             continue
 
-        out.append(message)
+        out.append({**message, "_file_index": file_index})
     return out, sorted(set(notes))
 
 
@@ -569,8 +737,17 @@ def to_trace(data: Any, *, name: str = "",
     # very logs that need it most.
     # Not cleared by flush_tools: a root message between two tool results
     # (a `user` "hurry up" arriving mid-batch) must not realign the queue.
-    open_calls: List[Tuple[str, str, str]] = []
-    call_args: Dict[str, str] = {}       # call id -> the arguments sent
+    # The calls of the turn in flight, in declaration order. A call is marked
+    # answered, not removed, and indexed by id and by name, so placing a result
+    # costs the same in a turn of 800 calls as in a turn of 2.
+    open_calls: List[_Call] = []
+    head = 0                                  # the first call not yet answered
+    by_id: Dict[str, _Call] = {}
+    by_name: Dict[str, List[_Call]] = {}
+    name_cursor: Dict[str, int] = {}
+    open_count: Dict[str, int] = {}           # unanswered calls, per tool name
+    open_with_id = 0                          # unanswered calls that carry an id
+    calls_by_id: Dict[str, _Call] = {}        # every call seen, by id, any turn
     doubt: Set[str] = set()
     reused_ids: Set[str] = set()
     batch_ids: Set[str] = set()
@@ -584,12 +761,14 @@ def to_trace(data: Any, *, name: str = "",
     # The same warnings as data. `check-trace` confirms them by tool name, and a
     # name parsed back out of the text above could be forged by a tool's name.
     earlier_echo_details: List[Dict[str, str]] = []
-    # The calls of the turn now open, as (name, arguments), so a result the log
-    # can only place among several of them is weighed against all of them.
-    batch_calls: List[Tuple[str, str]] = []
-    # The lines, literals and words of every call from turns already closed.
-    # Each call is read once, when its turn closes, and each result is a set
-    # lookup - so reading a long run stays linear, not quadratic.
+    # Every call of the turn now open, answered or not: how many per name, and
+    # the pieces of their arguments, all together and per name.
+    batch_count: Dict[str, int] = {}
+    batch_pieces: Set[str] = set()
+    batch_pieces_by_name: Dict[str, Set[str]] = {}
+    # The pieces of every call from turns already closed. Each call is read
+    # once, when it is declared, and each result is a set lookup - so reading a
+    # long run stays linear, not quadratic.
     earlier_pieces: Set[str] = set()
     # Artifacts demoted against more than one call the log could not tell apart.
     # They are the model's text, but not known to be the one the user saw.
@@ -662,26 +841,37 @@ def to_trace(data: Any, *, name: str = "",
                 # certain and an echo goes back to being a root. That was two
                 # separate regressions in two rounds.
                 open_calls = []
+                head = 0
+                by_id, by_name, name_cursor = {}, {}, {}
+                open_count, batch_count = {}, {}
+                open_with_id = 0
                 doubt = set()
                 batch_ids = set()
                 # The turn before this one is closed: its arguments become what
                 # a later result is checked against for an echo from earlier.
-                for _named, prior in batch_calls:
-                    earlier_pieces |= _pieces(prior)
-                batch_calls = []
+                earlier_pieces |= batch_pieces
+                batch_pieces = set()
+                batch_pieces_by_name = {}
             for call in calls:
                 if not isinstance(call, dict):
                     continue
                 fn = call.get("function") if isinstance(call.get("function"), dict) else {}
                 cid = str(call.get("id") or call.get("tool_call_id") or "")
-                named = str(fn.get("name") or call.get("name") or "tool")
+                given = str(fn.get("name") or call.get("name") or "")
+                named = given or "tool"
                 args_sent = _args_text(fn.get("arguments")
                                       if "arguments" in fn else call.get("arguments"))
-                open_calls.append((cid, named, args_sent))
-                batch_calls.append((named, args_sent))
+                entry = _Call(cid, named, bool(given), args_sent)
+                open_calls.append(entry)
+                by_name.setdefault(named, []).append(entry)
+                open_count[named] = open_count.get(named, 0) + 1
+                batch_count[named] = batch_count.get(named, 0) + 1
+                batch_pieces |= entry.pieces
+                batch_pieces_by_name.setdefault(named, set()).update(entry.pieces)
                 if cid:
-                    call_args[cid] = args_sent
-                if cid:
+                    open_with_id += 1
+                    by_id.setdefault(cid, entry)
+                    calls_by_id[cid] = entry
                     if tool_names.get(cid, named) != named or cid in batch_ids:
                         reused_ids.add(cid)
                     batch_ids.add(cid)
@@ -705,11 +895,20 @@ def to_trace(data: Any, *, name: str = "",
             # costs a false alarm when the guess would have been right; the
             # other way costs laundering, which is the failure this project
             # exists to catch. Ambiguity is not evidence.
-            open_names = {n for _cid, n, _a in open_calls}
+            open_names = {n for n, count in open_count.items() if count}
             sent = ""                      # arguments of the call this answered
-            # False where `sent` is the arguments of several calls, because the
-            # log does not say which one of them this result answers.
+            # False where the log does not say which of several calls this
+            # result answers. `could_be` then names the tools it might answer,
+            # and their pieces are looked up rather than their text scanned:
+            # scanning every candidate's arguments for every result is what
+            # made a wide turn without ids quadratic.
             confident = True
+            could_be: Set[str] = set()
+            own: Optional[_Call] = None     # the call this answered, where known
+            unplaced = False                # a result matched to no call at all
+            # False where the name is the reader's placeholder or a guess between
+            # several tools: a confirmation by name must not reach that warning.
+            name_known = bool(named_itself)
             tool, expected, matched = named_itself, "", False
 
             if cid and cid in tool_names and cid not in reused_ids:
@@ -720,41 +919,61 @@ def to_trace(data: Any, *, name: str = "",
                 # it is answered; if it is not, this result belongs to an
                 # earlier turn and must take no slot from this one.
                 tool = tool or tool_names[cid]
-                sent = call_args.get(cid, "")
-                for i, (call_id, called, _a) in enumerate(open_calls):
-                    if call_id and call_id == cid:
-                        expected, matched = called, True
-                        # The result's own name wins over the call's: a gateway
-                        # that renames a tool between call and result is saying
-                        # what answered, and that is the more direct evidence.
-                        tool = named_itself or called
-                        open_calls.pop(i)
-                        break
+                own = calls_by_id.get(cid)
+                sent = own.args if own is not None else ""
+                name_known = name_known or (own is not None and own.named)
+                entry = by_id.get(cid)
+                if entry is not None and not entry.done:
+                    expected, matched = entry.name, True
+                    # The result's own name wins over the call's: a gateway
+                    # that renames a tool between call and result is saying
+                    # what answered, and that is the more direct evidence.
+                    tool = named_itself or entry.name
+                    entry.done = True
+                    open_count[entry.name] -= 1
+                    open_with_id -= 1
                 if not matched:
                     unmatched.append(f"tool[{k}] (id {cid})")
-            elif cid and any(call_id for call_id, _, _a in open_calls):
+            elif cid and open_with_id:
                 # The open calls are keyed by id and this one matches none of
                 # them: it answers a call this turn did not declare, so it
                 # takes no slot and must not shift the results that follow.
                 # Where the open calls carry no ids at all the id says nothing
                 # about them, and the fall-through below applies instead.
                 unmatched.append(f"tool[{k}] (id {cid})")
+                unplaced = True
             elif named_itself:
                 # A name does not tell two open calls of the same tool apart,
                 # and their results may come back in either order: the result
                 # is weighed against every open call bearing its name.
-                same_name = [a for _c, n, a in open_calls if n == named_itself]
-                for i, (_call_id, called, _a) in enumerate(open_calls):
-                    if called == named_itself:
-                        expected, matched = called, True
-                        sent, confident = "\n".join(same_name), len(same_name) == 1
-                        open_calls.pop(i)
-                        break
+                queue = by_name.get(named_itself) or []
+                i = name_cursor.get(named_itself, 0)
+                while i < len(queue) and queue[i].done:
+                    i += 1
+                name_cursor[named_itself] = i
+                if i < len(queue):
+                    entry = queue[i]
+                    expected, matched = entry.name, True
+                    if open_count[named_itself] == 1:
+                        own, sent = entry, entry.args
+                    else:
+                        confident, could_be = False, {named_itself}
+                    entry.done = True
+                    open_count[named_itself] -= 1
+                    if entry.cid:
+                        open_with_id -= 1
                 if not matched:
                     unmatched.append(f"tool[{k}] ({named_itself})")
-            elif open_calls:
-                _cid_popped, expected, _a = open_calls.pop(0)
-                tool = expected
+                    unplaced = True
+            elif open_names:
+                while open_calls[head].done:
+                    head += 1
+                entry = open_calls[head]
+                expected = tool = entry.name
+                entry.done = True
+                open_count[entry.name] -= 1
+                if entry.cid:
+                    open_with_id -= 1
                 # Doubt is contagious within a batch. Once one result has been
                 # placed by position alone, the calls left in the queue are not
                 # known to be the ones still unanswered - so a later result
@@ -766,14 +985,18 @@ def to_trace(data: Any, *, name: str = "",
                 matched = len(candidates) == 1
                 # Placed by position, the result may answer any call of this
                 # turn still in question - so it is weighed against all of them.
-                could_be = [a for n, a in batch_calls if n in candidates]
-                sent, confident = "\n".join(could_be), len(could_be) == 1
+                if sum(batch_count.get(n, 0) for n in candidates) == 1:
+                    own, sent = entry, entry.args
+                else:
+                    confident, could_be = False, set(candidates)
+                name_known = matched and entry.named
                 if not matched:
                     doubt |= candidates
                 guessed.append(f"tool[{k}] -> {tool}"
                                + ("" if matched else " (by position only)"))
             else:
                 guessed.append(f"tool[{k}] -> unknown")
+                unplaced = True
 
             tool = tool or "tool"
             # Uncertain, and one of the calls it might have answered echoes the
@@ -794,13 +1017,28 @@ def to_trace(data: Any, *, name: str = "",
             # truncating to a prompt-size knob would hide it behind a
             # mid-document line - a root recorded because a limit was low.
             handed_back = _hands_back_what_it_was_given(content, sent)
+            if not handed_back and could_be:
+                # Placement uncertain: weighed against every call it might
+                # answer, by lookup. Such a demotion is never elected the answer.
+                handed_back = _stands_among(
+                    content, [batch_pieces_by_name.get(n, frozenset()) for n in could_be])
             # Also asked before the cut, for the same reason. Only for a result
-            # that stays evidence: this is a report, never a demotion.
-            earlier_line = ""
-            if not handed_back and tool not in echo and not ambiguous and earlier_pieces:
-                line = _echo_line(content)
-                if line and line in earlier_pieces:
-                    earlier_line = line
+            # that stays evidence: a warning is a report, never a demotion.
+            warning: Optional[Tuple[str, str]] = None      # (kind, the line)
+            if not handed_back and tool not in echo and not ambiguous:
+                if unplaced:
+                    warning = ("unmatched", _matched_line(content))
+                else:
+                    mine = own.pieces if own is not None else frozenset()
+                    for piece in _echo_candidates(content):
+                        if piece in mine:
+                            continue        # its own call; the rule above decided
+                        if not could_be and piece in batch_pieces:
+                            warning = ("same_turn", piece)
+                            break
+                        if piece in earlier_pieces:
+                            warning = ("earlier_turn", piece)
+                            break
             if len(content) > max_tool_chars:
                 content = content[:max_tool_chars]
                 cut = True
@@ -822,10 +1060,26 @@ def to_trace(data: Any, *, name: str = "",
                 kind = "document"           # external text stored as fetched
             else:
                 kind = "tool_result"
-            if earlier_line:
-                earlier_echoes.append(f"tool[{k}] ({tool}): {_short(earlier_line)}")
-                earlier_echo_details.append(
-                    {"result": f"tool[{k}]", "tool": tool, "line": _short(earlier_line)})
+            if warning is not None:
+                kind_of, line = warning
+                # Addressed to the person's file: the message's position there,
+                # counted from 0, and the call id, which a search finds and a
+                # reformatting does not move. `result` stays the reading's own
+                # label, the one the artifact id carries.
+                file_index = message.get("_file_index", k)
+                call_id = cid or (own.cid if own is not None else "")
+                if name_known:
+                    who = tool
+                elif could_be and not matched:
+                    who = " or ".join(sorted(could_be)) + "?"
+                else:
+                    who = f"{tool}: the log gives no name"
+                where = f"tool[{file_index}] ({who})" + (f" call {call_id}" if call_id else "")
+                earlier_echoes.append(f"{where}, {_WARNING_KINDS[kind_of]}: {_short(line)}")
+                earlier_echo_details.append({
+                    "result": f"tool[{k}]", "tool": tool if name_known else "",
+                    "line": _short(line), "message": file_index, "call_id": call_id,
+                    "kind": kind_of})
             artifacts.append({"artifact_id": aid, "kind": kind,
                               "title": tool, "content": content})
             if cut:

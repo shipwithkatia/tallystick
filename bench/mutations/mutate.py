@@ -40,31 +40,35 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[2]
 OC = "tallystick/adapters/openai_chat.py"
 CLI = "tallystick/cli.py"
+GATE = "tallystick/echo_gate.py"
+_SPLIT = '(accepted if w["tool"] and w["tool"] in confirmed else unreviewed).append(w)'
 
 #: name -> [(file, exact snippet, replacement)]. Each snippet must occur once.
+#: Snippets follow the code as of proverka6; on an older ref they report STALE.
 MUTATIONS = {
     "M0_none": [],
     # The reader never reports an echo from an earlier turn.
-    "M1_no_earlier_echo_report": [(OC, "if line and line in earlier_pieces:", "if False:")],
+    "M1_no_earlier_echo_report": [(OC, "if piece in earlier_pieces:", "if False:")],
     # The gate never blocks: every warning counts as reviewed.
-    "M2_gate_never_blocks": [(CLI, "unreviewed = [w for w in warnings if w not in accepted]",
-                              "unreviewed = []")],
+    "M2_gate_never_blocks": [(GATE, _SPLIT, "accepted.append(w)")],
     # The answering-call rule never demotes.
-    "M3_rule_never_demotes": [(OC, "return _stands_in(last, _spellings(sent))", "return False")],
+    "M3_rule_never_demotes": [
+        (OC, "    if last and _stands_in(last, _spellings(sent)):\n        return True\n"
+             "    return _contains_own_text(result, sent)",
+         "    return False")],
     # The answering-call rule demotes every tool result.
     "M4_rule_demotes_every_result": [
-        (OC, "    last = _echo_line(result)\n    if not last or not sent:\n        return False\n",
+        (OC, "    if not sent:\n        return False\n    last = _echo_line(result)\n",
          "    return True\n")],
     # M1, and every tool result is written into guessed_tool_names: a test that
     # only asks "is this result named anywhere in _meta" passes again.
     "M5_no_report_but_every_result_in_guessed": [
-        (OC, "if line and line in earlier_pieces:", "if False:"),
+        (OC, "if piece in earlier_pieces:", "if False:"),
         (OC, "            aid = f\"t{k}\"\n",
          "            aid = f\"t{k}\"\n            guessed.append(f\"tool[{k}] -> x\")\n")],
     # Naming any tool confirms every warning.
     "M6_any_confirmation_accepts_all": [
-        (CLI, "accepted = [w for w in warnings if w[\"tool\"] and w[\"tool\"] in confirmed]",
-         "accepted = list(warnings) if confirmed else []")],
+        (GATE, _SPLIT, "(accepted if confirmed else unreviewed).append(w)")],
     # propose writes the posted trace without the reading's _meta.
     "M7_propose_drops_meta": [(CLI, "        posted[\"_meta\"] = meta\n", "        pass\n")],
     # audit ignores whether the books balance.
