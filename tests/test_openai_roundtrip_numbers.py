@@ -93,31 +93,33 @@ def test_committed_results_file_is_what_the_bench_prints(files, tmp_path, capsys
     assert out.read_text(encoding="utf-8") == committed
 
 
-def test_commit_message_headline_666_of_693_identical(trajectories):
+def test_commit_message_headline_641_of_693_identical(trajectories):
     same = sum(
         rt.shape(agenthallu.to_trace(obj, name=p.name))
         == rt.shape(oc.to_trace(rt.render(obj), name=p.name,
                                 model_text_tools=agenthallu.ECHO_TOOLS))
         for p, obj in trajectories)
-    assert (same, len(trajectories)) == (666, 693)
+    # proverka6: 666 -> 641. The rule now also finds the answering call's text
+    # inside the result as a whole unit, not only as its last line.
+    assert (same, len(trajectories)) == (641, 693)
 
 
-def test_commit_message_ids_stripped_agreement_is_96_percent(files, trajectories):
+def test_commit_message_ids_stripped_agreement_is_92_percent(files, trajectories):
     same, _flips = rt._without_ids(files)
-    assert f"{same / len(trajectories):.0%}" == "96%", f"{same}/{len(trajectories)}"
+    assert f"{same / len(trajectories):.0%}" == "92%", f"{same}/{len(trajectories)}"
 
 
-def test_commit_message_no_flags_agreement_is_71_percent(files, trajectories):
+def test_commit_message_no_flags_agreement_is_68_percent(files, trajectories):
     same = rt._bare(files)
-    assert f"{same / len(trajectories):.0%}" == "71%", f"{same}/{len(trajectories)}"
+    assert f"{same / len(trajectories):.0%}" == "68%", f"{same}/{len(trajectories)}"
 
 
-def test_commit_message_rule_fires_189_times(rule_calls):
+def test_commit_message_rule_fires_216_times(rule_calls):
     fires = _fires(rule_calls)
     declared = sum(t in agenthallu.ECHO_TOOLS for t, _r, _a in fires)
     counts = {"all": len(fires), "on declared echo tools": declared,
               "on other tools": len(fires) - declared}
-    assert 189 in counts.values(), counts
+    assert 216 in counts.values(), counts
 
 
 def test_commit_message_rule_alone_catches_136_of_460_echo_tool_results(rule_calls):
@@ -125,7 +127,7 @@ def test_commit_message_rule_alone_catches_136_of_460_echo_tool_results(rule_cal
     assert (sum(echo), len(echo)) == (136, 460)
 
 
-def test_docstring_0_echoes_need_the_ensure_ascii_spelling(rule_calls):
+def test_docstring_27_fires_are_not_found_on_the_last_line(rule_calls):
     # openai_chat._hands_back_what_it_was_given: "26 of 154 echoes in AgentHallu
     # for the first, 21 for the second" - the second being `\uXXXX` escaping.
     def plain(text):
@@ -134,7 +136,11 @@ def test_docstring_0_echoes_need_the_ensure_ascii_spelling(rule_calls):
 
     needs_ascii = sum(not any(sp in a for sp in plain(oc._matched_line(r)))
                       for _t, r, a in _fires(rule_calls))
-    assert needs_ascii == 0   # spellings были заменены чтением экранирования
+    # Was 0 while the rule looked only at the last line. proverka6: 27 - the
+    # fires where the call's text stands inside the result as a whole unit (a
+    # JSON value, a line before a status line, text after a label), so the
+    # result's last line is not in the arguments by construction.
+    assert needs_ascii == 27
 
 
 def test_docstring_35_short_answers_handed_back(rule_calls):
