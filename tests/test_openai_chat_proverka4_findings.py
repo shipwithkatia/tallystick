@@ -2,7 +2,7 @@
 
 The review found the model's own text reaching the audit as silent evidence -
 neither demoted nor reported - on ordinary logs, and a confirmation by name
-landing on the wrong tool. Every test in groups N to T fails on the proverka4
+landing on the wrong tool. Every test in groups N to P fails on the proverka4
 code (48c8b8a) and passes under any fix that closes the hole, however it is
 made. Group K runs the same harness on inputs proverka4 already handles, so a
 red N-T test is known to be red for its finding and not for its scaffolding.
@@ -15,7 +15,9 @@ Groups:
   F  confirming the tool a positional guess named accepts another tool's echo (1)
   E  a missing tool name is recorded as "tool", and "tool" confirms it (2)
   T  reading one wide turn without ids grows with the square of the turn (2)
-  K  controls, passing on proverka4 (5)
+  P  `from tallystick import audit`, the path the README recommends for tests,
+     says the books balance on a posted trace `tallystick audit` exits 1 on (2)
+  K  controls, passing on proverka4 (7)
 
 "Not silent" is one of two outcomes, as in test_openai_chat_turn_width.py
 group B, but checked more tightly: the result is not a root, OR
@@ -24,9 +26,13 @@ in some other `_meta` list does not count: the proverka4 mutation run
 (bench/mutations/mutate.py, M5) showed group B passing once every result was
 merely listed in guessed_tool_names with no warning at all.
 
-For R and M the agreed scheme says demote, because the text stands in the
-answering call's own arguments. A structured warning is accepted too - it also
-keeps the gate from passing - so these tests fix the outcome, not the mechanism.
+Group R accepts ONLY demotion. The text stands in the answering call's own
+arguments, so the answer can be decided from the call itself. Letting a warning
+close these cases would move decidable cases into the gate: it would fire often,
+and confirmations would end up attached to everything.
+
+Group M accepts a warning. Without a usable id the reader does not know which
+call a result answers, and a warning is the more honest reading there.
 """
 
 from __future__ import annotations
@@ -41,6 +47,7 @@ from pathlib import Path
 
 import pytest
 
+from tallystick import audit
 from tallystick.adapters import openai_chat as oc
 from tallystick.cli import main
 
@@ -90,15 +97,18 @@ def _result(trace, content):
     return hits[0]
 
 
-def _assert_not_silent(messages, content):
+def _assert_not_silent(messages, content, *, a_warning_counts=True):
+    """The result is not a root - or, where `a_warning_counts`, it has its own
+    record in echo_warning_details. Group R passes False: only demotion."""
     trace = oc.to_trace(messages)
     art = _result(trace, content)
     label = f"tool[{art['artifact_id'][1:]}]"
     warned = [d for d in trace["_meta"].get("echo_warning_details") or []
               if isinstance(d, dict) and d.get("result") == label]
-    assert art["kind"] not in ROOTS or warned, (
-        f"{label} hands back text the model wrote, is read as {art['kind']!r}, and "
-        f"echo_warning_details has no record for it: silent evidence")
+    assert art["kind"] not in ROOTS or (a_warning_counts and warned), (
+        f"{label} hands back text the model wrote and is read as {art['kind']!r}"
+        + (" with no record in echo_warning_details: silent evidence" if a_warning_counts
+           else f" (warning record present: {bool(warned)}); here only demotion counts"))
 
 
 def _check_trace(tmp_path, messages, *flags):
@@ -170,7 +180,8 @@ def test_a_note_saved_and_read_in_one_message_is_not_silent_evidence(messages):
                  id="R6-json-indented"),
 ])
 def test_the_answering_calls_own_text_is_not_silent_evidence(name, args, result):
-    _assert_not_silent([QUESTION, *_turn(name, args, "c1", result), ANSWER], result)
+    _assert_not_silent([QUESTION, *_turn(name, args, "c1", result), ANSWER], result,
+                       a_warning_counts=False)
 
 
 # --- M: matching without a usable id ----------------------------------------
@@ -277,6 +288,42 @@ def test_a_wide_turn_without_ids_reads_in_linear_time(mode):
     _read_wide_turn(mode)
 
 
+# --- P: the Python API the README recommends for tests ----------------------
+
+def _posted_notes_trace(tmp_path):
+    """The note log posted through the CLI, the way a person runs it: `propose`
+    copies the reading's `_meta`, echo warning included, into the file."""
+    log = tmp_path / "notes.json"
+    log.write_text(json.dumps(_notes(ECHO)), encoding="utf-8")
+    answers = tmp_path / "answers.json"
+    answers.write_text(json.dumps([{"claims": [ECHO]},
+                                   {"credits": [{"artifact_id": "t4", "quote": ECHO}]}]),
+                       encoding="utf-8")
+    posted = tmp_path / "posted.json"
+    with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+        code = main(["propose", str(log), "-o", str(posted), "--proposer", "fake",
+                     "--script", str(answers), "--no-audit"])
+    assert code == 0, "propose could not post the fixture"
+    data = json.loads(posted.read_text(encoding="utf-8"))
+    assert data["_meta"]["echo_warning_details"], "the fixture must carry an echo warning"
+    return posted, data
+
+
+@pytest.mark.parametrize("given", ["path", "dict"])
+def test_readme_python_audit_does_not_pass_an_unreviewed_echo(tmp_path, given):
+    # README: `balance = audit("run.json"); assert balance.books_balance  # drop
+    # straight into a test suite`. On this file `tallystick audit` exits 1 with
+    # unreviewed_echo_warnings (control below); the Python path says balanced.
+    # The README line itself is the contract: it must not pass. A fix that
+    # raises instead also fails this test, on purpose - that decision belongs to
+    # whoever changes the API, and should change this test with it.
+    posted, data = _posted_notes_trace(tmp_path)
+    balance = audit(str(posted) if given == "path" else data)
+    assert not balance.books_balance, (
+        "audit() reports the books balanced on a posted trace whose echo warning "
+        "nobody reviewed; `tallystick audit` exits 1 on the same file")
+
+
 # --- K: controls, passing on proverka4 --------------------------------------
 
 def test_control_a_plain_note_read_back_is_warned():
@@ -285,7 +332,7 @@ def test_control_a_plain_note_read_back_is_warned():
 
 def test_control_the_answering_calls_verbatim_text_is_demoted():
     _assert_not_silent([QUESTION, *_turn("python", {"code": f'print("{ECHO}")'}, "c1", ECHO), ANSWER],
-                       ECHO)
+                       ECHO, a_warning_counts=False)
 
 
 def test_control_with_ids_confirming_another_tool_confirms_nothing(tmp_path):
@@ -303,3 +350,13 @@ def test_control_a_named_tool_is_not_confirmed_by_the_placeholder(tmp_path):
 
 def test_control_a_wide_turn_with_ids_reads_within_budget():
     _read_wide_turn("ids")
+
+
+def test_control_the_cli_audit_exits_1_on_the_posted_notes_trace(tmp_path):
+    posted, _data = _posted_notes_trace(tmp_path)
+    with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+        assert main(["audit", str(posted)]) == 1
+
+
+def test_control_python_audit_passes_a_balanced_trace_without_warnings():
+    assert audit(str(ROOT / "examples" / "balanced_run.json")).books_balance
