@@ -67,16 +67,31 @@ reply" - with three characters, a newline dropped into the middle of an echo
 and a one-character line after it, and took it from 216 fires on AgentHallu to
 0. Every override is named in `_meta.echoed_back_tool_results`.
 
-**Anything short of that is a warning, not a demotion.** A value of the call
-standing somewhere inside a longer reply, or enough of the reply covered by the
-call's own text (`WARN_SHARE`), is recorded in `_meta.echo_warning_details` with
-kind `answering_call`. It is not demoted, because a tool reporting a real fact
-about the argument it was handed looks the same - `rm: cannot remove 'X': No
-such file or directory`, a search result quoting its query in a header, an
-order confirmation repeating the price it was given. Measured on AgentHallu:
-letting every such match demote costs 448 demotions beyond the whole reply,
-most of them real tool output. So the reading says what it found and stops: the
-run does not pass until a person confirms the tool by name.
+**Anything short of that is a warning, not a demotion.** One question, one
+number, and the same pair on every path: is at least `WARN_SHARE` of the reply,
+counted in letters and digits, covered by the text of a call - the one it
+answered, or any call of an earlier turn, or another call of this turn. Both
+sides are read as words, so a newline dropped into the middle of an echo
+changes nothing. Recorded in `_meta.echo_warning_details` with the kind that
+says which call it was weighed against.
+
+The threshold was chosen by drawing 20 random warnings from AgentHallu at each
+candidate and reading them, against a test named before the measurement: more
+than half must be real echoes, at no more than 20% of the corpus. At 30%, nine
+of twenty were real and it cost 27.3% of trajectories; at 50%, twelve of twenty
+were real and it costs 15.3%. A second trigger that shipped in the seventh
+round - "a value of the call stands anywhere inside a longer reply" - was
+dropped by the same measurement: ten random warnings of that kind held no echo
+at all (a search repeating its query, an invoice looked up by the id it was
+given, a browser naming the URL it opened), and it cost 300 of 693 trajectories
+on its own.
+
+One question coverage cannot ask is whether a short reply is a value an earlier
+call carried: `answer = "B"` stored in one turn and printed in the next is four
+characters, below any run worth counting. So a reply that IS, whole, one of the
+plain values of an earlier call - its JSON values, its quoted literals, its
+lines, but not its bare word atoms - is reported too. That has no threshold in
+it either.
 
 **A tool that hands back text from ANOTHER call is reported, not demoted.**
 An interpreter that kept a variable, a notes store, a file written in one turn
@@ -238,6 +253,11 @@ def _spellings(text: str) -> Tuple[str, str, str]:
     """`text` as written, unescaped once, and unescaped twice. Twice, because
     two layers happen: the model's own code escapes its quotes and the JSON
     layer escapes them again. A third layer has no example behind it."""
+    # Decoding is a pass over every character, and most text carries no escape
+    # at all: a word of someone's code, a line of prose. Without this guard the
+    # three spellings of every word of a 21 KB argument are decoded twice.
+    if "\\" not in text:
+        return text, text, text
     once = _unescape(text)
     return text, once, _unescape(once)
 
@@ -418,14 +438,19 @@ _WARNING_KINDS = {
 }
 
 
-#: How much of a reply must stand in the answering call's own text before the
-#: reading says so out loud. The ONE number in this file's answering-call path,
-#: and it moves only WARNINGS - a demotion never consults it, so no setting of
-#: it can turn the model's own words into evidence. Chosen on AgentHallu as the
-#: lowest of the three measured (30/20/10%): at every one of them the scheme
-#: loses nothing the old rule caught, so the lowest was taken, which is the one
-#: an attacker must dilute hardest to get under.
-WARN_SHARE = 0.10
+#: How much of a reply must stand in the text of a call before the reading says
+#: so out loud. The ONE number in this file's echo path, on BOTH paths, and it
+#: moves only WARNINGS - a demotion never consults it, so no setting of it can
+#: turn the model's own words into evidence.
+#:
+#: Chosen by drawing 20 random warnings from AgentHallu at each candidate and
+#: classifying them by hand against a test named before the measurement ("more
+#: than half of the warnings are real echoes, at no more than 20% of the
+#: corpus"): at 30% nine of twenty were real echoes and it cost 27.3% of
+#: trajectories; at 50% twelve of twenty were real and it costs 15.3%. Changing
+#: this without repeating that sampling is guessing, and the seventh round is
+#: what guessing costs.
+WARN_SHARE = 0.50
 
 
 def _forms(text: str) -> List[str]:
@@ -584,12 +609,9 @@ def _is_a_value_of(result: str, sent: str, whole_only: bool) -> str:
     return ""
 
 
-@functools.lru_cache(maxsize=512)
-def _arg_words(args: str) -> Tuple[Tuple[str, ...], Dict[str, Tuple[int, ...]]]:
-    """The call's arguments as a word sequence with an index of where each word
-    stands, in each spelling that matters: as written, its quoted literals, and
-    its JSON values. The spellings are separated by a word no reply can hold,
-    so a run can never be matched across the join."""
+def _call_texts(args: str) -> List[str]:
+    """One call's arguments in each spelling a reply could match: as written,
+    its quoted literals, and its JSON values."""
     texts = [args]
     literals = [m.group(1) for pattern in (_LITERAL_DQ, _LITERAL_SQ)
                 for m in pattern.finditer(args) if m.group(1).strip()]
@@ -603,36 +625,112 @@ def _arg_words(args: str) -> Tuple[Tuple[str, ...], Dict[str, Tuple[int, ...]]]:
         values = list(_values(parsed))
         if values:
             texts.append("\n".join(values))
-    words: List[str] = []
-    for text in texts:
-        words.extend(text.split())
-        words.append("\x00")
-    where: Dict[str, List[int]] = {}
-    for i, word in enumerate(words):
-        where.setdefault(word, []).append(i)
-    return tuple(words), {k: tuple(v) for k, v in where.items()}
+    return texts
 
 
-def _echo_share(result: str, sent: str) -> Tuple[float, str]:
-    """How much of the reply, in letters and digits, is text the call carried.
+#: A word that stands in this many places is a word of the language, not a
+#: piece of anyone's text. Runs are not started from it, which can only make
+#: the reading say LESS - and without it one turn of a long CodeAct run costs
+#: the square of its own length.
+MAX_STARTS = 64
+
+#: Written between two texts in an index so that no run is matched across the
+#: join. It cannot occur in a reply: `split()` never produces it.
+_JOIN = "\x00"
+
+
+class _Words:
+    """A growing word sequence with an index of where each word stands, so a
+    reply can be weighed against every call of a run without scanning them."""
+
+    __slots__ = ("words", "where")
+
+    def __init__(self) -> None:
+        self.words: List[str] = []
+        self.where: Dict[str, List[int]] = {}
+
+    def __bool__(self) -> bool:
+        return bool(self.words)
+
+    def add(self, text: str) -> None:
+        base = len(self.words)
+        parts = text.split()
+        for i, word in enumerate(parts):
+            self.where.setdefault(word, []).append(base + i)
+        self.words.extend(parts)
+        self.words.append(_JOIN)
+
+    def add_call(self, args: str) -> None:
+        for text in _call_texts(args):
+            self.add(text)
+
+    def absorb(self, other: "_Words") -> None:
+        base = len(self.words)
+        for word, places in other.where.items():
+            self.where.setdefault(word, []).extend(p + base for p in places)
+        self.words.extend(other.words)
+
+
+@functools.lru_cache(maxsize=512)
+def _call_values(args: str) -> frozenset:
+    """The values one call carried, WITHOUT its bare word atoms.
+
+    The demotion reaches for atoms, because `final_answer(12)` hands the answer
+    in unquoted and the log ties that call to that result. Across calls nothing
+    ties them, and an atom match there is the noise the eighth round's sample
+    condemned: a reply containing the word `False`, a query term, a file name.
+    So this asks only about values the call plainly carried - its JSON values,
+    its quoted literals, its lines."""
+    if not args:
+        return frozenset()
+    found: Set[str] = set()
+    try:
+        parsed = json.loads(args)
+    except (TypeError, ValueError, RecursionError):
+        parsed = None
+    texts = list(_values(parsed)) if parsed is not None else [args]
+    for value in texts:
+        found.update(_forms(value))
+    for text in texts + [_unescape(t) for t in texts if "\\" in t]:
+        for pattern in (_LITERAL_DQ, _LITERAL_SQ):
+            for match in pattern.finditer(text):
+                found.update(_forms(match.group(1)))
+        for line in text.splitlines():
+            found.update(_forms(line.strip()))
+    return frozenset(found)
+
+
+@functools.lru_cache(maxsize=512)
+def _arg_words(args: str) -> _Words:
+    """One call's arguments, indexed. Cached: the demotion and the warning ask
+    about the same call, and a wide turn asks about every one of them."""
+    index = _Words()
+    for text in _call_texts(args):
+        index.add(text)
+    return index
+
+
+def _share_in(result: str, index: _Words) -> Tuple[float, str]:
+    """How much of the reply, in letters and digits, stands in this text - and
+    the longest run that did, so a warning can quote it.
 
     Both sides are read as words, so every run of whitespace is one space and a
-    newline dropped into the middle of an echo changes nothing - which is how
-    three characters used to empty this rule. The reply is tiled left to right
-    by maximal runs that stand in the arguments; a run shorter than
-    ECHO_MIN_CHARS is not counted, because two texts in the same language share
-    short strings. Greedy, so it can only UNDER-count."""
+    newline dropped into the middle of an echo changes nothing: that is how
+    three characters used to empty this rule, on both paths. The reply is tiled
+    left to right by maximal runs; a run shorter than ECHO_MIN_CHARS is not
+    counted, because two texts in the same language share short strings.
+    Greedy, so it can only UNDER-count."""
     total = _alnum(result)
-    if not total or not sent:
+    if not total or not index:
         return 0.0, ""
-    words, where = _arg_words(sent)
+    words, where = index.words, index.where
     reply = result.split()
     covered = 0
     best_run, best = 0, ""
     i = 0
     while i < len(reply):
         live = where.get(reply[i])
-        if not live:
+        if not live or len(live) > MAX_STARTS:
             i += 1
             continue
         run = 1
@@ -650,6 +748,14 @@ def _echo_share(result: str, sent: str) -> Tuple[float, str]:
                 best_run, best = matched, " ".join(reply[i:i + run])
         i += run
     return covered / total, best
+
+
+def _echo_share(result: str, sent: str) -> Tuple[float, str]:
+    """The share of the reply that stands in the arguments of the call it
+    answered."""
+    if not sent:
+        return 0.0, ""
+    return _share_in(result, _arg_words(sent))
 
 
 def _hands_back_what_it_was_given(result: str, sent: str) -> bool:
@@ -697,22 +803,22 @@ def _hands_back_what_it_was_given(result: str, sent: str) -> bool:
 
 
 def _partly_hands_back(result: str, sent: str) -> str:
-    """Is there ANY match with the answering call short of the whole reply?
+    """Is enough of the reply covered by the text of the call it answered?
 
-    Either a value the call carried stands somewhere inside the reply - as a
-    line, a JSON value, the text after a label, a quoted literal - or enough of
-    the reply is covered by the call's own text (`WARN_SHARE`).
+    One question, one number, and the same pair used on the cross-turn path.
+    Returns the longest run it matched, or "" - the warning quotes it, so the
+    person reading the report sees what the reading saw.
 
-    This is a warning, never a demotion. The reading cannot tell a value handed
-    back from a fact a tool reported about the value it was given, and it is
-    not allowed to guess: it says so, and the run does not pass until a person
-    confirms the tool by name. Returns the text it matched, or "" - the warning
-    quotes it, so the person reading the report sees what the reading saw."""
+    What used to be here as well: "a value of the call stands anywhere inside a
+    longer reply". It was dropped after its warnings were drawn and read. Ten
+    random ones held no echo at all - a search repeating its own query, an
+    invoice looked up by the id it was given, a browser naming the URL it
+    opened, an interpreter whose reply merely contained the word `False` - and
+    it cost 300 of 693 trajectories on its own. A warning nobody can act on is
+    not a safety property; it is noise that teaches an operator to pass the
+    flag without looking."""
     if not sent:
         return ""
-    found = _is_a_value_of(result, sent, whole_only=False)
-    if found:
-        return found
     share, run = _echo_share(result, sent)
     return run if share >= WARN_SHARE else ""
 
@@ -1000,12 +1106,23 @@ def to_trace(data: Any, *, name: str = "",
     # Every call of the turn now open, answered or not: how many per name, and
     # the pieces of their arguments, all together and per name.
     batch_count: Dict[str, int] = {}
-    batch_pieces: Set[str] = set()
+    # The calls of this turn, and of every turn before it, as indexed word
+    # sequences. A result is weighed against them by the same measure and the
+    # same number as against the call it answered: the seventh round left this
+    # path on the old "more than half of the reply, as a whole unit" reading,
+    # and the sixth round's three characters walked through it unchanged.
+    batch_text = _Words()
+    # And as sets of whole values, for the one question coverage cannot ask: a
+    # reply too short to hold a run of ECHO_MIN_CHARS. An interpreter that kept
+    # `answer = "B"` from an earlier turn and prints `B` hands back the model's
+    # own value, and no share of anything can see it.
+    batch_values: Set[str] = set()
+    earlier_values: Set[str] = set()
     batch_pieces_by_name: Dict[str, Set[str]] = {}
     # The pieces of every call from turns already closed. Each call is read
     # once, when it is declared, and each result is a set lookup - so reading a
     # long run stays linear, not quadratic.
-    earlier_pieces: Set[str] = set()
+    earlier_text = _Words()
     # Artifacts demoted against more than one call the log could not tell apart.
     # They are the model's text, but not known to be the one the user saw.
     unconfident_ids: Set[str] = set()
@@ -1105,8 +1222,10 @@ def to_trace(data: Any, *, name: str = "",
                 batch_ids = set()
                 # The turn before this one is closed: its arguments become what
                 # a later result is checked against for an echo from earlier.
-                earlier_pieces |= batch_pieces
-                batch_pieces = set()
+                earlier_text.absorb(batch_text)
+                batch_text = _Words()
+                earlier_values |= batch_values
+                batch_values = set()
                 batch_pieces_by_name = {}
             for call in calls:
                 if not isinstance(call, dict):
@@ -1135,7 +1254,8 @@ def to_trace(data: Any, *, name: str = "",
                         if _key(named) in echo and named != PLACEHOLDER:
                             cand_echo += 1
                         doubt_covers_cand = False
-                batch_pieces |= entry.pieces
+                batch_text.add_call(args_sent)
+                batch_values |= _call_values(args_sent)
                 batch_pieces_by_name.setdefault(named, set()).update(entry.pieces)
                 if cid:
                     open_with_id += 1
@@ -1334,25 +1454,31 @@ def to_trace(data: Any, *, name: str = "",
                 if unplaced:
                     warning = ("unmatched", _matched_line(content))
                 else:
-                    mine = own.pieces if own is not None else frozenset()
-                    for piece in _echo_candidates(content):
-                        if piece in mine:
-                            continue        # its own call; weighed in full below
-                        if not could_be and piece in batch_pieces:
-                            warning = ("same_turn", piece)
-                            break
-                        if piece in earlier_pieces:
-                            warning = ("earlier_turn", piece)
-                            break
-                    # The answering call, in full. The demotion above asks only
-                    # whether the whole reply IS a value it was given; anything
-                    # short of that - a value standing inside the reply, or
-                    # enough of the reply covered by the call's own text - the
-                    # reading cannot settle, so it says so rather than guessing.
-                    if warning is None:
-                        partly = _partly_hands_back(content, sent)
-                        if partly:
-                            warning = ("answering_call", partly)
+                    # Three questions, one measure, one number. The call this
+                    # result answered first, because it is the one the log
+                    # actually ties to it; then the turns before this one; then
+                    # the rest of this turn. The answering call's own text is
+                    # in the batch index too, so a same-turn report can only be
+                    # reached when that call alone did not carry the reply -
+                    # which is what "another call of this turn" means.
+                    partly = _partly_hands_back(content, sent)
+                    if partly:
+                        warning = ("answering_call", partly)
+                    else:
+                        whole = _norm(content)
+                        forms = [f for f in _forms(content)
+                                 if len(f) > 1 or f == whole]
+                        share, run = _share_in(content, earlier_text)
+                        if share >= WARN_SHARE:
+                            warning = ("earlier_turn", run)
+                        elif any(f in earlier_values for f in forms):
+                            warning = ("earlier_turn", _short(whole))
+                        else:
+                            share, run = _share_in(content, batch_text)
+                            if share >= WARN_SHARE:
+                                warning = ("same_turn", run)
+                            elif any(f in batch_values for f in forms):
+                                warning = ("same_turn", _short(whole))
             if len(content) > max_tool_chars:
                 content = content[:max_tool_chars]
                 cut = True

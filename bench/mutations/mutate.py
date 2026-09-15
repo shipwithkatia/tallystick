@@ -17,6 +17,10 @@ Each mutation replaces an exact snippet of source. After a rewrite a snippet
 may no longer exist: that mutation is reported STALE and skipped rather than
 run as a silent no-op. Update its snippet, or delete it.
 
+Each mutation is given `--timeout` seconds (600 by default) and then
+abandoned, so one pathological mutation cannot stall a sweep. On interrupt the
+working copy is left on disk rather than deleted under a running pytest.
+
 Printed at the end:
   - per mutation, the tests that failed (the ones that noticed);
   - tests in the FOCUS files that pass under every mutation run;
@@ -48,7 +52,8 @@ _SPLIT = '(accepted if w["tool"] and w["tool"] in confirmed else unreviewed).app
 MUTATIONS = {
     "M0_none": [],
     # The reader never reports an echo from an earlier turn.
-    "M1_no_earlier_echo_report": [(OC, "if piece in earlier_pieces:", "if False:")],
+    "M1_no_earlier_echo_report": [(OC, '                        share, run = _share_in(content, earlier_text)\n                        if share >= WARN_SHARE:\n                            warning = ("earlier_turn", run)\n                        elif any(f in earlier_values for f in forms):\n                            warning = ("earlier_turn", _short(whole))',
+         '                        share, run = 0.0, ""\n                        if False:\n                            warning = ("earlier_turn", run)\n                        elif False:\n                            warning = ("earlier_turn", _short(whole))')],
     # The gate never blocks: every warning counts as reviewed.
     "M2_gate_never_blocks": [(GATE, _SPLIT, "accepted.append(w)")],
     # The answering-call rule never demotes.
@@ -58,7 +63,8 @@ MUTATIONS = {
     # M1, and every tool result is written into guessed_tool_names: a test that
     # only asks "is this result named anywhere in _meta" passes again.
     "M5_no_report_but_every_result_in_guessed": [
-        (OC, "if piece in earlier_pieces:", "if False:"),
+        (OC, '                        share, run = _share_in(content, earlier_text)\n                        if share >= WARN_SHARE:\n                            warning = ("earlier_turn", run)\n                        elif any(f in earlier_values for f in forms):\n                            warning = ("earlier_turn", _short(whole))',
+         '                        share, run = 0.0, ""\n                        if False:\n                            warning = ("earlier_turn", run)\n                        elif False:\n                            warning = ("earlier_turn", _short(whole))'),
         (OC, "            aid = f\"t{k}\"\n",
          "            aid = f\"t{k}\"\n            guessed.append(f\"tool[{k}] -> x\")\n")],
     # Naming any tool confirms every warning.
@@ -103,7 +109,7 @@ MUTATIONS = {
         (OC, "    once = _unescape(text)\n    return text, once, _unescape(once)",
              "    return text, text, text")],
     # Partial coverage never reaches the warning threshold.
-    "K16_coverage_never_warns": [(OC, "WARN_SHARE = 0.10", "WARN_SHARE = 1.10")],
+    "K16_coverage_never_warns": [(OC, "WARN_SHARE = 0.50", "WARN_SHARE = 1.50")],
     # A line of the reply is no longer a candidate for the demotion.
     "K17_no_line_candidate": [
         (OC, "            lines = [ln.strip() for ln in text.splitlines() if ln.strip()]\n            for line in lines:\n                yield from _forms(line)\n",
@@ -124,6 +130,26 @@ MUTATIONS = {
     "K20_the_placeholder_can_be_declared": [
         (OC, 'dkey = _key(tool) if named_by_log else ""', "dkey = _key(tool)"),
         (OC, "        if key and key != PLACEHOLDER:", "        if key:")],
+
+    # --- proverka8: the cross-turn path, on the same measure -----------------
+    # A reply that IS, whole, a plain value of an earlier call is no longer
+    # reported - the one question coverage cannot ask, because the reply is too
+    # short to hold a run worth counting.
+    "K22_no_whole_reply_across_turns": [
+        (OC, "                        elif any(f in earlier_values for f in forms):",
+             "                        elif False:")],
+    # The cross-turn value set reaches for bare word atoms again, which is the
+    # noise the eighth round's sample condemned.
+    "K23_cross_turn_values_take_atoms": [
+        (OC, "                batch_values |= _call_values(args_sent)",
+             "                batch_values |= _arg_values(args_sent)")],
+    # A run is started from a word however common it is - the guard that keeps
+    # one turn of a long run from costing the square of its own length.
+    "K24_no_common_word_guard": [
+        (OC, "        if not live or len(live) > MAX_STARTS:", "        if not live:")],
+    # The three spellings collapse to one for text with no backslash in it.
+    "K25_spellings_short_circuit_always": [
+        (OC, '    if "\\\\" not in text:', "    if True:")],
 }
 
 FOCUS = ("test_openai_chat_", "test_check_trace_echo_gate", "test_audit_echo_gate",
@@ -145,6 +171,10 @@ def main() -> int:
     ap.add_argument("ref", nargs="?", default="HEAD", help="git ref to copy (default HEAD)")
     ap.add_argument("--only", help="comma-separated mutation name prefixes, e.g. M1,M5")
     ap.add_argument("--out", metavar="PATH", help="write pass/fail sets as JSON here")
+    ap.add_argument("--timeout", type=float, default=600.0, metavar="SECONDS",
+                    help="give up on one mutation after this long (default 600). "
+                         "The whole suite takes about a minute; a mutation that "
+                         "needs ten is telling you something.")
     args = ap.parse_args()
 
     names = list(MUTATIONS)
@@ -169,14 +199,31 @@ def main() -> int:
             if stale:
                 print(f"{name:<44} STALE, skipped ({'; '.join(stale)})")
                 continue
-            proc = subprocess.run([sys.executable, "-m", "pytest", "-p", "no:cacheprovider", "-rA", "-q"],
-                                  cwd=d, capture_output=True, text=True, env=env)
+            # Capped, and the child is killed rather than waited on. A run
+            # with no cap cannot be told from a run that is merely slow, and a
+            # sweep that is interrupted must not leave a pytest behind holding
+            # a directory this loop is about to delete: that is what the
+            # "seventeen-minute hang" of the seventh round turned out to be.
+            try:
+                proc = subprocess.run(
+                    [sys.executable, "-m", "pytest", "-p", "no:cacheprovider", "-rA", "-q"],
+                    cwd=d, capture_output=True, text=True, env=env, timeout=args.timeout)
+            except subprocess.TimeoutExpired:
+                print(f"{name:<44} TIMED OUT after {args.timeout:.0f}s "
+                      f"(raise --timeout, or the mutation made the reading pathological)")
+                results[name] = {"passed": [], "failed": [], "summary": "timed out"}
+                continue
             passed = sorted(set(re.findall(r"^PASSED (\S+)", proc.stdout, re.M)))
             failed = sorted(set(re.findall(r"^(?:FAILED|ERROR) (\S+)", proc.stdout, re.M)))
             tail = proc.stdout.strip().splitlines()[-1] if proc.stdout.strip() else "(no output)"
             results[name] = {"passed": passed, "failed": failed, "summary": tail}
             print(f"{name:<44} {tail}")
-    finally:
+    except KeyboardInterrupt:
+        # Without this the copy is deleted under a pytest that is still running
+        # in it, and the orphan spins on a directory that no longer exists.
+        print("\ninterrupted; the working copy is left at", work)
+        raise
+    else:
         shutil.rmtree(work, ignore_errors=True)
 
     def short(t):

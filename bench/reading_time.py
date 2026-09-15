@@ -37,7 +37,8 @@ from tallystick.adapters.openai_chat import to_trace  # noqa: E402
 #: The reader caches the pieces of a call's arguments and the candidates of a
 #: result. A second run over the same log would hit those caches and measure
 #: nothing, so every run starts with them empty: the time is a first reading's.
-CACHES = (openai_chat._pieces, openai_chat._echo_candidates)
+CACHES = (openai_chat._pieces, openai_chat._echo_candidates,
+          openai_chat._arg_values, openai_chat._arg_words, openai_chat._json_values)
 
 BODY = 'x = compute("value")\n' * 1000       # about 21 KB
 

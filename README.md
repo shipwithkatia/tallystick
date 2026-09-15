@@ -154,10 +154,16 @@ wall the audit cannot see past, which counts against your recording rather
 than quietly in its favour.
 
 One thing the reading reports instead of deciding. A tool result that hands
-back a line the model had already written into another call — a note read
-back, a variable an interpreter kept, a file saved and read in the same turn —
-may be the model's own words or a real confirmation, and the log cannot say
-which. Neither can a result the reading matched to no call, because a gateway
+back text the model had already written into a call — a note read back, a
+variable an interpreter kept, a file saved and read in the same turn — may be
+the model's own words or a real confirmation, and the log cannot say which. It
+is reported when at least half of the reply, counted in letters and digits, is
+covered by the text of some call, or when the whole reply is plainly one of
+that call's values. Half is one number, used the same way against the call a
+result answered and against the calls of earlier turns, and it was chosen by
+drawing twenty warnings at each candidate threshold and reading them: at 30% of
+the reply, nine of twenty were real echoes; at 50%, twelve of twenty. It costs
+17.5% of the AgentHallu corpus — one run in six asks a person to look. Neither can a result the reading matched to no call, because a gateway
 renamed the tool or rewrote the id. Such a result stays evidence, and it is
 named above the report with the message's position in your file (counted from
 0) and the call id, so you can find it. `check-trace` and `audit` exit 1 with
