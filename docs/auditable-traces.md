@@ -21,7 +21,7 @@ This is not hypothetical. On 225 real trajectories from six agent frameworks,
 61 of the 115 human-labelled hallucinations — 53% — sat inside a tool result
 that was a model-written digest of a page the trace never held. No post-hoc
 reading of those files can reach them. (Measured; see the AgentHallu section of
-the [README](../README.md).)
+[the benchmark](benchmark.md#real-trajectories-agenthallu-v073-september-2026).)
 
 ## What to record
 
@@ -186,3 +186,6 @@ tool-only. And the significance test the script prints
 rejects for the placebo too, so it is printed beside it rather than quoted
 alone. Treat the share as a fact about a recording, not as a predictor of where
 a hallucination is.
+
+---
+Built by Katia Engalycheva, co-authored with Claude (Anthropic) | [GitHub](https://github.com/shipwithkatia) | [LinkedIn](https://www.linkedin.com/in/katiaengalycheva/)
