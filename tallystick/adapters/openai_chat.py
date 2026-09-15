@@ -93,9 +93,9 @@ written down as none of ten.
 Every comparison on the echo path is made on a cleaned copy of both sides:
 every kind of space made a plain one, zero-width marks dropped. A zero-width
 space after a value and a non-breaking space in a JSON reply each emptied a rule
-before. The warnings also fold case, so a lower-case echo is still reported; the
-demotion does not, because folding it discarded 61 results on AgentHallu that
-were real work (see `_fold`).
+before. Case is kept on both paths, so a value read back in another case is
+not reported: folding it cost 61 real results on the demotion and 6 warnings
+with no real echo among them on the warnings (see the note after `_clean`).
 
 **What this reading is for, and what it is not.** It catches an agent quoting
 itself by accident - the model does not know it is checked and is not trying to
@@ -326,17 +326,14 @@ def _clean(text: str) -> str:
     return text.translate(_CLEAN)
 
 
-def _fold(text: str) -> str:
-    """`text` as the WARNINGS compare it: cleaned and case folded. `canberra`
-    read back after the model saved `Canberra` is the same value.
-
-    The demotion does not fold case. Folding it demoted 61 more results on
-    AgentHallu, and each one read was a tool doing real work: a ticker lookup
-    answering `Zeta Corp` with `ZETA`, a browser reporting the page it opened
-    under a title that differed from the model's words only in case. A
-    demotion discards evidence, so it keeps to what the model wrote letter for
-    letter; a warning asks a person, so it may be broader."""
-    return _clean(text).casefold()
+#: Case is NOT folded, on either path, and that leaves a gap on purpose: a value
+#: read back in another case - `canberra` after `Canberra` - is not reported.
+#: Both ways were measured on AgentHallu. Folding case in the demotion demoted
+#: 61 more results, and each one read was a tool doing real work: a ticker
+#: lookup answering `Zeta Corp` with `ZETA`, a browser naming the page it
+#: opened. Folding it in the warnings added 6 warnings on 2 trajectories, and
+#: of the six, read by hand, none was a real echo. This reading is for an agent
+#: quoting itself by accident, and accidental self-quoting is letter for letter.
 
 
 _QUOTE_PAIRS = {'"': '"', "'": "'", "`": "`", "“": "”",
@@ -437,7 +434,7 @@ def _echo_candidates(result: str) -> Tuple[str, ...]:
     texts = [result]
     if "\\" in result and len(result) <= UNESCAPE_RESULT_CHARS:
         texts.append(_unescape(result))
-    # Cleaned, not case folded: this feeds a demotion (see `_fold`).
+    # Cleaned; case is kept (see the note after `_clean`).
     for text in [_clean(t) for t in texts]:
         total = _alnum(text)
         if not total:
@@ -527,11 +524,10 @@ _WARNING_KINDS = {
 WARN_SHARE = 0.50
 
 
-def _forms(text: str, fold_case: bool = False) -> List[str]:
+def _forms(text: str) -> List[str]:
     """`text` as a value might be written: each of its spellings, cleaned,
     whitespace collapsed, and its trailing punctuation trimmed ONE MARK AT A
-    TIME. Case folded only when `fold_case` - the warnings' question, never the
-    demotion's (see `_fold`).
+    TIME. Case is kept (see the note after `_clean`).
 
     One mark at a time because the run used to be stripped whole, which put the
     form with no punctuation and the form with two into the set but never the
@@ -539,7 +535,7 @@ def _forms(text: str, fold_case: bool = False) -> List[str]:
     already ended in a period comes back with another added."""
     out: List[str] = []
     for spelling in _spellings(text):
-        value = _norm(_fold(spelling) if fold_case else _clean(spelling))
+        value = _norm(_clean(spelling))
         while True:
             if value and any(ch.isalnum() for ch in value):
                 out.append(value)
@@ -749,7 +745,7 @@ class _Words:
 
     def add(self, text: str) -> None:
         base = len(self.words)
-        parts = _fold(text).split()
+        parts = _clean(text).split()
         for i, word in enumerate(parts):
             self.where.setdefault(word, []).append(base + i)
         self.words.extend(parts)
@@ -783,22 +779,21 @@ def _call_values(args: str) -> frozenset:
         parsed = json.loads(args)
     except (TypeError, ValueError, RecursionError):
         parsed = None
-    # Case folded: these values only ever raise a warning, never a demotion.
     texts = list(_values(parsed)) if parsed is not None else [args]
     for value in texts:
-        found.update(_forms(value, fold_case=True))
+        found.update(_forms(value))
     for text in texts + [_unescape(t) for t in texts if "\\" in t]:
         for pattern in (_LITERAL_DQ, _LITERAL_SQ):
             for match in pattern.finditer(text):
-                found.update(_forms(match.group(1), fold_case=True))
+                found.update(_forms(match.group(1)))
         for line in text.splitlines():
-            found.update(_forms(line.strip(), fold_case=True))
+            found.update(_forms(line.strip()))
             # `answer = B` states what `answer` IS, exactly as `answer = "B"`
             # does - and the literal pattern only reads the quoted one, so a
             # model that left the quotes off was never checked.
             assigned = _ASSIGNED_ATOM.match(line)
             if assigned:
-                found.update(_forms(assigned.group(1), fold_case=True))
+                found.update(_forms(assigned.group(1)))
     return frozenset(found)
 
 
@@ -878,9 +873,8 @@ def _share_in(result: str, index: _Words,
     longest run that did, so a warning can quote it - and whether the reading
     could NOT finish weighing it.
 
-    Both sides are read as words, folded, so every run of whitespace is one
-    space, case does not count, and a newline dropped into the middle of an
-    echo changes nothing: that is how three characters used to empty this rule,
+    Both sides are read as words, cleaned, so every run of whitespace is one
+    space and a newline dropped into the middle of an echo changes nothing: that is how three characters used to empty this rule,
     on both paths. The reply is tiled left to right by maximal runs; a run
     shorter than ECHO_MIN_CHARS is not counted, because two texts in the same
     language share short strings. Greedy, so it can only UNDER-count.
@@ -891,17 +885,13 @@ def _share_in(result: str, index: _Words,
     answer stands. Otherwise the reply is tiled again with no limit, within
     RECHECK_WORK and what is left of `budget`; if that runs out, the third
     value is True and the caller reports the reply `unchecked`."""
-    # Folded word by word, so a run found among the folded words is quoted in
-    # the words the tool actually wrote: the person reading the warning looks
-    # for that text in their file, and case is part of what they search for.
-    written = _clean(result).split()
-    reply = [_fold(w) for w in written]
+    reply = _clean(result).split()
     total = _alnum("".join(reply))
     if not total or not index:
         return 0.0, "", False
 
     def quoted(span: Tuple[int, int]) -> str:
-        return " ".join(written[span[0]:span[1]])
+        return " ".join(reply[span[0]:span[1]])
 
     covered, best, skipped, _work = _tile(reply, index, MAX_STARTS, None)
     if not skipped or covered / total >= WARN_SHARE:
@@ -952,11 +942,8 @@ def _hands_back_what_it_was_given(result: str, sent: str) -> bool:
     sixth review's three-character bypass was exactly a laxer case that this
     corpus does not contain.
 
-    What the warning path costs: 989 warnings, and 155 of 693 trajectories
-    (22.4%) then need a person to confirm a tool by name before the run can
-    pass. That is the price of not guessing, and it is roughly three times what
-    a threshold-only reading of the same corpus suggested, because an exact
-    value match anywhere in a reply warns however small it is.
+    What the warning path costs is stated where its one number is, at
+    WARN_SHARE, and in the README.
 
     Why this rule is allowed to be wrong. It can only move an artifact OUT of
     the root set - from evidence to model text. A mistake makes the audit
@@ -1649,8 +1636,8 @@ def to_trace(data: Any, *, name: str = "",
                         # quotes around it taken off.
                         forms: List[str] = []
                         for text in dict.fromkeys((content, _unquoted(content))):
-                            whole = _norm(_fold(text))
-                            forms += [f for f in _forms(text, fold_case=True)
+                            whole = _norm(_clean(text))
+                            forms += [f for f in _forms(text)
                                       if len(f) > 1 or f == whole]
                         share, run, unsure_earlier = _share_in(content, earlier_text, budget)
                         if share >= WARN_SHARE:

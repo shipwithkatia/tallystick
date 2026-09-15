@@ -69,6 +69,21 @@ Record the inputs the step really saw, not the ones it should have seen. If your
 agent puts the whole history in every prompt, then the whole history is the
 input, and that is the honest record.
 
+That record has a cost for a long chat, and it is better known than met. Every
+step lists every artifact before it, so the trace grows with the square of the
+turns. The text is stored once; the ids repeat. Measured with the OpenAI reader
+on a chat of one tool call per turn: with tool replies of 40 characters the
+trace reaches ten times the size of the log at 116 turns, and 2,000 turns turn a
+0.8 MB log into a 127 MB trace; with replies of 2,000 characters the crossing is
+at 667 turns, and 2,000 turns give 4.5 MB of log and 131 MB of trace. None of
+AgentHallu's 693 trajectories comes near it: the largest trace there is 2.3
+times its log. The list stays explicit anyway. A shorthand for "everything the
+step before had" would be read by an older version of the core without an
+error, and give a wrong verdict in silence. So `tallystick convert` and
+`check-trace` say it instead - how big, how many steps, and why - once a trace
+is ten times the log it was read from (`TRACE_SIZE_NOTE_RATIO` in
+`tallystick/convert.py`). It changes no exit code.
+
 ### 3. The answer, marked as the answer
 
 Exactly one artifact of kind `final_answer`. Without it there is nothing to

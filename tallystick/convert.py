@@ -26,6 +26,7 @@ one failure this project exists to catch.
 
 from __future__ import annotations
 
+import json
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 
 from .adapters import openai_chat, otel_genai
@@ -104,6 +105,60 @@ def detect(data: Any) -> List[str]:
 
 def describe(names: Iterable[str]) -> str:
     return ", ".join(_NAMES.get(n, n) for n in names)
+
+
+#: A trace this many times the size of the log it was read from is said out
+#: loud. Named before it was measured - an order of magnitude - not fitted.
+#:
+#: Why a trace can be that much bigger: `inputs` in the format is an explicit
+#: list, and a chat sends its whole history every turn, so every step of a
+#: converted chat lists every artifact recorded before it. Text is stored once;
+#: the ids are repeated, and their count grows with the square of the turns. The
+#: format stays as it is - a changed format would be read by an older core with
+#: no error and a wrong verdict - so the growth is reported instead of hidden.
+TRACE_SIZE_NOTE_RATIO = 10
+
+
+def json_bytes(obj: Any) -> int:
+    """How many bytes `obj` takes written the way `tallystick convert` writes a
+    file: indented, UTF-8, non-ASCII kept."""
+    return len(json.dumps(obj, indent=2, ensure_ascii=False).encode("utf-8"))
+
+
+def trace_size(log: Any, trace: Dict[str, Any],
+               trace_bytes: Optional[int] = None) -> Optional[Dict[str, Any]]:
+    """How much bigger a converted trace is than the log it was read from, or
+    None when it is less than TRACE_SIZE_NOTE_RATIO times.
+
+    Both sides are measured the same way, as the JSON `convert` writes, so the
+    ratio is what the reading added and not how the log on disk happened to be
+    indented. `trace_bytes` is the size of a file already written, to spare a
+    second serialisation of a trace that may be a hundred megabytes."""
+    log_bytes = json_bytes(log)
+    if not log_bytes:
+        return None
+    if trace_bytes is None:
+        trace_bytes = json_bytes(trace)
+    ratio = trace_bytes / log_bytes
+    if ratio < TRACE_SIZE_NOTE_RATIO:
+        return None
+    steps = trace.get("steps") or []
+    return {"log_bytes": log_bytes, "trace_bytes": trace_bytes, "ratio": round(ratio, 2),
+            "steps": len(steps),
+            "input_references": sum(len(s.get("inputs") or []) for s in steps)}
+
+
+def trace_size_line(size: Dict[str, Any]) -> str:
+    """The sentence a person reads about `trace_size`."""
+    def amount(n: int) -> str:
+        return f"{n / 1048576:,.1f} MB" if n >= 1048576 else f"{n / 1024:,.0f} KB"
+    return (f"trace size: the trace is {size['ratio']:.0f}x the log it was read from "
+            f"({amount(size['log_bytes'])} -> {amount(size['trace_bytes'])}), "
+            f"{size['steps']} steps holding {size['input_references']:,} references to "
+            f"earlier artifacts. A chat sends its whole history every turn, and the "
+            f"format records each step's inputs as a list, so the trace grows with the "
+            f"square of the turns; the text itself is stored once. Nothing is wrong "
+            f"with the run (docs/auditable-traces.md, 'Steps, with their real inputs').")
 
 
 def read_any(data: Any, *, source: str = "auto", name: str = "",

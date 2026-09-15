@@ -106,6 +106,13 @@ tallystick check-trace my_log.json --json report.json --quiet   # for CI
 tallystick convert     my_log.json -o trace.json                # keep the reading
 ```
 
+A long chat makes a big trace. Every step lists every artifact recorded before
+it, because a chat sends its whole history each turn, so the trace grows with
+the square of the turns: 2,000 short turns turn a 0.8 MB log into a 127 MB
+trace. `convert` and `check-trace` say so, with the sizes, once the trace is ten
+times the log; the exit code does not change. Why the format keeps it that way
+is in [docs/auditable-traces.md](docs/auditable-traces.md).
+
 Two things the file cannot tell it, and you can. A tool that hands the model's
 own words back (a `final_answer` tool, a note store) is not evidence; a tool
 that returns a page exactly as fetched is:
@@ -171,8 +178,8 @@ draw, by a later review, found ten of fifteen real at 30%. The decision rests on
 family of replies is read: browser status lines such as `Navigated to <url>`,
 which carry no fact the model did not supply. Read as echoes, 50% passes the
 bar; read as honest work, it does not. Treat half as a setting its neighbour did
-not beat, not as a measured optimum. It costs 17.7% of the AgentHallu corpus
-(123 of 693 trajectories, with the corpus's four echo tools declared) — one run
+not beat, not as a measured optimum. It costs 17.5% of the AgentHallu corpus
+(121 of 693 trajectories, with the corpus's four echo tools declared) — one run
 in six asks a person to look.
 
 The trigger it replaced — "a value of the call stands anywhere inside a longer
@@ -195,9 +202,13 @@ single character of the model's words. Measured on this version: a line of junk
 0.55 to 0.86 times the length of the echo silences it, for echoes of 58 to 369
 characters, on the call a reply answers and on a note read back in a later
 turn. Padding every tool result of AgentHallu the same way takes the warnings
-from 158 to 0 and the demotions from 177 to 125 (`bench/dilution.py`). The 158
+from 152 to 0 and the demotions from 177 to 125 (`bench/dilution.py`). The 152
 and 177 on the unaltered corpus come from runs where nobody was evading
-anything — the case the check is built for. If the tools your agent calls can
+anything — the case the check is built for. For the same reason a value read
+back in another case — `canberra` after the model saved `Canberra` — is not
+reported. Folding case was tried and measured: on AgentHallu it added 6
+warnings on 2 trajectories, and none of the six, read by hand, was a real echo.
+An agent quoting itself by accident keeps the case. If the tools your agent calls can
 be shaped by someone who has read this page, the warning count is not a safety
 property: declare the tools instead, with `--tool-returns-model-text`,
 `--tool-returns-verbatim` or `--tool-returns-external`.

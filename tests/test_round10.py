@@ -178,8 +178,6 @@ def _saved_then_read(stored, readback):
 
 
 @pytest.mark.parametrize("readback", [
-    pytest.param("canberra", id="lower-case"),
-    pytest.param("CANBERRA", id="upper-case"),
     pytest.param("Canberra​", id="trailing-zero-width-space"),
     pytest.param("Can​berra", id="zero-width-space-inside"),
     pytest.param("﻿Canberra", id="byte-order-mark"),
@@ -192,9 +190,24 @@ def test_the_threshold_free_rule_is_not_knocked_out_by_invisible_changes(readbac
     assert meta["echo_warning_details"], f"{readback!r} read back after saving 'Canberra'"
 
 
-def test_coverage_ignores_case_too():
+# Round 11: case is NOT folded, on either path. Folding it on the warning path
+# was measured on AgentHallu: 6 more warnings on 2 trajectories, and of the six,
+# read by hand, none a real echo (five a tool doing its job, one borderline).
+# Accidental self-quoting reproduces the model's text letter for letter, and
+# accidental self-quoting is what this check is for; a change of case is the
+# gap that decision leaves, and the README names it. These tests pin the
+# decision: they fail if folding comes back without the measurement being
+# made again.
+
+@pytest.mark.parametrize("readback", ["canberra", "CANBERRA"])
+def test_a_value_read_back_in_another_case_is_not_warned(readback):
+    meta = _meta(_saved_then_read("Canberra", readback))
+    assert not meta["echo_warning_details"], meta["echo_warning_details"]
+
+
+def test_coverage_does_not_fold_case():
     meta = _meta(_saved_then_read(PAYLOAD, BROKEN.upper()))
-    assert meta["echo_warning_details"]
+    assert not meta["echo_warning_details"], meta["echo_warning_details"]
 
 
 def test_the_demotion_keeps_case():
@@ -206,8 +219,14 @@ def test_the_demotion_keeps_case():
     assert not meta["echoed_back_tool_results"], meta["echoed_back_tool_results"]
 
 
-def test_an_echo_in_another_case_is_still_warned_on_the_answering_call():
+def test_an_echo_in_another_case_is_not_warned_on_the_answering_call():
     meta = _meta(_answered({"note": PAYLOAD}, BROKEN.upper()))
+    assert not meta["echo_warning_details"], meta["echo_warning_details"]
+
+
+def test_control_the_same_echo_in_its_own_case_is_warned():
+    # What the case tests above must not be allowed to hide: the rule itself.
+    meta = _meta(_answered({"note": PAYLOAD}, BROKEN))
     assert [w["kind"] for w in meta["echo_warning_details"]] == ["answering_call"]
 
 

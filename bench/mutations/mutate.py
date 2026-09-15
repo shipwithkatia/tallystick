@@ -172,10 +172,11 @@ MUTATIONS = {
              "                            elif False:")],
     # `answer = B` is not a value of the call again.
     "T5_no_bare_assigned_atoms": [
-        (OC, "            if assigned:\n                found.update(_forms(assigned.group(1), fold_case=True))",
+        (OC, "            if assigned:\n                found.update(_forms(assigned.group(1)))",
              "            if False:\n                pass")],
-    # Case counts again.
-    "T6_no_case_fold": [(OC, "    return _clean(text).casefold()", "    return _clean(text)")],
+    # Case is folded again, on both paths - what round 11 measured and took out.
+    "T6_case_folded_again": [(OC, "    return text.translate(_CLEAN)",
+                              "    return text.translate(_CLEAN).casefold()")],
     # Invisible marks and non-breaking spaces count again.
     "T7_no_clean": [(OC, "    return text.translate(_CLEAN)", "    return text")],
     # Quotes around a whole reply count again, on the cross path.

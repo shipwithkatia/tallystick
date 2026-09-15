@@ -35,8 +35,10 @@ N=100 / N=200. The two ways agreed within a few percent.
 proverka8 was reported as about twice as slow as proverka7 on the wide shapes.
 That figure came from this script while it still missed a cache; with every
 cache cleared it is 4.2 to 4.7 times as slow. Round 10 adds 1.36 to 1.40 times
-on the wide shapes and 1.26 to 1.30 on the others - the cleaning and case
-folding every echo comparison now does. Growth stays linear in all five.
+on the wide shapes and 1.26 to 1.30 on the others - measured while every echo
+comparison both cleaned its text and folded case. Round 11 took case folding
+out and did not measure again, so these round-10 figures are not this code's.
+Growth stays linear in all five.
 """
 
 from __future__ import annotations

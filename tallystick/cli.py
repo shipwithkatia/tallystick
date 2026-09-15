@@ -44,7 +44,8 @@ import sys
 from pathlib import Path
 
 from .auditability import DEFAULT_MIN_REACHABLE, check_trace, report
-from .convert import FORMATS, describe, detect, hint_for, looks_like_trace, read_any
+from .convert import (FORMATS, describe, detect, hint_for, looks_like_trace, read_any,
+                      trace_size, trace_size_line)
 from .echo_gate import FIELDS as _ECHO_FIELDS, UNREVIEWED_ECHO
 from .echo_gate import cleared_echo_warnings as _cleared_echo_warnings
 from .echo_gate import echo_warnings as _echo_warnings
@@ -546,6 +547,10 @@ def _check_trace(args: argparse.Namespace) -> int:
                    meta=meta if isinstance(meta, dict) else None)
     undeclared = _undeclared_tool_results(raw)
     notes = _reading_notes(meta if isinstance(meta, dict) else {}, undeclared)
+    # A converted chat can come out many times the size of the log. Said, not
+    # blocked: it is how the format records a whole history sent every turn.
+    size = _trace_size(source, seen.get("raw"), raw)
+    size_lines = _wrapped(trace_size_line(size)) if size else []
     # A tool result ending in a line the model wrote in an earlier call is kept
     # as evidence, because the log cannot tell a value handed back from a value
     # confirmed - so the verdict counts it as evidence. Exiting 0 on that, with
@@ -574,7 +579,7 @@ def _check_trace(args: argparse.Namespace) -> int:
         by = source if source != "tallystick" else (read_by or "tallystick")
         print(f"Read as {by}: {len(run.artifacts)} artifact(s) from "
               f"{args.trace}. The report below judges that reading.")
-        for line in notes:
+        for line in notes + size_lines:
             print(f"  {line}")
         print()
     if args.json_out:
@@ -595,6 +600,8 @@ def _check_trace(args: argparse.Namespace) -> int:
             if undeclared is not None:
                 reading["undeclared_tool_results"] = {
                     "results": undeclared[0], "tools": undeclared[1]}
+            if size:
+                reading["trace_size"] = size
             if reading:
                 payload["reading"] = reading
         payload["gate"] = _gate_block(code, reasons, unreviewed, accepted, cleared)
@@ -607,7 +614,26 @@ def _check_trace(args: argparse.Namespace) -> int:
         print(report(result))
     _say_echo_gate(unreviewed, accepted, quiet=args.quiet, cleared=cleared)
     _say_strict(args, undeclared, strict)
+    if args.quiet and size:
+        # Not a verdict and not in the exit code, but a CI job that runs
+        # --quiet must still find in its log why the step took so long.
+        print(f"tallystick: {trace_size_line(size)}", file=sys.stderr)
     return code
+
+
+def _trace_size(source: str, log, trace, trace_bytes=None):
+    """`trace_size` for what was read. A file read as a trace needs no guard:
+    the "log" and the trace are then the same object, the ratio is 1, and
+    nothing is said - a mutation test showed a separate check here changed
+    nothing, so there is none."""
+    if log is None or not isinstance(trace, dict):
+        return None
+    return trace_size(log, trace, trace_bytes)
+
+
+def _wrapped(text: str) -> list[str]:
+    import textwrap
+    return textwrap.wrap(text, width=74, subsequent_indent="      ")
 
 
 def _convert(args: argparse.Namespace) -> int:
@@ -642,6 +668,12 @@ def _convert(args: argparse.Namespace) -> int:
     # Everything the reading left out, before anyone draws a conclusion from
     # what it kept.
     for line in _reading_notes(meta, _undeclared_tool_results(raw)):
+        print(f"  {line}")
+    # The size of the file just written, so a trace of a hundred megabytes is
+    # not serialised a second time to be measured. `os` is kept out of the
+    # verdict path by tests/test_no_model_imports.py; pathlib is already here.
+    size = _trace_size(source, seen.get("raw"), raw, Path(args.out).stat().st_size)
+    for line in _wrapped(trace_size_line(size)) if size else []:
         print(f"  {line}")
     if not args.quiet:
         print(f"\nNext: tallystick check-trace {args.out}")
