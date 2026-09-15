@@ -75,23 +75,46 @@ sides are read as words, so a newline dropped into the middle of an echo
 changes nothing. Recorded in `_meta.echo_warning_details` with the kind that
 says which call it was weighed against.
 
-The threshold was chosen by drawing 20 random warnings from AgentHallu at each
-candidate and reading them, against a test named before the measurement: more
+The threshold was chosen by drawing 20 random warnings from AgentHallu at 30%
+and at 50% and reading them, against a test named before the measurement: more
 than half must be real echoes, at no more than 20% of the corpus. At 30%, nine
 of twenty were real and it cost 27.3% of trajectories; at 50%, twelve of twenty
-were real and it costs 15.3%. A second trigger that shipped in the seventh
+were real and it costs 15.3%. That sample does not separate the two settings:
+both exact 95% intervals (23-68%, 36-81%) contain the 50% bar, and the choice
+rests on reading one family - browser status lines like `Navigated to <url>` -
+as echoes. See `WARN_SHARE`. A second trigger that shipped in the seventh
 round - "a value of the call stands anywhere inside a longer reply" - was
-dropped by the same measurement: ten random warnings of that kind held no echo
-at all (a search repeating its query, an invoice looked up by the id it was
-given, a browser naming the URL it opened), and it cost 300 of 693 trajectories
-on its own.
+dropped by the same measurement: it cost 300 of 693 trajectories on its own,
+and of ten random warnings of that kind one was a real echo, one borderline
+and eight a tool doing its job (a search repeating its query, an invoice looked
+up by the id it was given, a browser naming the URL it opened). It was first
+written down as none of ten.
+
+Every comparison on the echo path is made on a cleaned copy of both sides:
+every kind of space made a plain one, zero-width marks dropped. A zero-width
+space after a value and a non-breaking space in a JSON reply each emptied a rule
+before. The warnings also fold case, so a lower-case echo is still reported; the
+demotion does not, because folding it discarded 61 results on AgentHallu that
+were real work (see `_fold`).
+
+**What this reading is for, and what it is not.** It catches an agent quoting
+itself by accident - the model does not know it is checked and is not trying to
+get past anything. It is not a defence against someone who knows the rule:
+text added to a reply lowers the share without removing a character of the
+model's words, and a line of junk shorter than the echo is enough. The README
+gives the measured price.
 
 One question coverage cannot ask is whether a short reply is a value an earlier
 call carried: `answer = "B"` stored in one turn and printed in the next is four
 characters, below any run worth counting. So a reply that IS, whole, one of the
 plain values of an earlier call - its JSON values, its quoted literals, its
-lines, but not its bare word atoms - is reported too. That has no threshold in
-it either.
+lines, the bare token of a `name = value` line of code, but not its other bare
+word atoms - is reported too, with or without quotes around the reply. That has
+no threshold in it either.
+
+A reply MAX_STARTS kept from being weighed to the end is not passed: it is
+weighed again without the limit, and where even that is too costly it is
+reported with the kind `unchecked`.
 
 **A tool that hands back text from ANOTHER call is reported, not demoted.**
 An interpreter that kept a variable, a notes store, a file written in one turn
@@ -287,6 +310,48 @@ def _norm(text: str) -> str:
     return " ".join(text.split())
 
 
+#: Marks that change how a string compares and not how it reads: zero-width
+#: characters are dropped, and every other kind of space becomes a plain one.
+#: A non-breaking space in a JSON reply stopped the demotion outright - JSON
+#: does not allow it between tokens, so the reply no longer parsed - and a
+#: zero-width space after a value emptied the rule with no threshold in it.
+_CLEAN = {**dict.fromkeys(map(ord, "​‌‍⁠﻿­")),
+          **{ord(c): " " for c in "        "
+                                  "       　"}}
+
+
+def _clean(text: str) -> str:
+    """`text` with invisible marks dropped and every space a plain one. For
+    COMPARISON ONLY: a recorded artifact is never touched by this."""
+    return text.translate(_CLEAN)
+
+
+def _fold(text: str) -> str:
+    """`text` as the WARNINGS compare it: cleaned and case folded. `canberra`
+    read back after the model saved `Canberra` is the same value.
+
+    The demotion does not fold case. Folding it demoted 61 more results on
+    AgentHallu, and each one read was a tool doing real work: a ticker lookup
+    answering `Zeta Corp` with `ZETA`, a browser reporting the page it opened
+    under a title that differed from the model's words only in case. A
+    demotion discards evidence, so it keeps to what the model wrote letter for
+    letter; a warning asks a person, so it may be broader."""
+    return _clean(text).casefold()
+
+
+_QUOTE_PAIRS = {'"': '"', "'": "'", "`": "`", "“": "”",
+                "‘": "’", "«": "»"}
+
+
+def _unquoted(text: str) -> str:
+    """`text` with the pairs of quotes around the whole of it taken off:
+    `"Canberra"` states the same value as `Canberra`."""
+    s = _clean(text).strip()
+    while len(s) >= 2 and _QUOTE_PAIRS.get(s[0]) == s[-1]:
+        s = s[1:-1].strip()
+    return s
+
+
 _NOT_ALNUM = re.compile(r"[\W_]+")
 
 
@@ -320,6 +385,7 @@ def _pieces(args: str) -> frozenset:
     if not texts:
         texts = list(_spellings(args))
     texts += [_unescape(t) for t in texts if "\\" in t]
+    texts = [_clean(t) for t in texts]
     found: Set[str] = set()
     for text in texts:
         whole = _norm(text)
@@ -371,7 +437,8 @@ def _echo_candidates(result: str) -> Tuple[str, ...]:
     texts = [result]
     if "\\" in result and len(result) <= UNESCAPE_RESULT_CHARS:
         texts.append(_unescape(result))
-    for text in texts:
+    # Cleaned, not case folded: this feeds a demotion (see `_fold`).
+    for text in [_clean(t) for t in texts]:
         total = _alnum(text)
         if not total:
             continue
@@ -435,6 +502,8 @@ _WARNING_KINDS = {
     "same_turn": "a line the model wrote in another call of this turn",
     "unmatched": "a result the reading matched to no call",
     "answering_call": "text from the call it answered, short of the whole reply",
+    "unchecked": "a reply the reading could not finish weighing against the model's "
+                 "calls, so it may be the model's own text",
 }
 
 
@@ -443,19 +512,26 @@ _WARNING_KINDS = {
 #: moves only WARNINGS - a demotion never consults it, so no setting of it can
 #: turn the model's own words into evidence.
 #:
-#: Chosen by drawing 20 random warnings from AgentHallu at each candidate and
+#: Chosen by drawing 20 random warnings from AgentHallu at 30% and at 50% and
 #: classifying them by hand against a test named before the measurement ("more
 #: than half of the warnings are real echoes, at no more than 20% of the
 #: corpus"): at 30% nine of twenty were real echoes and it cost 27.3% of
-#: trajectories; at 50% twelve of twenty were real and it costs 15.3%. Changing
-#: this without repeating that sampling is guessing, and the seventh round is
-#: what guessing costs.
+#: trajectories; at 50% twelve of twenty were real and it costs 15.3%.
+#:
+#: That sample does NOT tell 50% from 30%. The exact 95% intervals are 23-68%
+#: and 36-81%, both contain the 50% bar, and a Fisher test on the two gives
+#: p = 0.53. The choice rests on reading one family of replies - browser status
+#: lines like `Navigated to <url>` - as echoes; read as honest work, 50% fails
+#: the bar too. So this is a setting its neighbour did not beat, not a measured
+#: optimum. Changing it without a larger sample is still guessing.
 WARN_SHARE = 0.50
 
 
-def _forms(text: str) -> List[str]:
-    """`text` as a value might be written: each of its spellings, whitespace
-    collapsed, and its trailing punctuation trimmed ONE MARK AT A TIME.
+def _forms(text: str, fold_case: bool = False) -> List[str]:
+    """`text` as a value might be written: each of its spellings, cleaned,
+    whitespace collapsed, and its trailing punctuation trimmed ONE MARK AT A
+    TIME. Case folded only when `fold_case` - the warnings' question, never the
+    demotion's (see `_fold`).
 
     One mark at a time because the run used to be stripped whole, which put the
     form with no punctuation and the form with two into the set but never the
@@ -463,7 +539,7 @@ def _forms(text: str) -> List[str]:
     already ended in a period comes back with another added."""
     out: List[str] = []
     for spelling in _spellings(text):
-        value = _norm(spelling)
+        value = _norm(_fold(spelling) if fold_case else _clean(spelling))
         while True:
             if value and any(ch.isalnum() for ch in value):
                 out.append(value)
@@ -515,7 +591,11 @@ def _reply_texts(result: str) -> List[str]:
     of a JSON store arrives escaped, and the value is only there once it is
     decoded. Long replies are not decoded: decoding is a pass over every
     character, and a long page that is ALSO escaped JSON is not the shape of a
-    value handed back."""
+    value handed back.
+
+    Cleaned first, because its shape is read here - whether it is JSON, whether
+    it is one `label: value` line - and a non-breaking space breaks both."""
+    result = _clean(result)
     if "\\" in result and len(result) <= UNESCAPE_RESULT_CHARS:
         return [result, _unescape(result)]
     return [result]
@@ -602,7 +682,7 @@ def _is_a_value_of(result: str, sent: str, whole_only: bool) -> str:
     values = _arg_values(sent)
     if not values:
         return ""
-    whole = _norm(result)
+    whole = _norm(_clean(result))
     for form in _reply_values(result, whole_only):
         if form in values and (len(form) > 1 or form == whole):
             return form
@@ -629,10 +709,25 @@ def _call_texts(args: str) -> List[str]:
 
 
 #: A word that stands in this many places is a word of the language, not a
-#: piece of anyone's text. Runs are not started from it, which can only make
-#: the reading say LESS - and without it one turn of a long CodeAct run costs
-#: the square of its own length.
+#: piece of anyone's text, and on the first pass runs are not started from it:
+#: without that, one turn of a long CodeAct run costs the square of its length.
+#:
+#: Skipping a start makes the reading say LESS, and saying less is a silent
+#: pass. The ninth review repeated each word of an echo 22 times in a comment,
+#: and a reply that was 90% the model's sentence went out with exit 0; on the
+#: path that weighs earlier turns the index grows over the whole run, so an
+#: agent that kept handing its own note to tools blinded the check after 32
+#: turns. So a skip is never the last word. Where the words it could not rule
+#: out could still reach WARN_SHARE, the reply is weighed again with no limit,
+#: within RECHECK_WORK; where that runs out too, the reading reports the reply
+#: `unchecked`, which holds exit 1 like any other warning.
 MAX_STARTS = 64
+
+#: How many index positions the exact pass may examine for one reply, and for
+#: one whole log. Past either, the reply is reported `unchecked` instead of
+#: weighed: a bounded cost, and nothing passed in silence.
+RECHECK_WORK = 2_000_000
+RECHECK_WORK_TOTAL = 20_000_000
 
 #: Written between two texts in an index so that no run is matched across the
 #: join. It cannot occur in a reply: `split()` never produces it.
@@ -654,7 +749,7 @@ class _Words:
 
     def add(self, text: str) -> None:
         base = len(self.words)
-        parts = text.split()
+        parts = _fold(text).split()
         for i, word in enumerate(parts):
             self.where.setdefault(word, []).append(base + i)
         self.words.extend(parts)
@@ -688,16 +783,30 @@ def _call_values(args: str) -> frozenset:
         parsed = json.loads(args)
     except (TypeError, ValueError, RecursionError):
         parsed = None
+    # Case folded: these values only ever raise a warning, never a demotion.
     texts = list(_values(parsed)) if parsed is not None else [args]
     for value in texts:
-        found.update(_forms(value))
+        found.update(_forms(value, fold_case=True))
     for text in texts + [_unescape(t) for t in texts if "\\" in t]:
         for pattern in (_LITERAL_DQ, _LITERAL_SQ):
             for match in pattern.finditer(text):
-                found.update(_forms(match.group(1)))
+                found.update(_forms(match.group(1), fold_case=True))
         for line in text.splitlines():
-            found.update(_forms(line.strip()))
+            found.update(_forms(line.strip(), fold_case=True))
+            # `answer = B` states what `answer` IS, exactly as `answer = "B"`
+            # does - and the literal pattern only reads the quoted one, so a
+            # model that left the quotes off was never checked.
+            assigned = _ASSIGNED_ATOM.match(line)
+            if assigned:
+                found.update(_forms(assigned.group(1), fold_case=True))
     return frozenset(found)
+
+
+#: A line of code that assigns one bare token - a word, a number, `True` - and
+#: nothing else: `answer = B`, `answer=0`, `total = 4.6  # tonnes`. Not
+#: `results = compute(dataset)`, which hands `dataset` to a function rather
+#: than stating anything is `dataset`, and not a comparison `x == 5`.
+_ASSIGNED_ATOM = re.compile(r"^\s*[A-Za-z_][\w.]*\s*=\s*([\w.+-]+)\s*(?:;\s*)?(?:#.*)?$")
 
 
 @functools.lru_cache(maxsize=512)
@@ -710,31 +819,35 @@ def _arg_words(args: str) -> _Words:
     return index
 
 
-def _share_in(result: str, index: _Words) -> Tuple[float, str]:
-    """How much of the reply, in letters and digits, stands in this text - and
-    the longest run that did, so a warning can quote it.
+def _tile(reply: List[str], index: _Words, limit: Optional[int],
+          allowance: Optional[int]) -> Tuple[Optional[int], Tuple[int, int], bool, int]:
+    """Tile the reply's words left to right by maximal runs found in `index`.
 
-    Both sides are read as words, so every run of whitespace is one space and a
-    newline dropped into the middle of an echo changes nothing: that is how
-    three characters used to empty this rule, on both paths. The reply is tiled
-    left to right by maximal runs; a run shorter than ECHO_MIN_CHARS is not
-    counted, because two texts in the same language share short strings.
-    Greedy, so it can only UNDER-count."""
-    total = _alnum(result)
-    if not total or not index:
-        return 0.0, ""
+    Returns (letters and digits covered, the longest counted run as a
+    (start, end) word span, whether a start was skipped for standing in more
+    than `limit` places, positions examined). Covered is None where `allowance`
+    ran out before the tiling ended - the caller must then say it could not
+    check, not that it found nothing."""
     words, where = index.words, index.where
-    reply = result.split()
-    covered = 0
-    best_run, best = 0, ""
+    covered = work = 0
+    best_run, best = 0, (0, 0)
+    skipped = False
     i = 0
     while i < len(reply):
         live = where.get(reply[i])
-        if not live or len(live) > MAX_STARTS:
+        if not live:
+            i += 1
+            continue
+        if limit is not None and len(live) > limit:
+            skipped = True
             i += 1
             continue
         run = 1
         while True:
+            if allowance is not None:
+                work += len(live)
+                if work > allowance:
+                    return None, best, skipped, work
             further = [p for p in live
                        if p + run < len(words) and i + run < len(reply)
                        and words[p + run] == reply[i + run]]
@@ -745,17 +858,73 @@ def _share_in(result: str, index: _Words) -> Tuple[float, str]:
         if matched >= ECHO_MIN_CHARS:
             covered += matched
             if matched > best_run:
-                best_run, best = matched, " ".join(reply[i:i + run])
+                best_run, best = matched, (i, i + run)
         i += run
-    return covered / total, best
+    return covered, best, skipped, work
 
 
-def _echo_share(result: str, sent: str) -> Tuple[float, str]:
+class _Budget:
+    """What is left of RECHECK_WORK_TOTAL for one reading of one log."""
+
+    __slots__ = ("left",)
+
+    def __init__(self) -> None:
+        self.left = RECHECK_WORK_TOTAL
+
+
+def _share_in(result: str, index: _Words,
+              budget: Optional[_Budget] = None) -> Tuple[float, str, bool]:
+    """How much of the reply, in letters and digits, stands in this text - the
+    longest run that did, so a warning can quote it - and whether the reading
+    could NOT finish weighing it.
+
+    Both sides are read as words, folded, so every run of whitespace is one
+    space, case does not count, and a newline dropped into the middle of an
+    echo changes nothing: that is how three characters used to empty this rule,
+    on both paths. The reply is tiled left to right by maximal runs; a run
+    shorter than ECHO_MIN_CHARS is not counted, because two texts in the same
+    language share short strings. Greedy, so it can only UNDER-count.
+
+    First with MAX_STARTS. If that skipped a start and fell short, it is asked
+    whether the skip could have mattered: only a word that stands in the index
+    at all can be covered, so where those words cannot reach WARN_SHARE the
+    answer stands. Otherwise the reply is tiled again with no limit, within
+    RECHECK_WORK and what is left of `budget`; if that runs out, the third
+    value is True and the caller reports the reply `unchecked`."""
+    # Folded word by word, so a run found among the folded words is quoted in
+    # the words the tool actually wrote: the person reading the warning looks
+    # for that text in their file, and case is part of what they search for.
+    written = _clean(result).split()
+    reply = [_fold(w) for w in written]
+    total = _alnum("".join(reply))
+    if not total or not index:
+        return 0.0, "", False
+
+    def quoted(span: Tuple[int, int]) -> str:
+        return " ".join(written[span[0]:span[1]])
+
+    covered, best, skipped, _work = _tile(reply, index, MAX_STARTS, None)
+    if not skipped or covered / total >= WARN_SHARE:
+        return covered / total, quoted(best), False
+    reachable = sum(_alnum(w) for w in reply if w in index.where)
+    if reachable / total < WARN_SHARE:
+        return covered / total, quoted(best), False
+    budget = budget or _Budget()
+    allowance = max(0, min(RECHECK_WORK, budget.left))
+    exact, exact_best, _skipped, work = _tile(reply, index, None, allowance)
+    budget.left -= min(work, allowance)
+    if exact is None:
+        return covered / total, quoted(best), True
+    return exact / total, quoted(exact_best), False
+
+
+def _echo_share(result: str, sent: str,
+                budget: Optional[_Budget] = None) -> Tuple[float, str, bool]:
     """The share of the reply that stands in the arguments of the call it
-    answered."""
+    answered, as `_share_in` weighs it."""
     if not sent:
-        return 0.0, ""
-    return _share_in(result, _arg_words(sent))
+        return 0.0, "", False
+    return _share_in(result, _arg_words(sent), budget)
 
 
 def _hands_back_what_it_was_given(result: str, sent: str) -> bool:
@@ -802,25 +971,28 @@ def _hands_back_what_it_was_given(result: str, sent: str) -> bool:
     return bool(_is_a_value_of(result, sent, whole_only=True))
 
 
-def _partly_hands_back(result: str, sent: str) -> str:
+def _partly_hands_back(result: str, sent: str,
+                       budget: Optional[_Budget] = None) -> Tuple[str, bool]:
     """Is enough of the reply covered by the text of the call it answered?
 
     One question, one number, and the same pair used on the cross-turn path.
     Returns the longest run it matched, or "" - the warning quotes it, so the
-    person reading the report sees what the reading saw.
+    person reading the report sees what the reading saw - and whether the
+    reply could not be weighed to the end.
 
     What used to be here as well: "a value of the call stands anywhere inside a
-    longer reply". It was dropped after its warnings were drawn and read. Ten
-    random ones held no echo at all - a search repeating its own query, an
+    longer reply". It was dropped after its warnings were drawn and read: it
+    cost 300 of 693 trajectories on its own, and of ten random ones one was a
+    real echo (a tweet the model wrote, handed back with an id), one borderline,
+    and eight a tool doing its job - a search repeating its own query, an
     invoice looked up by the id it was given, a browser naming the URL it
-    opened, an interpreter whose reply merely contained the word `False` - and
-    it cost 300 of 693 trajectories on its own. A warning nobody can act on is
-    not a safety property; it is noise that teaches an operator to pass the
-    flag without looking."""
+    opened. It was first written down as none of ten; one is the measured
+    figure. A warning nobody can act on is not a safety property; it is noise
+    that teaches an operator to pass the flag without looking."""
     if not sent:
-        return ""
-    share, run = _echo_share(result, sent)
-    return run if share >= WARN_SHARE else ""
+        return "", False
+    share, run, unchecked = _echo_share(result, sent, budget)
+    return (run if share >= WARN_SHARE else ""), unchecked
 
 
 def _text(value: Any, _depth: int = 0) -> str:
@@ -1127,6 +1299,11 @@ def to_trace(data: Any, *, name: str = "",
     # They are the model's text, but not known to be the one the user saw.
     unconfident_ids: Set[str] = set()
     step_ids: Set[str] = set()
+    # The exact re-weighing MAX_STARTS may call for, bounded over the whole log.
+    budget = _Budget()
+    # Warnings the reading worked out and did not raise, because the operator
+    # declared the tool external - each with the declaration that cleared it.
+    cleared: List[Dict[str, Any]] = []
 
     def step_id(base: str) -> str:
         """Two tool batches under one turn must not share an id: the report
@@ -1446,11 +1623,13 @@ def to_trace(data: Any, *, name: str = "",
             # Also asked before the cut, for the same reason. Only for a result
             # that stays evidence: a warning is a report, never a demotion.
             warning: Optional[Tuple[str, str]] = None      # (kind, the line)
-            # A tool declared external, known by its own name, gets no warning:
-            # the operator vouched for it. `handed_back` above was decided
+            # A tool declared external, known by its own name, is vouched for:
+            # its warnings are not raised. They are still worked out, and kept
+            # with the declaration that cleared them - a warning taken away in
+            # silence is a pass nobody can see. `handed_back` above was decided
             # before this and is not touched by the declaration.
             vouched = name_known and dkey in external
-            if not handed_back and dkey not in echo and not ambiguous and not vouched:
+            if not handed_back and dkey not in echo and not ambiguous:
                 if unplaced:
                     warning = ("unmatched", _matched_line(content))
                 else:
@@ -1461,24 +1640,32 @@ def to_trace(data: Any, *, name: str = "",
                     # in the batch index too, so a same-turn report can only be
                     # reached when that call alone did not carry the reply -
                     # which is what "another call of this turn" means.
-                    partly = _partly_hands_back(content, sent)
+                    partly, unsure = _partly_hands_back(content, sent, budget)
                     if partly:
                         warning = ("answering_call", partly)
                     else:
-                        whole = _norm(content)
-                        forms = [f for f in _forms(content)
-                                 if len(f) > 1 or f == whole]
-                        share, run = _share_in(content, earlier_text)
+                        shown = _short(_norm(content))
+                        # The whole reply as a value: as written, and with the
+                        # quotes around it taken off.
+                        forms: List[str] = []
+                        for text in dict.fromkeys((content, _unquoted(content))):
+                            whole = _norm(_fold(text))
+                            forms += [f for f in _forms(text, fold_case=True)
+                                      if len(f) > 1 or f == whole]
+                        share, run, unsure_earlier = _share_in(content, earlier_text, budget)
                         if share >= WARN_SHARE:
                             warning = ("earlier_turn", run)
                         elif any(f in earlier_values for f in forms):
-                            warning = ("earlier_turn", _short(whole))
+                            warning = ("earlier_turn", shown)
                         else:
-                            share, run = _share_in(content, batch_text)
+                            share, run, unsure_batch = _share_in(content, batch_text, budget)
                             if share >= WARN_SHARE:
                                 warning = ("same_turn", run)
                             elif any(f in batch_values for f in forms):
-                                warning = ("same_turn", _short(whole))
+                                warning = ("same_turn", shown)
+                            elif unsure or unsure_earlier or unsure_batch:
+                                # Not "no echo here": "not weighed to the end".
+                                warning = ("unchecked", shown)
             if len(content) > max_tool_chars:
                 content = content[:max_tool_chars]
                 cut = True
@@ -1516,11 +1703,16 @@ def to_trace(data: Any, *, name: str = "",
                 else:
                     who = f"{tool}: the log gives no name"
                 where = f"tool[{file_index}] ({who})" + (f" call {call_id}" if call_id else "")
-                earlier_echoes.append(f"{where}, {_WARNING_KINDS[kind_of]}: {_short(line)}")
-                earlier_echo_details.append({
-                    "result": f"tool[{k}]", "tool": tool if name_known else "",
-                    "line": _short(line), "message": file_index, "call_id": call_id,
-                    "kind": kind_of})
+                detail = {"result": f"tool[{k}]", "tool": tool if name_known else "",
+                          "line": _short(line), "message": file_index, "call_id": call_id,
+                          "kind": kind_of}
+                if vouched:
+                    cleared.append({**detail, "text": f"{where}, {_WARNING_KINDS[kind_of]}: "
+                                                      f"{_short(line)}",
+                                    "cleared_by": f"--tool-returns-external {external[dkey]}"})
+                else:
+                    earlier_echoes.append(f"{where}, {_WARNING_KINDS[kind_of]}: {_short(line)}")
+                    earlier_echo_details.append(detail)
             artifacts.append({"artifact_id": aid, "kind": kind,
                               "title": tool, "content": content})
             if cut:
@@ -1614,6 +1806,7 @@ def to_trace(data: Any, *, name: str = "",
         "echoed_back_tool_results": echoed_back,
         "echoes_from_earlier_turns": earlier_echoes,
         "echo_warning_details": earlier_echo_details,
+        "echo_warnings_cleared_by_declaration": cleared,
         "notes": notes,
     }
     return {"artifacts": artifacts, "steps": steps, "_meta": meta}

@@ -5,7 +5,10 @@ value of the call standing anywhere inside a longer reply, and a share of the
 reply covered by the call's own text. The eighth round drew 20 random
 trajectories for each and classified them by hand (see the round's report):
 
-    exact value inside a longer reply   0 of 10 were real echoes
+    exact value inside a longer reply   1 of 10 were real echoes
+                                        (first written down here as 0; a
+                                        later draw found a tweet the model
+                                        wrote, handed back - round 10)
     coverage >= 30%                     9 of 20
     coverage >= 50%                    12 of 20
 

@@ -52,8 +52,8 @@ _SPLIT = '(accepted if w["tool"] and w["tool"] in confirmed else unreviewed).app
 MUTATIONS = {
     "M0_none": [],
     # The reader never reports an echo from an earlier turn.
-    "M1_no_earlier_echo_report": [(OC, '                        share, run = _share_in(content, earlier_text)\n                        if share >= WARN_SHARE:\n                            warning = ("earlier_turn", run)\n                        elif any(f in earlier_values for f in forms):\n                            warning = ("earlier_turn", _short(whole))',
-         '                        share, run = 0.0, ""\n                        if False:\n                            warning = ("earlier_turn", run)\n                        elif False:\n                            warning = ("earlier_turn", _short(whole))')],
+    "M1_no_earlier_echo_report": [(OC, '                        share, run, unsure_earlier = _share_in(content, earlier_text, budget)\n                        if share >= WARN_SHARE:\n                            warning = ("earlier_turn", run)\n                        elif any(f in earlier_values for f in forms):\n                            warning = ("earlier_turn", shown)',
+         '                        share, run, unsure_earlier = 0.0, "", False\n                        if False:\n                            warning = ("earlier_turn", run)\n                        elif False:\n                            warning = ("earlier_turn", shown)')],
     # The gate never blocks: every warning counts as reviewed.
     "M2_gate_never_blocks": [(GATE, _SPLIT, "accepted.append(w)")],
     # The answering-call rule never demotes.
@@ -63,8 +63,8 @@ MUTATIONS = {
     # M1, and every tool result is written into guessed_tool_names: a test that
     # only asks "is this result named anywhere in _meta" passes again.
     "M5_no_report_but_every_result_in_guessed": [
-        (OC, '                        share, run = _share_in(content, earlier_text)\n                        if share >= WARN_SHARE:\n                            warning = ("earlier_turn", run)\n                        elif any(f in earlier_values for f in forms):\n                            warning = ("earlier_turn", _short(whole))',
-         '                        share, run = 0.0, ""\n                        if False:\n                            warning = ("earlier_turn", run)\n                        elif False:\n                            warning = ("earlier_turn", _short(whole))'),
+        (OC, '                        share, run, unsure_earlier = _share_in(content, earlier_text, budget)\n                        if share >= WARN_SHARE:\n                            warning = ("earlier_turn", run)\n                        elif any(f in earlier_values for f in forms):\n                            warning = ("earlier_turn", shown)',
+         '                        share, run, unsure_earlier = 0.0, "", False\n                        if False:\n                            warning = ("earlier_turn", run)\n                        elif False:\n                            warning = ("earlier_turn", shown)'),
         (OC, "            aid = f\"t{k}\"\n",
          "            aid = f\"t{k}\"\n            guessed.append(f\"tool[{k}] -> x\")\n")],
     # Naming any tool confirms every warning.
@@ -146,10 +146,50 @@ MUTATIONS = {
     # A run is started from a word however common it is - the guard that keeps
     # one turn of a long run from costing the square of its own length.
     "K24_no_common_word_guard": [
-        (OC, "        if not live or len(live) > MAX_STARTS:", "        if not live:")],
+        (OC, "    covered, best, skipped, _work = _tile(reply, index, MAX_STARTS, None)",
+             "    covered, best, skipped, _work = _tile(reply, index, None, None)")],
     # The three spellings collapse to one for text with no backslash in it.
     "K25_spellings_short_circuit_always": [
         (OC, '    if "\\\\" not in text:', "    if True:")],
+
+    # --- round 10: nothing caught leaves as a silent pass --------------------
+    # The warning "another call of this turn" is never raised. The ninth review
+    # found the whole suite green under this.
+    "T1_same_turn_never": [
+        (OC, "share, run, unsure_batch = _share_in(content, batch_text, budget)\n                            if share >= WARN_SHARE:",
+             "share, run, unsure_batch = _share_in(content, batch_text, budget)\n                            if False:")],
+    # A start MAX_STARTS skipped is never weighed again: the 22-repeat silence.
+    "T2_no_exact_recheck": [
+        (OC, "    if reachable / total < WARN_SHARE:\n        return covered / total, quoted(best), False",
+             "    if True:\n        return covered / total, quoted(best), False")],
+    # The exact pass runs out and says nothing.
+    "T3_budget_out_is_silent": [
+        (OC, "        return covered / total, quoted(best), True",
+             "        return covered / total, quoted(best), False")],
+    # A reply that could not be weighed is not reported.
+    "T4_unchecked_never_raised": [
+        (OC, "                            elif unsure or unsure_earlier or unsure_batch:",
+             "                            elif False:")],
+    # `answer = B` is not a value of the call again.
+    "T5_no_bare_assigned_atoms": [
+        (OC, "            if assigned:\n                found.update(_forms(assigned.group(1), fold_case=True))",
+             "            if False:\n                pass")],
+    # Case counts again.
+    "T6_no_case_fold": [(OC, "    return _clean(text).casefold()", "    return _clean(text)")],
+    # Invisible marks and non-breaking spaces count again.
+    "T7_no_clean": [(OC, "    return text.translate(_CLEAN)", "    return text")],
+    # Quotes around a whole reply count again, on the cross path.
+    "T8_no_unquoting": [
+        (OC, "for text in dict.fromkeys((content, _unquoted(content))):", "for text in (content,):")],
+    # A declaration clears warnings and nothing records which.
+    "T9_cleared_not_recorded": [(OC, "                    cleared.append({", "                    [].append({")],
+    # Recorded, but never printed.
+    "T10_cleared_not_printed": [(CLI, "    if cleared:\n        # Not a block", "    if False:\n        # Not a block")],
+    # The timing bench goes back to a list kept by hand.
+    "T11_bench_caches_by_hand": [
+        ("bench/reading_time.py",
+         "CACHES = tuple(obj for obj in vars(openai_chat).values()\n               if callable(getattr(obj, \"cache_clear\", None)))",
+         "CACHES = (openai_chat._pieces, openai_chat._echo_candidates,\n          openai_chat._arg_values, openai_chat._arg_words, openai_chat._json_values)")],
 }
 
 FOCUS = ("test_openai_chat_", "test_check_trace_echo_gate", "test_audit_echo_gate",

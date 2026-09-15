@@ -45,6 +45,21 @@ def echo_warnings(meta) -> List[dict]:
     return warnings
 
 
+def cleared_echo_warnings(meta) -> List[dict]:
+    """Warnings the reading worked out and did not raise, because the operator
+    declared the tool external: `result`, `tool`, `line`, `kind`, `text` and
+    `cleared_by`, the declaration that took each away. They do not block - the
+    operator took on what the reading cannot know - but they are said, so a
+    declaration never removes a warning out of sight."""
+    if not isinstance(meta, dict):
+        return []
+    items = meta.get("echo_warnings_cleared_by_declaration")
+    if not isinstance(items, list):
+        return []
+    return [{k: str(w.get(k) or "") for k in (*FIELDS, "kind", "text", "cleared_by")}
+            for w in items if isinstance(w, dict)]
+
+
 def split_echo_warnings(warnings: List[dict],
                         names: Optional[Iterable[str]]) -> Tuple[List[dict], List[dict]]:
     """(unreviewed, accepted). A warning is accepted only when its own tool was

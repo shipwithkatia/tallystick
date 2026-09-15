@@ -46,6 +46,7 @@ from pathlib import Path
 from .auditability import DEFAULT_MIN_REACHABLE, check_trace, report
 from .convert import FORMATS, describe, detect, hint_for, looks_like_trace, read_any
 from .echo_gate import FIELDS as _ECHO_FIELDS, UNREVIEWED_ECHO
+from .echo_gate import cleared_echo_warnings as _cleared_echo_warnings
 from .echo_gate import echo_warnings as _echo_warnings
 from .echo_gate import split_echo_warnings as _split_echo_warnings
 from .adapters.openai_chat import DEFAULT_MAX_TOOL_CHARS
@@ -152,17 +153,23 @@ def _say_strict(args: argparse.Namespace, undeclared, blocked: bool) -> None:
 
 
 def _gate_block(code: int, reasons: list[str], unreviewed: list[dict],
-                accepted: list[dict]) -> dict:
+                accepted: list[dict], cleared: list[dict] = ()) -> dict:
     """The exit code and why, for --json. `verdict` alone would read "auditable"
     on a run that exits 1 for an unreviewed echo."""
     def plain(ws):
         return [{k: w[k] for k in _ECHO_FIELDS} for w in ws]
-    return {"exit_code": code, "reasons": reasons,
-            "echo_warnings": {"accepted": plain(accepted), "unreviewed": plain(unreviewed)}}
+    warnings = {"accepted": plain(accepted), "unreviewed": plain(unreviewed)}
+    if cleared:
+        # Only when a declaration cleared something, so a file with nothing
+        # cleared is the file a CI job already parses.
+        warnings["cleared_by_declaration"] = [
+            {**{k: w[k] for k in _ECHO_FIELDS}, "kind": w["kind"], "cleared_by": w["cleared_by"]}
+            for w in cleared]
+    return {"exit_code": code, "reasons": reasons, "echo_warnings": warnings}
 
 
 def _echo_gate_lines(unreviewed: list[dict], accepted: list[dict], *,
-                     short: bool) -> list[str]:
+                     short: bool, cleared: list[dict] = ()) -> list[str]:
     """What is said about echo warnings. `short` is the `--quiet` form, for
     stderr: a CI job that never shows the terminal must still leave every
     warning in its log."""
@@ -208,13 +215,26 @@ def _echo_gate_lines(unreviewed: list[dict], accepted: list[dict], *,
                      f"Echo warnings accepted by name with {ACCEPT_ECHO_FLAG}: "
                      f"{len(accepted)} tool result(s) kept as evidence.")
         lines += listed(accepted, "  " if short else "    ")
+    if cleared:
+        # Not a block: the operator declared these tools external and took on
+        # what the reading cannot know. But a warning removed without a word is
+        # a silent pass, so each one is named with the declaration that did it.
+        lines.append(f"tallystick: {len(cleared)} echo warning(s) cleared by a declaration, "
+                     f"not by review:" if short else
+                     f"Echo warnings cleared by a declaration, not by review: "
+                     f"{len(cleared)} tool result(s) kept as evidence with no warning.")
+        indent = "  " if short else "    "
+        lines += [f"{indent}{w['text']} - cleared by {w['cleared_by']}" for w in cleared[:10]]
+        if len(cleared) > 10:
+            lines.append(f"{indent}(+{len(cleared) - 10} more, all of them in --json)")
     return lines
 
 
-def _say_echo_gate(unreviewed: list[dict], accepted: list[dict], *, quiet: bool) -> None:
+def _say_echo_gate(unreviewed: list[dict], accepted: list[dict], *, quiet: bool,
+                   cleared: list[dict] = ()) -> None:
     """Under the report - or, with --quiet, on stderr, which keeps stdout empty
     for scripts while every CI log still records the warning."""
-    lines = _echo_gate_lines(unreviewed, accepted, short=quiet)
+    lines = _echo_gate_lines(unreviewed, accepted, short=quiet, cleared=cleared)
     if not lines:
         return
     if quiet:
@@ -448,6 +468,7 @@ def _audit(args: argparse.Namespace) -> int:
     unreviewed, accepted = _split_echo_warnings(
         _echo_warnings(raw.get("_meta") if isinstance(raw, dict) else None),
         getattr(args, "accept_echo_warnings", None))
+    cleared = _cleared_echo_warnings(raw.get("_meta") if isinstance(raw, dict) else None)
     undeclared = _undeclared_tool_results(raw)
     strict = _strict_blocks(args, undeclared)
     reasons: list[str] = []
@@ -468,7 +489,7 @@ def _audit(args: argparse.Namespace) -> int:
         print(chain_view(run, balance, args.chain))
     elif not args.quiet:
         print(summary(run, balance))
-    _say_echo_gate(unreviewed, accepted, quiet=args.quiet)
+    _say_echo_gate(unreviewed, accepted, quiet=args.quiet, cleared=cleared)
     _say_strict(args, undeclared, strict)
 
     if args.json_out:
@@ -490,7 +511,7 @@ def _audit(args: argparse.Namespace) -> int:
                 for a in balance.audits.values()
             ],
         }
-        payload["gate"] = _gate_block(code, reasons, unreviewed, accepted)
+        payload["gate"] = _gate_block(code, reasons, unreviewed, accepted, cleared)
         try:
             _write_json(args.json_out, payload)
         except OSError as exc:
@@ -533,6 +554,7 @@ def _check_trace(args: argparse.Namespace) -> int:
     # reason only, and only for the tool it names.
     unreviewed, accepted = _split_echo_warnings(
         _echo_warnings(meta), getattr(args, "accept_echo_warnings", None))
+    cleared = _cleared_echo_warnings(meta)
     reasons: list[str] = []
     if result.verdict != "auditable":
         reasons.append(f"verdict:{result.verdict}")
@@ -567,7 +589,7 @@ def _check_trace(args: argparse.Namespace) -> int:
                         "dropped_messages", "truncated", "guessed_tool_names",
                         "unmatched_tool_results", "unresolved_tool_results",
                         "echoed_back_tool_results", "echoes_from_earlier_turns",
-                        "echo_warning_details",
+                        "echo_warning_details", "echo_warnings_cleared_by_declaration",
                         "model_text_tools", "verbatim_tools", "external_tools",
                         "notes", "otel") if k in meta}
             if undeclared is not None:
@@ -575,7 +597,7 @@ def _check_trace(args: argparse.Namespace) -> int:
                     "results": undeclared[0], "tools": undeclared[1]}
             if reading:
                 payload["reading"] = reading
-        payload["gate"] = _gate_block(code, reasons, unreviewed, accepted)
+        payload["gate"] = _gate_block(code, reasons, unreviewed, accepted, cleared)
         try:
             _write_json(args.json_out, payload)
         except OSError as exc:
@@ -583,7 +605,7 @@ def _check_trace(args: argparse.Namespace) -> int:
             return 2
     if not args.quiet:
         print(report(result))
-    _say_echo_gate(unreviewed, accepted, quiet=args.quiet)
+    _say_echo_gate(unreviewed, accepted, quiet=args.quiet, cleared=cleared)
     _say_strict(args, undeclared, strict)
     return code
 

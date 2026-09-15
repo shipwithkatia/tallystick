@@ -20,6 +20,23 @@ against 0.04 s under one.
 
 Linear growth doubles the time when N doubles; the ratio column says whether it
 did. Best of three runs per size. Run it alone: another busy process skews it.
+
+Measured in round 10 a second way as well - every reading in a fresh Python
+process, where no cache can be warm - best of three processes, seconds at
+N=100 / N=200. The two ways agreed within a few percent.
+
+  shape        proverka7      proverka8      round 10
+  turns        1.25 / 2.54    1.21 / 2.48    1.56 / 3.11
+  wide-ids     1.25 / 2.58    1.19 / 2.42    1.54 / 3.04
+  wide-none    0.11 / 0.22    0.49 / 0.97    0.69 / 1.36
+  wide-name    0.12 / 0.23    0.49 / 0.96    0.67 / 1.34
+  wide-names   0.11 / 0.21    0.48 / 0.96    0.66 / 1.32
+
+proverka8 was reported as about twice as slow as proverka7 on the wide shapes.
+That figure came from this script while it still missed a cache; with every
+cache cleared it is 4.2 to 4.7 times as slow. Round 10 adds 1.36 to 1.40 times
+on the wide shapes and 1.26 to 1.30 on the others - the cleaning and case
+folding every echo comparison now does. Growth stays linear in all five.
 """
 
 from __future__ import annotations
@@ -37,8 +54,13 @@ from tallystick.adapters.openai_chat import to_trace  # noqa: E402
 #: The reader caches the pieces of a call's arguments and the candidates of a
 #: result. A second run over the same log would hit those caches and measure
 #: nothing, so every run starts with them empty: the time is a first reading's.
-CACHES = (openai_chat._pieces, openai_chat._echo_candidates,
-          openai_chat._arg_values, openai_chat._arg_words, openai_chat._json_values)
+#:
+#: Found by asking the module, not listed by hand. A hand-kept list missed three
+#: caches in round 7 and a sixth one in round 8, added by the same commit that
+#: fixed the list, and every time printed then was a warm reading - up to 111%
+#: too fast. tests/test_round10.py finds the caches a second way, from the source.
+CACHES = tuple(obj for obj in vars(openai_chat).values()
+               if callable(getattr(obj, "cache_clear", None)))
 
 BODY = 'x = compute("value")\n' * 1000       # about 21 KB
 

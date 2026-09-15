@@ -160,10 +160,49 @@ the model's own words or a real confirmation, and the log cannot say which. It
 is reported when at least half of the reply, counted in letters and digits, is
 covered by the text of some call, or when the whole reply is plainly one of
 that call's values. Half is one number, used the same way against the call a
-result answered and against the calls of earlier turns, and it was chosen by
-drawing twenty warnings at each candidate threshold and reading them: at 30% of
-the reply, nine of twenty were real echoes; at 50%, twelve of twenty. It costs
-17.5% of the AgentHallu corpus — one run in six asks a person to look. Neither can a result the reading matched to no call, because a gateway
+result answered and against the calls of earlier turns.
+
+How half was chosen, and how little that choice rests on. Twenty warnings were
+drawn at 30% and twenty at 50% and read by hand: nine of twenty were real echoes
+at 30%, twelve of twenty at 50%. That sample cannot tell the two settings apart.
+The exact 95% intervals are 23–68% and 36–81%; both contain the 50% bar the
+choice was tested against, and a Fisher test on the two gives p = 0.53. A second
+draw, by a later review, found ten of fifteen real at 30%. The decision rests on how one
+family of replies is read: browser status lines such as `Navigated to <url>`,
+which carry no fact the model did not supply. Read as echoes, 50% passes the
+bar; read as honest work, it does not. Treat half as a setting its neighbour did
+not beat, not as a measured optimum. It costs 17.7% of the AgentHallu corpus
+(123 of 693 trajectories, with the corpus's four echo tools declared) — one run
+in six asks a person to look.
+
+The trigger it replaced — "a value of the call stands anywhere inside a longer
+reply" — was dropped because it cost 300 of 693 trajectories and almost all of
+it was noise: of ten drawn warnings, one was a real echo (a tweet the model
+wrote, handed back with an id and a username), one borderline, eight a tool
+doing its job. It was first reported as none of ten; one is the measured figure.
+The switch lost five of the 80 results the previous rule caught on undeclared
+tools: one undisputed echo (the same tweet shape), three borderline (a search
+reply that repeats the query over "No results found"), and one honest (computed
+equation roots).
+
+**What this check is for, and what it is not.** It catches an agent quoting
+itself by accident: a note it saved and read back, a value it wrote into code
+and printed. The model does not know it is being checked and is not trying to
+get past anything. It is **not** a defence against someone who knows the rule
+and wants past it. The rule weighs how much of a reply is the model's own text,
+so padding the reply with unrelated text walks through it without removing a
+single character of the model's words. Measured on this version: a line of junk
+0.55 to 0.86 times the length of the echo silences it, for echoes of 58 to 369
+characters, on the call a reply answers and on a note read back in a later
+turn. Padding every tool result of AgentHallu the same way takes the warnings
+from 158 to 0 and the demotions from 177 to 125 (`bench/dilution.py`). The 158
+and 177 on the unaltered corpus come from runs where nobody was evading
+anything — the case the check is built for. If the tools your agent calls can
+be shaped by someone who has read this page, the warning count is not a safety
+property: declare the tools instead, with `--tool-returns-model-text`,
+`--tool-returns-verbatim` or `--tool-returns-external`.
+
+Neither can a result the reading matched to no call, because a gateway
 renamed the tool or rewrote the id. Such a result stays evidence, and it is
 named above the report with the message's position in your file (counted from
 0) and the call id, so you can find it. `check-trace` and `audit` exit 1 with
