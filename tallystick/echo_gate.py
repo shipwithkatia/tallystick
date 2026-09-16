@@ -4,9 +4,9 @@ Until round 18 the OpenAI reader warned about tool results that might hand back
 the model's own text - a share of the reply found in another call, a result
 matched to no call - and `check-trace`, `audit` and `tallystick.audit()` held
 the exit at 1 until a person confirmed each tool by name. The warnings were
-removed: of 20 drawn at random from AgentHallu and read by hand, 6 were real
-echoes, 7 honest work and 7 disputed (review 16), and a signal that is mostly
-wrong teaches the person reading it to pass it without looking. What stayed is
+removed: in a random sample drawn from AgentHallu and read by hand (review 16),
+fewer than half were real echoes, and a signal that is mostly wrong teaches the
+person reading it to pass it without looking. What stayed is
 the demotion - a result the log shows to be the model's text is not a root -
 and it never needed anyone's confirmation.
 

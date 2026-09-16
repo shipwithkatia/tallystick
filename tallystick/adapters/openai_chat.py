@@ -71,9 +71,10 @@ and a one-character line after it, and took it from 216 fires on AgentHallu to
 round 18 a result whose reply was at least half covered by the text of some
 call - the one it answered, an earlier one, another of the same turn - was kept
 as evidence and WARNED about, and `check-trace` and `audit` exited 1 until a
-person confirmed the tool by name. Review 16 drew 20 of those warnings on
-AgentHallu and read them: 6 real echoes, 7 honest work (an interpreter printing
-a number it computed under a label the model wrote), 7 disputed. The project's
+person confirmed the tool by name. Review 16 drew a sample of those warnings on
+AgentHallu and read them: fewer than half were real echoes; the commonest false
+one was an interpreter printing a number it computed under a label the model
+wrote. The drawn sample is not in this repository. The project's
 bar is that a signal most of whose firings are ordinary work is removed, not
 tuned, so the warnings went, and with them the share, the word index and the
 `unchecked` kind. What that stopped seeing is stated in the README: above all a
@@ -85,15 +86,16 @@ were measured and read by hand against a criterion written first, with the bar
 "more than a third false - stop, do not tune":
 
 - a phrase the model handed ANOTHER call, standing whole inside a reply (a note
-  read back from a store's record): 30 demotions on AgentHallu, 11 of them
-  honest pages - a title the model had quoted in its own `reasoning` field,
-  and a browser page carrying the same title;
+  read back from a store's record), on AgentHallu: more than a third of what it
+  demoted were honest pages - a title the model had quoted in its own
+  `reasoning` field, and a browser page carrying the same title;
 - a `user` or `system` message whose whole text, a line of it, or the text
   after a `label: ` repeats a phrase the model wrote earlier (a draft pasted
-  back): 100 demotions over 7,195 user messages of 1,554 WildChat
-  conversations; of 20 drawn, 7 were the model's text, 6 disputed and 7 a
-  person's own material - a traceback or their code - matched on one line
-  such as `from tkinter import *`.
+  back), on real multi-turn chats (WildChat-1M): more than a third of a drawn
+  sample was a person's own material - a traceback or their code - matched on
+  one line such as `from tkinter import *`.
+
+The measurements and the samples are not in this repository.
 
 Neither ships. Both holes stay open, and README names them.
 

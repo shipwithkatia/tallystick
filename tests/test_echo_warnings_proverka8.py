@@ -3,8 +3,8 @@
 The eighth round sampled the warning triggers of the seventh by hand, kept one
 (a share of the reply covered by call text) and dropped the other (a value of
 the call standing anywhere inside a longer reply: 1 of 10 real echoes). Round
-18 removed the remaining warnings too, after review 16 drew 20 of them and
-found 6 real echoes (see tallystick/echo_gate.py). The tests that guarded the
+18 removed the remaining warnings too, after review 16 drew a sample of them
+and found fewer than half real echoes (see tallystick/echo_gate.py). The tests that guarded the
 warnings went with them; what stays here guards the demotion on both sides:
 a tool doing real work is NOT read as the model's text, and a reply that IS the
 value it was given still is.
