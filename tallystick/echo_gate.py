@@ -1,36 +1,34 @@
-"""The echo gate: warnings the reading could not settle, and who reviewed them.
+"""Echo warnings a trace written by an EARLIER reader still carries.
 
-`tallystick check-trace`, `tallystick audit` and `tallystick.audit()` apply the
-same gate. The OpenAI reader keeps a tool result as evidence when it cannot tell
-whether the tool handed back the model's own text - a line the model wrote in an
-earlier call or in another call of the same turn, or a result it could not match
-to any call - and records each such result in `_meta.echo_warning_details`.
-Until the operator confirms each tool by name, that is not a checked result: the
-CLI exits 1 with `unreviewed_echo_warnings`, and `audit()` raises
-`UnreviewedEchoWarnings`. It raises rather than returning books_balance False,
-because False says "the books do not balance", and the truth is "they were not
-checked" - the distinction the CLI's exit codes 1 and 2 exist for.
+Until round 18 the OpenAI reader warned about tool results that might hand back
+the model's own text - a share of the reply found in another call, a result
+matched to no call - and `check-trace`, `audit` and `tallystick.audit()` held
+the exit at 1 until a person confirmed each tool by name. The warnings were
+removed: of 20 drawn at random from AgentHallu and read by hand, 6 were real
+echoes, 7 honest work and 7 disputed (review 16), and a signal that is mostly
+wrong teaches the person reading it to pass it without looking. What stayed is
+the demotion - a result the log shows to be the model's text is not a root -
+and it never needed anyone's confirmation.
 
-The tool name is taken from the structured record, never parsed out of the
-warning text: a tool named `read_note): x` writes a warning that reads like one
-about `read_note`. A warning with no known tool - a trace written before the
-records existed, a log that names no tool, a result placed by position between
-several tools - is confirmed by no name.
+A reader no longer writes these records. A trace converted or posted before it
+may still hold them in `_meta.echo_warning_details` and
+`_meta.echoes_from_earlier_turns`, and the commands say so in one note instead
+of passing over them in silence: the results they name were kept as evidence
+by a reading that is no longer the current one, so the note tells the person
+to read the log again. The note does not move the exit code.
 """
 
 from __future__ import annotations
 
-from typing import Iterable, List, Optional, Tuple
+from typing import List
 
-#: The reason for exit 1, and the word `audit()`'s error carries. Named once:
-#: the terminal, `--quiet`, `--json`, the exception and the tests say the same.
-UNREVIEWED_ECHO = "unreviewed_echo_warnings"
 FIELDS = ("result", "tool", "line")
 
 
 def echo_warnings(meta) -> List[dict]:
-    """The reading's warnings, one dict each: `result`, `tool`, `line`, and
-    `text` for the terminal."""
+    """The warnings an earlier reading recorded, one dict each: `result`, `tool`,
+    `line`, and `text` for the terminal. Empty for every trace the current
+    reader writes."""
     if not isinstance(meta, dict):
         return []
     texts = [str(t) for t in meta.get("echoes_from_earlier_turns") or []]
@@ -45,53 +43,12 @@ def echo_warnings(meta) -> List[dict]:
     return warnings
 
 
-def cleared_echo_warnings(meta) -> List[dict]:
-    """Warnings the reading worked out and did not raise, because the operator
-    declared the tool external: `result`, `tool`, `line`, `kind`, `text` and
-    `cleared_by`, the declaration that took each away. They do not block - the
-    operator took on what the reading cannot know - but they are said, so a
-    declaration never removes a warning out of sight."""
-    if not isinstance(meta, dict):
-        return []
-    items = meta.get("echo_warnings_cleared_by_declaration")
-    if not isinstance(items, list):
-        return []
-    return [{k: str(w.get(k) or "") for k in (*FIELDS, "kind", "text", "cleared_by")}
-            for w in items if isinstance(w, dict)]
-
-
-def split_echo_warnings(warnings: List[dict],
-                        names: Optional[Iterable[str]]) -> Tuple[List[dict], List[dict]]:
-    """(unreviewed, accepted). A warning is accepted only when its own tool was
-    named; a warning whose tool is unknown never is. One pass, so ten thousand
-    warnings cost ten thousand steps, not a hundred million."""
-    confirmed = set(names or ())
-    unreviewed: List[dict] = []
-    accepted: List[dict] = []
-    for w in warnings:
-        (accepted if w["tool"] and w["tool"] in confirmed else unreviewed).append(w)
-    return unreviewed, accepted
-
-
-class UnreviewedEchoWarnings(Exception):
-    """Raised by `tallystick.audit()` on a trace that carries an echo warning
-    nobody confirmed - where `tallystick audit` exits 1. Not a verdict: the
-    books were not closed. `.warnings` holds every unreviewed warning."""
-
-    def __init__(self, unreviewed: List[dict]):
-        self.warnings = list(unreviewed)
-        names = sorted({w["tool"] for w in self.warnings if w["tool"]})
-        lines = [f"{UNREVIEWED_ECHO}: {len(self.warnings)} tool result(s) in this trace may "
-                 f"hand back the model's own text, and nobody has reviewed them, so the "
-                 f"books were not closed (`tallystick audit` exits 1 here)."]
-        lines += [f"  {w['text']}" for w in self.warnings[:10]]
-        if len(self.warnings) > 10:
-            lines.append(f"  (+{len(self.warnings) - 10} more, in .warnings)")
-        lines.append("  If a tool hands the model's text back, read the log again naming it "
-                     "as such (--tool-returns-model-text, model_text_tools).")
-        if names:
-            lines.append(f"  If its results are real, confirm after review: "
-                         f"audit(..., accept_echo_warnings={names!r})")
-        if any(not w["tool"] for w in self.warnings):
-            lines.append("  A warning with no tool known by name cannot be confirmed by name.")
-        super().__init__("\n".join(lines))
+def legacy_note(meta) -> str:
+    """One line about the warnings an earlier reading left in this trace, or ""."""
+    warnings = echo_warnings(meta)
+    if not warnings:
+        return ""
+    return (f"this trace carries {len(warnings)} echo warning(s) written by a reader "
+            f"before round 18. Echo warnings are no longer raised and do not hold the "
+            f"exit code; the results they name were kept as evidence by that reading. "
+            f"Read the log again to apply the current one")

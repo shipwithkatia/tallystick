@@ -12,11 +12,10 @@ The scheme this file pins:
     its trailing punctuation trimmed one mark at a time, IS a value the
     answering call carried. No threshold, no last line, no requirement that a
     match hold a space - nothing to shift;
-  * any other match with the answering call - a value of the call standing
-    somewhere in the reply, or enough of the reply covered by the call's text -
-    is a WARNING. A warning holds the exit code at 1 until a person confirms
-    the tool by name;
-  * so the three-character trick is a warning, not a silent pass.
+  * any other match with the answering call was a WARNING until round 18,
+    which removed the warnings. The three-character trick (P1-P3) and the
+    tests that pinned warnings went with them: that trick is now a silent pass,
+    and README says so.
 
 Everything here is built in the file. Nothing needs the AgentHallu corpus.
 That is the point of it: in the sixth review eight mutations of the echo path
@@ -67,14 +66,13 @@ def _read(args, result, **kw):
     meta = trace["_meta"]
     return {"kind": art["kind"],
             "demoted": bool(meta["echoed_back_tool_results"]),
-            "warnings": meta["echo_warning_details"],
             "meta": meta}
 
 
 def _noticed(read) -> bool:
-    """Did the reading refuse to pass this result off as unexamined evidence -
-    either by demoting it, or by warning about it?"""
-    return read["demoted"] or bool(read["warnings"])
+    """Did the reading refuse to pass this result off as evidence? Since round 18
+    only a demotion does: the warnings this used to accept are gone."""
+    return read["demoted"]
 
 
 # --- the three-character bypass, and the two tests it defeated --------------
@@ -83,14 +81,6 @@ HALF = len(CLAIM) // 2
 
 
 @pytest.mark.parametrize("result, why", [
-    pytest.param(CLAIM[:HALF] + "\n" + CLAIM[HALF:] + "\n0",
-                 "a newline in the middle and a one-character line after it",
-                 id="P1-the-three-character-bypass"),
-    pytest.param(CLAIM[:HALF] + "\n" + CLAIM[HALF:] + "\n[ok]",
-                 "a newline in the middle and a short status line after it",
-                 id="P2-newline-and-a-status-line"),
-    pytest.param(CLAIM[:40] + "\n" + CLAIM[40:90] + "\n" + CLAIM[90:] + "\n0",
-                 "the echo broken across three lines", id="P3-three-way-split"),
     pytest.param("=" * 200 + "\n" + CLAIM,
                  "the echo diluted below half by a banner", id="P4-diluted-below-half"),
 ])
@@ -165,7 +155,7 @@ def test_a_reply_that_is_exactly_the_value_it_was_given_is_demoted(args, result,
     pytest.param({"text": CLAIM}, CLAIM + "\n[Execution time: 0.01s]", "V4-status-line-after"),
     pytest.param({"text": CLAIM}, "'" + CLAIM + "'", "V5-quoted-repr"),
 ])
-def test_a_value_handed_back_inside_a_reply_is_at_least_a_warning(args, result, id_):
+def test_a_value_handed_back_inside_a_reply_is_demoted(args, result, id_):
     read = _read(args, result)
     assert _noticed(read), f"{id_}: the call's own value stands inside the reply"
 
@@ -222,20 +212,6 @@ def test_the_placeholder_name_cannot_be_declared_verbatim():
     assert "document" not in kinds, (
         "`tool` is the name the reader puts in where the log gives none; declaring "
         "it must not turn every unnamed result into external text kept verbatim")
-
-
-def test_the_placeholder_name_cannot_be_declared_model_text():
-    trace = oc.to_trace(_unnamed_log(), model_text_tools={"tool"})
-    assert trace["_meta"]["echo_warning_details"], (
-        "declaring the placeholder silenced the warning about an unnamed tool")
-
-
-def test_the_placeholder_name_cannot_vouch_as_external():
-    # The protection commit 7760068 states in words: an external declaration
-    # clears a warning "only for a tool known by its own name".
-    trace = oc.to_trace(_unnamed_log(), external_tools={"tool"})
-    assert trace["_meta"]["echo_warning_details"], (
-        "an external declaration vouched for a tool the log never named")
 
 
 # --- hole 3: declarations compared byte for byte ---------------------------
@@ -317,31 +293,6 @@ def test_the_report_says_out_loud_that_a_declaration_matched_nothing(tmp_path, c
     assert "declared but not in this log: reed_file" in out, out
 
 
-def test_the_warning_quotes_what_it_matched_not_the_last_line():
-    # The bypass ends in a one-character line. Quoting the last line would show
-    # the reader's own answer as `0` and tell the person reading it nothing.
-    result = CLAIM[:HALF] + "\n" + CLAIM[HALF:] + "\n0"
-    read = _read({"query": CLAIM}, result)
-    assert read["warnings"], "the bypass produced no warning"
-    line = read["warnings"][0]["line"]
-    assert line.strip() != "0", "the warning quoted the character the tool added"
-    assert CLAIM.split()[0] in line, line
-
-
-def test_the_bypass_holds_the_exit_code_at_1_end_to_end(tmp_path, capsys):
-    from tallystick.cli import main
-    result = CLAIM[:HALF] + "\n" + CLAIM[HALF:] + "\n0"
-    path = tmp_path / "log.json"
-    path.write_text(json.dumps({"messages": _log({"query": CLAIM}, result, name="stats_api")}),
-                    encoding="utf-8")
-    assert main(["check-trace", "--from", "openai", str(path), "--quiet"]) == 1
-    err = capsys.readouterr().err
-    assert "unreviewed_echo_warnings" in err, err
-    # and it clears only when a person names the tool
-    assert main(["check-trace", "--from", "openai", str(path), "--quiet",
-                 "--accept-echo-warning", "stats_api"]) == 0
-
-
 def test_the_whole_reply_is_a_candidate_even_when_it_spans_several_lines():
     # A reply whose lines each match nothing, and whose whole - once the line
     # breaks are collapsed - is exactly the value the call carried. Only the
@@ -349,33 +300,6 @@ def test_the_whole_reply_is_a_candidate_even_when_it_spans_several_lines():
     sent = "line one of the note\nline two of the note"
     read = _read({"text": sent}, "line one of the note\nline two of the note")
     assert read["demoted"], f"kind={read['kind']}"
-
-
-def test_an_external_declaration_does_not_vouch_where_the_placement_is_a_guess():
-    # `--tool-returns-external NAME` clears warnings about that tool. Where the
-    # reader had to place the result by position among several calls, it does
-    # not know that this result is that tool's - so the declaration must not
-    # reach it. The name is in the log; what is missing is which call answered.
-    note = "The plant recorded four point six million tonnes of output last year"
-    log = [QUESTION,
-           {"role": "assistant", "content": "save", "tool_calls": [
-               _call("save_note", {"note": note}, "c0")]},
-           {"role": "tool", "tool_call_id": "c0", "name": "save_note", "content": "ok"},
-           {"role": "assistant", "content": "two calls, no ids on the results",
-            "tool_calls": [
-                {"type": "function",
-                 "function": {"name": "read_note", "arguments": json.dumps({"key": "n1"})}},
-                {"type": "function",
-                 "function": {"name": "web_search", "arguments": json.dumps({"q": "output"})}}]},
-           {"role": "tool", "content": note},
-           {"role": "tool", "content": "An unrelated page about shipping."},
-           {"role": "assistant", "content": "done"}]
-    plain = oc.to_trace(json.loads(json.dumps(log)))
-    assert plain["_meta"]["echo_warning_details"], "no warning to clear in the first place"
-    vouched = oc.to_trace(json.loads(json.dumps(log)), external_tools={"read_note"})
-    assert vouched["_meta"]["echo_warning_details"], (
-        "an external declaration vouched for a result the reader only guessed "
-        "belonged to that tool")
 
 
 def test_a_one_character_line_is_not_a_value_of_the_call():

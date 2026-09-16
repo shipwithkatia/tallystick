@@ -17,7 +17,6 @@ books say so without anyone being asked to judge.
 """
 
 from .auditability import Auditability, check_trace
-from .echo_gate import UnreviewedEchoWarnings, echo_warnings, split_echo_warnings
 from .io import load_run, load_run_file, read_json_file, read_meta
 from .ledger import ChainHop, ClaimAudit, ClaimStatus, TrialBalance, close_books
 from .report import chain_view, summary
@@ -33,29 +32,20 @@ __all__ = [
     "TrialBalance", "ClaimAudit", "ClaimStatus", "ChainHop",
     "summary", "chain_view",
     "Run", "Step", "Artifact", "ArtifactKind", "Claim", "Entry",
-    "Account", "AccountType", "TraceError", "UnreviewedEchoWarnings",
+    "Account", "AccountType", "TraceError",
 ]
 
 
-def audit(source, *, accept_echo_warnings=()) -> TrialBalance:
+def audit(source) -> TrialBalance:
     """Close the books on a run given as a path, a dict, or a Run.
 
-    Raises `UnreviewedEchoWarnings` while the trace carries an echo warning
-    nobody confirmed - exactly where `tallystick audit` exits 1 with
-    `unreviewed_echo_warnings`. It raises instead of returning a balance with
-    books_balance False, because that would read "the books do not balance"
-    when the truth is "they were not checked". After reviewing the results,
-    pass the tools by name: `audit(path, accept_echo_warnings=["read_note"])`.
-
-    A `Run` built in Python carries no reading, so it has no warnings to gate."""
+    Raises TraceError when the file cannot be read or is not a trace. The
+    answer's coverage - how much of it stands under any claim - is
+    `report.answer_cover(run, balance)`; `tallystick audit` exits 1 when most of
+    the answer stands under none."""
     if isinstance(source, Run):
         return close_books(source)
     raw = source if isinstance(source, dict) else read_json_file(source)
     run = load_run(raw)
     read_meta(raw)
-    unreviewed, _accepted = split_echo_warnings(
-        echo_warnings(raw.get("_meta") if isinstance(raw, dict) else None),
-        accept_echo_warnings)
-    if unreviewed:
-        raise UnreviewedEchoWarnings(unreviewed)
     return close_books(run)

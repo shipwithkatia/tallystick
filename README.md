@@ -36,7 +36,9 @@ Trial balance — 3 claims in the final answer
   grounded       2  ████████████░░░░░░  67%
   laundered      1  ██████░░░░░░░░░░░░  33%
 ──────────────────────────────────────────────────────────
-  coverage         66.7%
+  coverage         54.0% of the answer (67 of 124 letters and digits)
+  under no claim   0.0% of the answer - not checked
+  claims closed    2 of 3
   laundering rate  33.3%   <- invisible to one-hop checks
 
 1 claim(s) did not close:
@@ -124,11 +126,11 @@ tallystick check-trace my_log.json --tool-returns-verbatim  read_file
 ```
 
 A third declaration is for a tool whose result is external evidence in its own
-words — a search API's summary, an API response. Declaring it means you vouch
-for the tool, so echo warnings about it are cleared. It never clears a
-**demotion**: where the reply IS a value the answering call carried — the whole
-reply, one of its lines, the single value of a JSON reply — the reader
-established that itself, and it stays the model's own text whatever you declare.
+words — a search API's summary, an API response. It counts the tool as declared
+for strict mode below. It never undoes a **demotion**: where the reply IS a
+value the answering call carried — the whole reply, one of its lines, the
+single value of a JSON reply — the reader established that itself, and it stays
+the model's own text whatever you declare.
 
 Tool names in all three declarations are matched with case and surrounding
 spaces ignored, and a name that matches no tool in the log is reported rather
@@ -165,72 +167,45 @@ Neither is guessed from the log. By default every tool result is treated as a
 wall the audit cannot see past, which counts against your recording rather
 than quietly in its favour.
 
-One thing the reading reports instead of deciding. A tool result that hands
-back text the model had already written into a call — a note read back, a
-variable an interpreter kept, a file saved and read in the same turn — may be
-the model's own words or a real confirmation, and the log cannot say which. It
-is reported when at least half of the reply, counted in letters and digits, is
-covered by the text of some call, or when the whole reply is plainly one of
-that call's values. Half is one number, used the same way against the call a
-result answered and against the calls of earlier turns.
+**What the reading decides on its own, and what it no longer says.** One thing
+is read from the file without being told, because the file shows it: a tool
+result that IS a value of the call it answered — the model's own text handed
+back — is the model's text, not a root (the demotion above).
 
-The reply is weighed as written and with its escapes undone, the same two
-spellings the demotion reads. A note stored with Python's `json.dumps` comes
-back with every non-Latin letter written as `\uXXXX`; weighed only as written,
-a Russian or Chinese note read back that way was not reported at all. Replies
-longer than 2,000 characters are not decoded, on either path, so a long note
-read back escaped is still not seen.
+Until this version the reader also **warned** about results that might hand
+back the model's text — a note read back in a later turn, a variable an
+interpreter kept, a reply half made of a call's text, a result it could not
+match to a call — and `check-trace` and `audit` exited 1 until you confirmed
+each tool with `--accept-echo-warning`. The warnings are gone, and the flag with
+them. A hand-read sample of those warnings found fewer than half of them were
+real echoes, and a signal that is mostly wrong teaches the person reading it to
+wave it through. **What that removal lets through without a word:**
 
-Words are what the text is cut into, and in Chinese, Japanese, Thai and the
-other scripts written without spaces a whole note is one word. There a word is
-cut again at every mark that is not a letter or digit, so a JSON quote, a
-fullwidth `：` after a label or 「」 around a note no longer hides it. Three
-things still do, and nothing reports them: a note glued to other letters with
-no mark between them (`已保存` written straight onto it), a note set inside a
-longer clause of the reply, and a clause read back with one character changed —
-in English only the changed word would stop matching, here the whole clause
-does.
+- a note saved in one turn and read back in a later one, as plain text or
+  inside a store's record (mem0, LangGraph Store): the read-back is a root;
+- a tweet, a ticket, a task list returned by the very call that created it,
+  as a record with an id: the record is not that one value, so it is a root;
+- an interpreter printing prose the model wrote into its own code, mixed with
+  other output; a file written and then read back with a header or line numbers;
+- the sixth review's trick against the demotion — a newline in the middle of
+  the value and one character after it;
+- a result the reading could not match to any call;
+- the model's draft pasted back into the conversation as a `user` message
+  ("here is your previous draft"), or a subagent's answer handed over as one:
+  every `user` message is a root.
 
-How half was chosen, and how little that choice rests on. Warnings were drawn
-at 30% and at 50% and read by hand, and the sample could not tell the two
-settings apart. The drawn trajectories were not kept, so that reading cannot be
-checked from this repository; treat half as a setting, not as a measured
-optimum. What it costs can be checked: 123 of 693 AgentHallu trajectories
-(17.7%) ask a person to look, with the corpus's four echo tools declared
-(`python bench/echo_coverage.py <AgentHallu>`).
+Two rules to close the first and the last of these were built and measured in
+this version, and neither shipped: read by hand, more than a third of what
+each one demoted was honest material — a web page carrying a title the model
+had quoted, a person's own traceback that shared one line with code the model
+wrote earlier.
 
-**What this check is for, and what it is not.** It catches an agent quoting
-itself by accident: a note it saved and read back, a value it wrote into code
-and printed. The model does not know it is being checked and is not trying to
-get past anything. It is **not** a defence against someone who knows the rule
-and wants past it. The rule weighs how much of a reply is the model's own text,
-so padding the reply with unrelated text walks through it without removing a
-single character of the model's words. Measured on this version: a line of junk
-0.55 to 0.86 times the length of the echo silences it, for echoes of 58 to 369
-characters, on the call a reply answers and on a note read back in a later
-turn. Padding every tool result of AgentHallu the same way takes the warnings
-from 154 to 0 and the demotions from 177 to 125 (`python bench/dilution.py`;
-the corpus part needs AgentHallu). The 154 and 177 on the unaltered corpus come
-from runs where nobody was evading anything — the case the check is built for.
-For the same reason a value read back in another case — `canberra` after the
-model saved `Canberra` — is not reported. An agent quoting itself by accident
-keeps the case. If the tools your agent calls can be shaped by someone who has
-read this page, the warning count is not a safety property: declare the tools
-instead, with `--tool-returns-model-text`, `--tool-returns-verbatim` or
-`--tool-returns-external`.
+If a tool in your run can do any of this, say so: `--tool-returns-model-text
+NAME`. That is the only protection left for these cases, and it was always the
+reliable one.
 
-Neither can a result the reading matched to no call, because a gateway
-renamed the tool or rewrote the id. Such a result stays evidence, and it is
-named above the report with the message's position in your file (counted from
-0) and the call id, so you can find it. `check-trace` and `audit` exit 1 with
-`unreviewed_echo_warnings` until you have looked: name the tool with
-`--tool-returns-model-text`, or confirm it, tool by tool, with
-`--accept-echo-warning NAME`. A confirmation covers only the tool it names, so a
-new warning about another tool still fails the build. A warning about a result
-placed by position between several tools, or about a tool the log gives no
-name, cannot be confirmed by any name: declare the tool, or record names and
-call ids. `--quiet` still prints each warning, so a CI job cannot pass on one
-nobody saw.
+A trace written by an earlier version may still carry warnings in its `_meta`.
+`check-trace` and `audit` say so in a note and do not change the exit code for it.
 
 **2. Audit a run whose claims are already posted.** Deterministic, offline, no
 SDK needed:
@@ -242,21 +217,24 @@ tallystick examples/laundered_summary.json --chain ans_3   # the full chain for 
 ```
 
 Exit codes are the product decision here. **0** — every claim in the answer
-traces back to something outside the model. **1** — one does not, and the
-report names it and the step that introduced it; or the posted trace still
-carries an echo warning from the reading that nobody confirmed
-(`unreviewed_echo_warnings`, cleared with `--accept-echo-warning NAME`).
-`propose` copies those warnings into the file it writes, so auditing the posted
-copy does not walk around the gate `check-trace` applies. **1** also when more
+traces back to something outside the model, and at least half of the answer
+stands under a claim. **1** — a claim does not, and the report names it and the
+step that introduced it. **1** also when more than half of the answer's letters
+and digits stand under no claim at all (`answer_mostly_unclaimed`): the claims
+may all balance, but they speak for less than half of what the user saw. The
+report prints `coverage` as the share of the WHOLE answer under claims that
+close, and `under no claim` beside it, always; the share of claims that close
+is the line `claims closed`. Post claims on the rest of the answer to clear it —
+there is no flag that does. **1** also when more
 than one artifact is marked `final_answer` (`multiple_final_answers`): the trace
 does not say which answer the user saw, so claims that balance on one of them
 do not make a checked run — the same finding `check-trace` reports on that file.
 **2** — the audit could not run at all: a malformed file, a missing key, a
 trace with no claims posted on it yet, or a `_meta` block the command cannot
 read (`_meta` that is not an object, or a field it reads that has the wrong
-type — a list of warnings given as a number). A file that cannot be read must
+type — a list given as a number). A file that cannot be read must
 never read as "this agent failed". A `_meta` it cannot read is refused rather
-than skipped, because the echo warnings live there.
+than skipped, because what the reading left out is recorded there.
 
 **2** also when the only claims that did not close are ones the audit could not
 walk to the end: a chain of claims deeper than 256 hops. The report prints
@@ -310,31 +288,25 @@ from tallystick import audit
 balance = audit("run.json")
 assert balance.books_balance       # drop straight into a test suite
 
-balance.coverage                   # share of final claims that trace to a root
+balance.coverage                   # share of final CLAIMS that close - not of the answer
 balance.laundering_rate            # share that cite something real but unfunded
 balance.injection_points()         # failing claims, each with the step that broke
 ```
 
-**Where the terminal exits 1 for an unreviewed echo warning, Python raises.**
-`audit()` applies the same gate as `tallystick audit`. On a posted trace that
-still carries an echo warning nobody confirmed, it raises
-`tallystick.UnreviewedEchoWarnings`, whose message starts with
-`unreviewed_echo_warnings` and lists each warning. It does not return a balance
-with `books_balance` False: that would say "the books do not balance", and the
-truth is "the books were not checked" — the difference the exit codes 1 and 2
-exist for. After reviewing the results, confirm by name:
+How much of the answer those claims cover — what the terminal prints as
+`coverage` — is `answer_cover`:
 
 ```python
-from tallystick import UnreviewedEchoWarnings, audit
+from tallystick import audit, load_run, read_json_file
+from tallystick.report import answer_cover
 
-try:
-    balance = audit("posted.json")
-except UnreviewedEchoWarnings as exc:
-    print(exc)                     # which results, which tools, what to pass
-    balance = audit("posted.json", accept_echo_warnings=["read_note"])
+raw = read_json_file("run.json")
+cover = answer_cover(load_run(raw), audit(raw))
+cover.coverage, cover.unclaimed    # whole answer: under claims that close / under none
+cover.mostly_unclaimed             # True where `tallystick audit` exits 1 for it
 ```
 
-The other outcomes: books that do not balance return normally with
+`audit()` returns the balance; books that do not balance return normally with
 `books_balance` False (the terminal's exit 1). A claim the audit could not walk
 to the end has the status `ClaimStatus.UNCHECKED`, is listed by
 `balance.unchecked()`, and leaves `books_balance` False — where the terminal
@@ -403,10 +375,7 @@ or none. The **notes** are worth knowing and are nobody's bug — above all two
 artifacts holding the same string, which real agents produce constantly and which
 breaks any tooling that matches artifacts by their text. Exit 0 when no defect
 stands in the way, 1 when one does or the recording is thinner than a
-`--min-reachable` you passed, 2 when the file cannot be read. Exit 1 also when
-the reading kept a result that may hand back the model's own text and nobody has reviewed it
-(`unreviewed_echo_warnings`); `--accept-echo-warning NAME` clears it for that
-tool and clears no other reason.
+`--min-reachable` you passed, 2 when the file cannot be read.
 
 The three verdicts say what they license you to conclude. **CAN BE CHECKED**: nothing
 in the recording stops the audit; a clean result from it means something. **PARTLY**:

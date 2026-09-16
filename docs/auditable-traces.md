@@ -55,7 +55,9 @@ The other line that matters is `tool_result` against `intermediate`. A tool that
 back the agent's own text — a note store, a `final_answer` tool, an interpreter
 echoing a literal from the model's code — did not bring anything in from
 outside, and recording it as a root launders it into evidence. Record it as
-`intermediate`.
+`intermediate`. The same holds for a message: a model's draft pasted back into
+the conversation as a `user` turn, or a subagent's answer handed over as one,
+is the model's text, not a `document`.
 
 Where a tool's output is genuinely a digest produced by another model — most web
 search APIs — you have two honest options: store the pages it digested as
@@ -88,7 +90,7 @@ characters the crossing is at 677 turns, and 2,000 turns give 4.6 MB of log and
 slower: ten times at 516 turns with 40-character replies (0.8 MB of log and
 32 MB of trace at 2,000 turns), and not within 2,000 turns with 2,000-character
 replies (8 times, 4.6 MB and 36 MB). None of AgentHallu's 693 trajectories
-comes near it: the largest trace there is 2.3 times its log
+comes near it: the largest trace there is 2.2 times its log
 (`python bench/trace_growth.py --corpus <AgentHallu>`; the corpus is not in
 this repository — `git clone https://github.com/liuxuannan/AgentHallu`). The
 list stays explicit anyway. A shorthand for "everything the

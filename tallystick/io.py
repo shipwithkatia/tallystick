@@ -216,8 +216,11 @@ _META_LISTS = (
     "model_text_tools", "verbatim_tools", "external_tools", "declarations_not_in_log",
     "skipped_empty", "dropped_messages", "truncated", "guessed_tool_names",
     "unmatched_tool_results", "unresolved_tool_results", "echoed_back_tool_results",
+    "notes",
+    # Written by readers before round 18, which warned about echoes; still read,
+    # so a trace that carries them is said to carry them (echo_gate.legacy_note).
     "echoes_from_earlier_turns", "echo_warning_details",
-    "echo_warnings_cleared_by_declaration", "notes",
+    "echo_warnings_cleared_by_declaration",
 )
 _LIST_LIKE = (list, tuple, set, frozenset)
 
@@ -227,8 +230,8 @@ def read_meta(raw: Any) -> Dict[str, Any] | None:
 
     Raises TraceError when the block, or a field a command reads from it, has
     the wrong type. Refused rather than skipped: `_meta` is where a reading
-    leaves its echo warnings, and a warnings field that cannot be read, passed
-    over in silence, is a gate that opens on malformed input."""
+    says what it read as the model's text and what it left out, and a field
+    that cannot be read, passed over in silence, hides that from the report."""
     if not isinstance(raw, dict) or raw.get("_meta") is None:
         return None
     meta = raw["_meta"]

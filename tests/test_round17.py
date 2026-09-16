@@ -10,9 +10,8 @@ Each of those passes on a fix that is wrong in a way they do not look at:
   recomputing every claim that cites a closed one costs the square on a clique;
 * taking the worst closing member for a wide quote, and the best one for a group
   of entries from one quote, passes the review's example and leaves the group;
-* cutting Tibetan at every mark `_WORD` does not count as a letter - the tsheg
-  and the vowel signs - makes a long Tibetan chat with no echo in it come back
-  `unchecked`, exit 1, as one character per word did for Chinese in round 15;
+* (a long Tibetan chat cut at its own syllables came back `unchecked`; that
+  test went with the echo warnings in round 18);
 * a folder with trajectories and no label prints a table of 0/0 as well, and
   strict_mode.py divides by zero like echo_coverage.py did.
 """
@@ -20,7 +19,6 @@ Each of those passes on a fix that is wrong in a way they do not look at:
 from __future__ import annotations
 
 import json
-import random
 import shutil
 import subprocess
 import sys
@@ -28,7 +26,6 @@ from pathlib import Path
 
 import tallystick.ledger as ledger
 from tallystick import load_run
-from tallystick.adapters.openai_chat import to_trace
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -127,37 +124,6 @@ def test_a_group_over_a_grounded_and_an_assumed_sentence_is_assumed():
     balance = ledger.close_books(load_run(t))
     assert balance.audits["ans_1"].status is ledger.ClaimStatus.ASSUMED
     assert balance.books_balance
-
-
-# --- 2.3: Tibetan is cut at quotes, not at its own syllables ---------------------
-
-
-def test_a_long_tibetan_chat_with_no_echo_is_weighed_to_the_end():
-    """100 turns: the model writes 1,000 Tibetan characters into each call, the
-    tool answers with 2,000 others; no reply is a note read back. Cut at the
-    tsheg and the vowel signs, every note is a string of single consonants, the
-    exact pass runs out of work and 39 replies come back `unchecked` - exit 1 on
-    a run with no echo in it."""
-    cons = [chr(c) for c in range(0x0F40, 0x0F6A) if c != 0x0F48]
-    vowels = ["", "ི", "ུ", "ེ", "ོ"]
-
-    def text(rng, syllables, limit):
-        return "་".join(rng.choice(cons) + rng.choice(vowels)
-                             + (rng.choice(cons) if rng.random() < .4 else "")
-                             for _ in range(syllables))[:limit]
-
-    model, tool = random.Random(17), random.Random(1017)
-    chat = [{"role": "user", "content": text(random.Random(1), 8, 100)}]
-    for i in range(100):
-        chat.append({"role": "assistant", "content": None, "tool_calls": [
-            {"id": f"c{i}", "type": "function", "function": {
-                "name": "web_search",
-                "arguments": json.dumps({"query": text(model, 400, 1000)}, ensure_ascii=False)}}]})
-        chat.append({"role": "tool", "tool_call_id": f"c{i}", "name": "web_search",
-                     "content": text(tool, 800, 2000)})
-    chat.append({"role": "assistant", "content": text(random.Random(2), 4, 100)})
-    kinds = [w["kind"] for w in to_trace(chat)["_meta"]["echo_warning_details"]]
-    assert kinds == []
 
 
 # --- 4.1, 5.2: nothing found is said, not counted --------------------------------

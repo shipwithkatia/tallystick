@@ -25,13 +25,11 @@ stands in the audit's way. `1` — the audit will run, but read its silence as
 "nothing found here", not "nothing there". `2` — the file could not be read;
 never confuse this with a verdict about your agent.
 
-`1` also covers a reading that kept a tool result as evidence although it may
-hand back the model's own text - a line the model wrote in another call, earlier
-or in the same turn, or a result matched to no call - when nobody has reviewed it
-yet. The reason is printed as `unreviewed_echo_warnings`, even with `--quiet`,
-each warning with the message's position in your file (counted from 0) and the
-call id, and `--accept-echo-warning NAME` confirms it for one tool. None of these
-six logs has one.
+Nothing in these six logs waits for a confirmation. Earlier versions also
+exited `1` on a warning that a tool result might hand back the model's own text,
+until you confirmed the tool by name; those warnings, and the flag, are gone.
+What the reader still decides by itself is named above the report: a tool
+result that is a value of the call it answered is read as the model's text.
 
 ## The two flags, on these files
 

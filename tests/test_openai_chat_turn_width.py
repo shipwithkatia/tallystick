@@ -7,14 +7,14 @@ scheme agreed after that review, and pass under it however it is implemented:
 
 - demote automatically only against the arguments of the call a result answers;
 - an echo from another turn (a stateful interpreter, a notes store, a file) is
-  not demoted blindly - it is either read as model text or named in `_meta`, so
-  the operator can decide;
+  not demoted blindly (group B, which also accepted a warning about it, was
+  removed with the warnings in round 18: such an echo is now evidence, silently);
 - reading stays linear in the size of the log.
 
 Groups:
   A  the no-argument exception demotes real results (5), and one of those
      demotions turns check-trace from exit 1 into exit 0 (1)
-  B  echoes from an earlier turn recorded as evidence with nothing said (5)
+  B  removed in round 18 with the echo warnings
   C  unrelated calls in one turn: a coincidence between them demotes a real
      result (5)
   E  reading time that grows with the square of a turn or of the run (2)
@@ -143,61 +143,8 @@ def test_a_demoted_no_argument_reply_does_not_turn_check_trace_green(tmp_path):
         f"{out.getvalue()}{err.getvalue()}")
 
 
-# --- B: echoes from an earlier turn ------------------------------------------
-
 def _python(code, cid):
     return _call("python", {"code": code}, cid)
-
-
-GROUP_B = [
-    pytest.param(
-        [QUESTION, _assistant(None, _python('answer = "B"\nprint("stored")', "c1")),
-         _tool("stored", "python", "c1"),
-         _assistant(None, _python("print(answer)", "c2")), _tool("B", "python", "c2"),
-         _assistant("B")],
-        "B", id="B1-stateful-interpreter-short"),
-    pytest.param(
-        [QUESTION, _assistant(None, _python(f'summary = "{ECHO}"\nprint("ok")', "c1")),
-         _tool("ok", "python", "c1"),
-         _assistant(None, _python("print(summary)", "c2")), _tool(ECHO, "python", "c2"),
-         _assistant(ECHO)],
-        ECHO, id="B2-stateful-interpreter-long"),
-    pytest.param(
-        [QUESTION,
-         _assistant(None, _call("write_file", {"path": "answer.txt", "content": ECHO}, "c1")),
-         _tool("written", "write_file", "c1"),
-         _assistant(None, _call("bash", {"cmd": "cat answer.txt"}, "c2")), _tool(ECHO, "bash", "c2"),
-         _assistant(ECHO)],
-        ECHO, id="B3-file-written-then-read-back"),
-    pytest.param(
-        [QUESTION,
-         _assistant(None, _call("save_note", {"key": "capital", "text": ECHO}, "c1")),
-         _tool("saved", "save_note", "c1"),
-         _assistant(None, _call("read_note", {"key": "capital"}, "c2")), _tool(ECHO, "read_note", "c2"),
-         _assistant(ECHO)],
-        ECHO, id="B4-key-value-notes-store"),
-    pytest.param(
-        [QUESTION,
-         _assistant(None, _call("save_note", {"text": ECHO}, "c1")), _tool("saved", "save_note", "c1"),
-         _assistant(None, _call("read_note", {}, "c2"),
-                    _call("web_search", {"q": "capital of australia"}, "c3")),
-         _tool(ECHO, "read_note", "c2"),
-         _tool("Canberra is the capital city of Australia.", "web_search", "c3"),
-         _assistant(ECHO)],
-        ECHO, id="B5-no-argument-read-in-a-turn-with-an-argument-call"),
-]
-
-
-@pytest.mark.parametrize("messages, result", GROUP_B)
-def test_an_echo_from_an_earlier_turn_is_not_silently_evidence(messages, result):
-    trace = oc.to_trace(messages)
-    art = _artifact(trace, result)
-    label = f"tool[{art['artifact_id'][1:]}]"
-    named = [entry for value in trace["_meta"].values() if isinstance(value, list)
-             for entry in value if isinstance(entry, str) and label in entry]
-    assert art["kind"] not in ROOTS or named, (
-        f"{label} hands back text the model wrote in an earlier turn; it is read as "
-        f"{art['kind']!r} and nothing in _meta names it")
 
 
 # --- C: unrelated calls in one turn ------------------------------------------

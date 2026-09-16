@@ -107,20 +107,6 @@ def test_declaring_a_tool_external_changes_nothing_about_its_reading(tmp_path, c
 ECHO = "The capital of Australia is Sydney"
 
 
-def test_declaring_a_tool_external_clears_its_echo_warning(tmp_path, capsys):
-    notes = [QUESTION,
-             *_turn("save_note", {"key": "capital", "text": ECHO}, "c1", "saved"),
-             *_turn("read_note", {"key": "capital"}, "c2", ECHO),
-             {"role": "assistant", "content": ECHO}]
-    log = _write(tmp_path, notes)
-    code, payload = _gate(tmp_path, capsys, "check-trace", log)
-    assert code == 1 and "unreviewed_echo_warnings" in payload["gate"]["reasons"]
-    code, payload = _gate(tmp_path, capsys, "check-trace", log,
-                          "--tool-returns-external", "read_note")
-    assert (code, payload["gate"]["reasons"]) == (0, [])
-    assert payload["reading"]["echo_warning_details"] == []
-
-
 def test_declaring_a_tool_external_does_not_undo_a_demotion_the_reader_established(tmp_path, capsys):
     # The result is the model's sentence, found inside the arguments of the very
     # call it answers. Declared external or not, it is the model's own text.

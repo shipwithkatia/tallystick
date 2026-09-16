@@ -67,74 +67,41 @@ reply" - with three characters, a newline dropped into the middle of an echo
 and a one-character line after it, and took it from 216 fires on AgentHallu to
 0. Every override is named in `_meta.echoed_back_tool_results`.
 
-**Anything short of that is a warning, not a demotion.** One question, one
-number, and the same pair on every path: is at least `WARN_SHARE` of the reply,
-counted in letters and digits, covered by the text of a call - the one it
-answered, or any call of an earlier turn, or another call of this turn. Both
-sides are read as words, so a newline dropped into the middle of an echo
-changes nothing. Recorded in `_meta.echo_warning_details` with the kind that
-says which call it was weighed against.
+**Nothing short of that is acted on, and nothing is reported instead.** Until
+round 18 a result whose reply was at least half covered by the text of some
+call - the one it answered, an earlier one, another of the same turn - was kept
+as evidence and WARNED about, and `check-trace` and `audit` exited 1 until a
+person confirmed the tool by name. Review 16 drew 20 of those warnings on
+AgentHallu and read them: 6 real echoes, 7 honest work (an interpreter printing
+a number it computed under a label the model wrote), 7 disputed. The project's
+bar is that a signal most of whose firings are ordinary work is removed, not
+tuned, so the warnings went, and with them the share, the word index and the
+`unchecked` kind. What that stopped seeing is stated in the README: above all a
+record handed back by the call that created it - a tweet, a ticket, a task
+list returned with an id - and a note read back from a store in a later turn.
 
-The threshold was chosen by drawing 20 random warnings from AgentHallu at 30%
-and at 50% and reading them, against a test named before the measurement: more
-than half must be real echoes, at no more than 20% of the corpus. At 30%, nine
-of twenty were real and it cost 27.3% of trajectories; at 50%, twelve of twenty
-were real and it cost 15.3% then (106 of 693). The same setting costs 17.7%
-today - 123 of 693, `bench/echo_coverage.py`, after the reply began to be
-weighed with its escapes undone. The drawn samples were not kept, so the
-counts of real echoes cannot be recomputed. That sample does not separate the
-two settings:
-both exact 95% intervals (23-68%, 36-81%) contain the 50% bar, and the choice
-rests on reading one family - browser status lines like `Navigated to <url>` -
-as echoes. See `WARN_SHARE`. A second trigger that shipped in the seventh
-round - "a value of the call stands anywhere inside a longer reply" - was
-dropped by the same measurement: it cost 300 of 693 trajectories on its own,
-and of ten random warnings of that kind one was a real echo, one borderline
-and eight a tool doing its job (a search repeating its query, an invoice looked
-up by the id it was given, a browser naming the URL it opened). It was first
-written down as none of ten.
+**What was tried in round 18 to close two silent holes, and stopped.** Both
+were measured and read by hand against a criterion written first, with the bar
+"more than a third false - stop, do not tune":
 
-Every comparison on the echo path is made on a cleaned copy of both sides:
+- a phrase the model handed ANOTHER call, standing whole inside a reply (a note
+  read back from a store's record): 30 demotions on AgentHallu, 11 of them
+  honest pages - a title the model had quoted in its own `reasoning` field,
+  and a browser page carrying the same title;
+- a `user` or `system` message whose whole text, a line of it, or the text
+  after a `label: ` repeats a phrase the model wrote earlier (a draft pasted
+  back): 100 demotions over 7,195 user messages of 1,554 WildChat
+  conversations; of 20 drawn, 7 were the model's text, 6 disputed and 7 a
+  person's own material - a traceback or their code - matched on one line
+  such as `from tkinter import *`.
+
+Neither ships. Both holes stay open, and README names them.
+
+Every comparison on the demotion path is made on a cleaned copy of both sides:
 every kind of space made a plain one, zero-width marks dropped. A zero-width
 space after a value and a non-breaking space in a JSON reply each emptied a rule
-before. Case is kept on both paths, so a value read back in another case is
-not reported: folding it cost 61 real results on the demotion and 6 warnings
-with no real echo among them on the warnings (see the note after `_clean`).
-
-**What this reading is for, and what it is not.** It catches an agent quoting
-itself by accident - the model does not know it is checked and is not trying to
-get past anything. It is not a defence against someone who knows the rule:
-text added to a reply lowers the share without removing a character of the
-model's words, and a line of junk shorter than the echo is enough. The README
-gives the measured price.
-
-One question coverage cannot ask is whether a short reply is a value an earlier
-call carried: `answer = "B"` stored in one turn and printed in the next is four
-characters, below any run worth counting. So a reply that IS, whole, one of the
-plain values of an earlier call - its JSON values, its quoted literals, its
-lines, the bare token of a `name = value` line of code, but not its other bare
-word atoms - is reported too, with or without quotes around the reply. That has
-no threshold in it either.
-
-A reply MAX_STARTS kept from being weighed to the end is not passed: it is
-weighed again without the limit, and where even that is too costly it is
-reported with the kind `unchecked`.
-
-**A tool that hands back text from ANOTHER call is reported, not demoted.**
-An interpreter that kept a variable, a notes store, a file written in one turn
-and read in the next - or saved and read back inside one turn: the text is the
-model's, but the same match also happens when a tool confirms what the model
-guessed, and the log cannot tell the two apart. So is a result the reading could
-not match to any call (a gateway renamed the tool, or rewrote the id): nothing
-says which arguments to weigh it against. Such results stay evidence and are
-recorded in `_meta.echo_warning_details`, and as text in
-`_meta.echoes_from_earlier_turns` (a name kept for the files already written),
-each with the message's position in the FILE, counted from 0, and the call id
-where the log has one. If the tool is one that hands text back, say so with
-`model_text_tools`. `check-trace` and `audit` exit 1 on any such report, with
-the reason `unreviewed_echo_warnings`, and `tallystick.audit()` raises, until
-each tool is confirmed by name with `--accept-echo-warning NAME`: a warning
-nobody read must not pass a run.
+before. Case is kept, so a value read back in another case is not caught:
+folding it cost 61 real results (see the note after `_clean`).
 
 **A tool result longer than `max_tool_chars` is cut**, and the cut is recorded
 in `_meta.truncated` so the audit can say "not recorded" rather than "not
@@ -330,27 +297,12 @@ def _clean(text: str) -> str:
     return text.translate(_CLEAN)
 
 
-#: Case is NOT folded, on either path, and that leaves a gap on purpose: a value
-#: read back in another case - `canberra` after `Canberra` - is not reported.
-#: Both ways were measured on AgentHallu. Folding case in the demotion demoted
-#: 61 more results, and each one read was a tool doing real work: a ticker
-#: lookup answering `Zeta Corp` with `ZETA`, a browser naming the page it
-#: opened. Folding it in the warnings added 6 warnings on 2 trajectories, and
-#: of the six, read by hand, none was a real echo. This reading is for an agent
-#: quoting itself by accident, and accidental self-quoting is letter for letter.
-
-
-_QUOTE_PAIRS = {'"': '"', "'": "'", "`": "`", "“": "”",
-                "‘": "’", "«": "»"}
-
-
-def _unquoted(text: str) -> str:
-    """`text` with the pairs of quotes around the whole of it taken off:
-    `"Canberra"` states the same value as `Canberra`."""
-    s = _clean(text).strip()
-    while len(s) >= 2 and _QUOTE_PAIRS.get(s[0]) == s[-1]:
-        s = s[1:-1].strip()
-    return s
+#: Case is NOT folded, and that leaves a gap on purpose: a value read back in
+#: another case - `canberra` after `Canberra` - is not demoted. Measured on
+#: AgentHallu: folding case in the demotion demoted 61 more results, and each
+#: one read was a tool doing real work: a ticker lookup answering `Zeta Corp`
+#: with `ZETA`, a browser naming the page it opened. Accidental self-quoting is
+#: letter for letter.
 
 
 _NOT_ALNUM = re.compile(r"[\W_]+")
@@ -431,7 +383,7 @@ def _echo_candidates(result: str) -> Tuple[str, ...]:
     is found by lookup, in time linear in the result. The half rule keeps a page
     that merely contains a line the model once wrote from being called its echo;
     it also lets a line of a long page be skipped by its length alone, before
-    anything is counted. Cached: the rule and the warnings ask about the same
+    anything is counted. Cached: several placements may ask about the same
     result."""
     found: List[str] = []
     seen: Set[str] = set()
@@ -495,39 +447,6 @@ class _Call:
         self.cid, self.name, self.named, self.args = cid, name, named, args
         self.pieces = _pieces(args)
         self.done = False
-
-
-#: How each kind of warning is worded in the text a person reads.
-_WARNING_KINDS = {
-    "earlier_turn": "a line the model wrote in an earlier call",
-    "same_turn": "a line the model wrote in another call of this turn",
-    "unmatched": "a result the reading matched to no call",
-    "answering_call": "text from the call it answered, short of the whole reply",
-    "unchecked": "a reply the reading could not finish weighing against the model's "
-                 "calls, so it may be the model's own text",
-}
-
-
-#: How much of a reply must stand in the text of a call before the reading says
-#: so out loud. The ONE number in this file's echo path, on BOTH paths, and it
-#: moves only WARNINGS - a demotion never consults it, so no setting of it can
-#: turn the model's own words into evidence.
-#:
-#: Chosen by drawing 20 random warnings from AgentHallu at 30% and at 50% and
-#: classifying them by hand against a test named before the measurement ("more
-#: than half of the warnings are real echoes, at no more than 20% of the
-#: corpus"): at 30% nine of twenty were real echoes and it cost 27.3% of
-#: trajectories; at 50% twelve of twenty were real and it cost 15.3% (106 of
-#: 693). Today it costs 17.7%, 123 of 693 (`bench/echo_coverage.py`, with the
-#: corpus's four echo tools declared). The samples were not kept.
-#:
-#: That sample does NOT tell 50% from 30%. The exact 95% intervals are 23-68%
-#: and 36-81%, both contain the 50% bar, and a Fisher test on the two gives
-#: p = 0.53. The choice rests on reading one family of replies - browser status
-#: lines like `Navigated to <url>` - as echoes; read as honest work, 50% fails
-#: the bar too. So this is a setting its neighbour did not beat, not a measured
-#: optimum. Changing it without a larger sample is still guessing.
-WARN_SHARE = 0.50
 
 
 def _forms(text: str) -> List[str]:
@@ -603,10 +522,10 @@ def _reply_texts(result: str) -> List[str]:
     return [result]
 
 
-def _reply_values(result: str, whole_only: bool) -> Iterator[str]:
-    """What the reply offers as a value.
+def _reply_values(result: str) -> Iterator[str]:
+    """What the reply offers as a value, for the demotion.
 
-    `whole_only` is the demotion's question, and it is deliberately narrow: the
+    The question is deliberately narrow: the
     reply itself, a quoted literal that IS the whole reply (a REPL printing a
     repr), and - where the reply is JSON carrying exactly ONE value - that
     value. One value, because "the reply holds a single value and it is the one
@@ -616,50 +535,33 @@ def _reply_values(result: str, whole_only: bool) -> Iterator[str]:
     answering `{"order_id": 12446, "order_type": "Buy", "price": 320.0}`, where
     `Buy` and `320.0` came from the call and the order id did not. Measured on
     AgentHallu: 44 demotions beyond the whole reply, against 448 when every
-    line and every labelled value may demote.
-
-    Otherwise - the warning's question - every line, the text after a
-    `label: `, every quoted literal and every JSON value."""
+    line and every labelled value may demote. (The wider reading - every line,
+    every labelled value, every literal - fed the echo warnings, removed in
+    round 18.)"""
     for text in _reply_texts(result):
         yield from _forms(text)
         stripped = text.strip()
-        if whole_only:
-            for pattern in (_LITERAL_DQ, _LITERAL_SQ):
-                match = pattern.fullmatch(stripped)
-                if match:
-                    yield from _forms(match.group(1))
-            if stripped[:1] in ("{", "["):
-                values = _json_values(stripped)
-                if len(values) == 1:
-                    yield from _forms(values[0])
-            lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
-            for line in lines:
-                yield from _forms(line)
-            # A `label: value` split, but only where the reply is that one line.
-            # `Saved note: <the model's paragraph>` is a value handed back;
-            # `Search results for: <query>` followed by the results is a header
-            # over a reply that also carries its own text, and demoting it
-            # would throw the results away. The count of lines is the only
-            # thing that separates them, and it is a shape, not a threshold.
-            if len(lines) == 1:
-                _label, sep, rest = lines[0].partition(": ")
-                if sep:
-                    yield from _forms(rest)
-            continue
-        for line in text.splitlines():
-            line = line.strip()
-            if not line:
-                continue
+        for pattern in (_LITERAL_DQ, _LITERAL_SQ):
+            match = pattern.fullmatch(stripped)
+            if match:
+                yield from _forms(match.group(1))
+        if stripped[:1] in ("{", "["):
+            values = _json_values(stripped)
+            if len(values) == 1:
+                yield from _forms(values[0])
+        lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
+        for line in lines:
             yield from _forms(line)
-            _label, sep, rest = line.partition(": ")
+        # A `label: value` split, but only where the reply is that one line.
+        # `Saved note: <the model's paragraph>` is a value handed back;
+        # `Search results for: <query>` followed by the results is a header
+        # over a reply that also carries its own text, and demoting it
+        # would throw the results away. The count of lines is the only
+        # thing that separates them, and it is a shape, not a threshold.
+        if len(lines) == 1:
+            _label, sep, rest = lines[0].partition(": ")
             if sep:
                 yield from _forms(rest)
-        for pattern in (_LITERAL_DQ, _LITERAL_SQ):
-            for match in pattern.finditer(text):
-                yield from _forms(match.group(1))
-        if stripped[:1] in ("{", "[", '"'):
-            for value in _json_values(stripped):
-                yield from _forms(value)
 
 
 @functools.lru_cache(maxsize=256)
@@ -672,7 +574,7 @@ def _json_values(text: str) -> Tuple[str, ...]:
         return ()
 
 
-def _is_a_value_of(result: str, sent: str, whole_only: bool) -> str:
+def _is_a_value_of(result: str, sent: str) -> str:
     """The value of the call's arguments that the reply hands back, or "".
 
     Does the reply - or something in it - stand in the call's arguments as a
@@ -685,329 +587,10 @@ def _is_a_value_of(result: str, sent: str, whole_only: bool) -> str:
     if not values:
         return ""
     whole = _norm(_clean(result))
-    for form in _reply_values(result, whole_only):
+    for form in _reply_values(result):
         if form in values and (len(form) > 1 or form == whole):
             return form
     return ""
-
-
-def _call_texts(args: str) -> List[str]:
-    """One call's arguments in each spelling a reply could match: as written,
-    its quoted literals, and its JSON values."""
-    texts = [args]
-    literals = [m.group(1) for pattern in (_LITERAL_DQ, _LITERAL_SQ)
-                for m in pattern.finditer(args) if m.group(1).strip()]
-    if literals:
-        texts.append("\n".join(literals))
-    try:
-        parsed = json.loads(args)
-    except (TypeError, ValueError, RecursionError):
-        parsed = None
-    if parsed is not None:
-        values = list(_values(parsed))
-        if values:
-            texts.append("\n".join(values))
-    return texts
-
-
-#: A word that stands in this many places is a word of the language, not a
-#: piece of anyone's text, and on the first pass runs are not started from it:
-#: without that, one turn of a long CodeAct run costs the square of its length.
-#:
-#: Skipping a start makes the reading say LESS, and saying less is a silent
-#: pass. The ninth review repeated each word of an echo 22 times in a comment,
-#: and a reply that was 90% the model's sentence went out with exit 0; on the
-#: path that weighs earlier turns the index grows over the whole run, so an
-#: agent that kept handing its own note to tools blinded the check after 32
-#: turns. So a skip is never the last word. Where the words it could not rule
-#: out could still reach WARN_SHARE, the reply is weighed again with no limit,
-#: within RECHECK_WORK; where that runs out too, the reading reports the reply
-#: `unchecked`, which holds exit 1 like any other warning.
-MAX_STARTS = 64
-
-#: How many index positions the exact pass may examine for one reply, and for
-#: one whole log. Past either, the reply is reported `unchecked` instead of
-#: weighed: a bounded cost, and nothing passed in silence.
-RECHECK_WORK = 2_000_000
-RECHECK_WORK_TOTAL = 20_000_000
-
-#: Written between two texts in an index so that no run is matched across the
-#: join. It cannot occur in a reply: `_words_of` never produces it.
-_JOIN = "\x00"
-
-
-#: Scripts whose ordinary modern writing puts no space between words, so a note
-#: in them is one whitespace word however long it is: Thai, Lao, Tibetan,
-#: Myanmar, Khmer, Japanese kana, Han, halfwidth katakana. That is the rule for
-#: being here, not a list of languages someone thought of: Tibetan was missing
-#: (review 16, 2.3) because the list was written down from memory. Korean is
-#: written with spaces and is not here. Scripts that meet the rule and are still
-#: not here, each untested and so left out rather than added blind: Tai Tham,
-#: Tai Le, New Tai Lue, Tai Viet, Balinese, Javanese, Yi, and the Han and kana
-#: blocks outside the ranges below (extensions B and later, kana supplements).
-_NO_SPACES = re.compile("[\u0e00-\u0eff\u0f00-\u0fff\u1000-\u109f\u1780-\u17ff"
-                        "\u3040-\u30ff\u31f0-\u31ff\u3400-\u4dbf"
-                        "\u4e00-\u9fff\uf900-\ufaff\uff66-\uff9f]")
-
-#: Tibetan is cut only at marks from outside its own block - a quote, a colon,
-#: a bracket - and not at its own. The tsheg (་) between syllables and the vowel
-#: signs above and below a letter are not letters to `_WORD`, and cutting there
-#: made every note a string of single consonants: on a chat of 100 turns with
-#: no echo in it, 1,000 Tibetan characters a call, the index ran out of
-#: RECHECK_WORK and 39 replies came back `unchecked`, exit 1; with this, none
-#: (round 17; tests/test_round17.py). Thai, Lao, Khmer and Myanmar are still cut
-#: at their vowel signs, and a long chat in Thai has the same cost - measured in
-#: round 17 and left for the owner, not changed here.
-_TIBETAN = re.compile("[\u0f00-\u0fff]")
-_TIBETAN_WORD = re.compile("(?:[^\\W_]|[\u0f00-\u0fff])+")
-
-
-def _words_of(text: str) -> List[str]:
-    """`text` as the words the share is counted in: split at whitespace, and a
-    word in a script written without spaces split again at every mark that is
-    not a letter or a digit.
-
-    In Chinese and Japanese a whole note is one whitespace word, so the quote of
-    a JSON value, a fullwidth `：` after a label or 「」 around it made that one
-    word match nothing and the share fell to 0: check-trace exited 0 on the
-    model's own note (proverka13, 3.2).
-
-    Why only there. This is a second way of cutting words, beside whitespace,
-    and the two wider ways were tried first and priced on AgentHallu against a
-    limit named before the measurement (round 15):
-      * cutting at marks in EVERY script also changed English: a JSON key
-        `current_time` became the words `current time`, a file name in a `mv`
-        status line matched the call that named it, and the warnings it added
-        went past the limit, fewer than half of those read by hand real echoes
-        (tests/test_round15.py keeps both shapes quiet);
-      * one character per word in these scripts: on a long Chinese chat with
-        no echo in it, the index holds every character thousands of times, the
-        exact pass runs out of RECHECK_WORK and replies come back `unchecked`,
-        exit 1 (tests/test_round15.py, 100 turns).
-    AgentHallu has no note written in these scripts, so the corpus priced this
-    and did not test it; tests/test_proverka13_echo.py and test_round15.py do.
-
-    What it still cannot see, and nothing here reports: a note glued to other
-    letters with no mark between them - `已保存` written straight onto it - a
-    note set inside a longer clause of the reply, and a clause read back with
-    one character changed. Each is a word that matches nothing, where in
-    English only the changed word would."""
-    words: List[str] = []
-    for word in _clean(text).split():
-        if _NO_SPACES.search(word):
-            words.extend((_TIBETAN_WORD if _TIBETAN.search(word) else _WORD).findall(word))
-        else:
-            words.append(word)
-    return words
-
-
-class _Words:
-    """A growing word sequence with an index of where each word stands, so a
-    reply can be weighed against every call of a run without scanning them."""
-
-    __slots__ = ("words", "where")
-
-    def __init__(self) -> None:
-        self.words: List[str] = []
-        self.where: Dict[str, List[int]] = {}
-
-    def __bool__(self) -> bool:
-        return bool(self.words)
-
-    def add(self, text: str) -> None:
-        base = len(self.words)
-        parts = _words_of(text)
-        for i, word in enumerate(parts):
-            self.where.setdefault(word, []).append(base + i)
-        self.words.extend(parts)
-        self.words.append(_JOIN)
-
-    def add_call(self, args: str) -> None:
-        for text in _call_texts(args):
-            self.add(text)
-
-    def absorb(self, other: "_Words") -> None:
-        base = len(self.words)
-        for word, places in other.where.items():
-            self.where.setdefault(word, []).extend(p + base for p in places)
-        self.words.extend(other.words)
-
-
-@functools.lru_cache(maxsize=512)
-def _call_values(args: str) -> frozenset:
-    """The values one call carried, WITHOUT its bare word atoms.
-
-    The demotion reaches for atoms, because `final_answer(12)` hands the answer
-    in unquoted and the log ties that call to that result. Across calls nothing
-    ties them, and an atom match there is the noise the eighth round's sample
-    condemned: a reply containing the word `False`, a query term, a file name.
-    So this asks only about values the call plainly carried - its JSON values,
-    its quoted literals, its lines."""
-    if not args:
-        return frozenset()
-    found: Set[str] = set()
-    try:
-        parsed = json.loads(args)
-    except (TypeError, ValueError, RecursionError):
-        parsed = None
-    texts = list(_values(parsed)) if parsed is not None else [args]
-    for value in texts:
-        found.update(_forms(value))
-    for text in texts + [_unescape(t) for t in texts if "\\" in t]:
-        for pattern in (_LITERAL_DQ, _LITERAL_SQ):
-            for match in pattern.finditer(text):
-                found.update(_forms(match.group(1)))
-        for line in text.splitlines():
-            found.update(_forms(line.strip()))
-            # `answer = B` states what `answer` IS, exactly as `answer = "B"`
-            # does - and the literal pattern only reads the quoted one, so a
-            # model that left the quotes off was never checked.
-            assigned = _ASSIGNED_ATOM.match(line)
-            if assigned:
-                found.update(_forms(assigned.group(1)))
-    return frozenset(found)
-
-
-#: A line of code that assigns one bare token - a word, a number, `True` - and
-#: nothing else: `answer = B`, `answer=0`, `total = 4.6  # tonnes`. Not
-#: `results = compute(dataset)`, which hands `dataset` to a function rather
-#: than stating anything is `dataset`, and not a comparison `x == 5`.
-_ASSIGNED_ATOM = re.compile(r"^\s*[A-Za-z_][\w.]*\s*=\s*([\w.+-]+)\s*(?:;\s*)?(?:#.*)?$")
-
-
-@functools.lru_cache(maxsize=512)
-def _arg_words(args: str) -> _Words:
-    """One call's arguments, indexed. Cached: the demotion and the warning ask
-    about the same call, and a wide turn asks about every one of them."""
-    index = _Words()
-    for text in _call_texts(args):
-        index.add(text)
-    return index
-
-
-def _tile(reply: List[str], index: _Words, limit: Optional[int],
-          allowance: Optional[int]) -> Tuple[Optional[int], Tuple[int, int], bool, int]:
-    """Tile the reply's words left to right by maximal runs found in `index`.
-
-    Returns (letters and digits covered, the longest counted run as a
-    (start, end) word span, whether a start was skipped for standing in more
-    than `limit` places, positions examined). Covered is None where `allowance`
-    ran out before the tiling ended - the caller must then say it could not
-    check, not that it found nothing."""
-    words, where = index.words, index.where
-    covered = work = 0
-    best_run, best = 0, (0, 0)
-    skipped = False
-    i = 0
-    while i < len(reply):
-        live = where.get(reply[i])
-        if not live:
-            i += 1
-            continue
-        if limit is not None and len(live) > limit:
-            skipped = True
-            i += 1
-            continue
-        run = 1
-        while True:
-            if allowance is not None:
-                work += len(live)
-                if work > allowance:
-                    return None, best, skipped, work
-            further = [p for p in live
-                       if p + run < len(words) and i + run < len(reply)
-                       and words[p + run] == reply[i + run]]
-            if not further:
-                break
-            live, run = further, run + 1
-        matched = _alnum("".join(reply[i:i + run]))
-        if matched >= ECHO_MIN_CHARS:
-            covered += matched
-            if matched > best_run:
-                best_run, best = matched, (i, i + run)
-        i += run
-    return covered, best, skipped, work
-
-
-class _Budget:
-    """What is left of RECHECK_WORK_TOTAL for one reading of one log."""
-
-    __slots__ = ("left",)
-
-    def __init__(self) -> None:
-        self.left = RECHECK_WORK_TOTAL
-
-
-def _share_in(result: str, index: _Words,
-              budget: Optional[_Budget] = None) -> Tuple[float, str, bool]:
-    """How much of the reply, in letters and digits, stands in this text - the
-    longest run that did, so a warning can quote it - and whether the reading
-    could NOT finish weighing it.
-
-    Both sides are read as words, cleaned, so every run of whitespace is one
-    space and a newline dropped into the middle of an echo changes nothing: that is how three characters used to empty this rule,
-    on both paths. The reply is tiled left to right by maximal runs; a run
-    shorter than ECHO_MIN_CHARS is not counted, because two texts in the same
-    language share short strings. Greedy, so it can only UNDER-count.
-
-    First with MAX_STARTS. If that skipped a start and fell short, it is asked
-    whether the skip could have mattered: only a word that stands in the index
-    at all can be covered, so where those words cannot reach WARN_SHARE the
-    answer stands. Otherwise the reply is tiled again with no limit, within
-    RECHECK_WORK and what is left of `budget`; if that runs out, the third
-    value is True and the caller reports the reply `unchecked`.
-
-    The reply is weighed in each spelling the demotion reads it in -
-    `_reply_texts`: as written, and with its escapes undone - and the larger
-    share stands. One measure on both paths: a note read back as
-    `json.dumps` writes it by default arrives as `\\uXXXX`, the demotion
-    decoded it and this path did not, so the same Russian note that warned
-    when written plainly passed with exit 0 (proverka13, 3.1)."""
-    best: Tuple[float, str, bool] = (0.0, "", False)
-    unsure = False
-    for text in _reply_texts(result):
-        share, run, unchecked = _share_of_spelling(text, index, budget)
-        if share >= WARN_SHARE:
-            return share, run, False
-        unsure = unsure or unchecked
-        if share > best[0] or not best[1]:
-            best = (share, run, False)
-    return best[0], best[1], unsure
-
-
-def _share_of_spelling(result: str, index: _Words,
-                       budget: Optional[_Budget]) -> Tuple[float, str, bool]:
-    """`_share_in` for one spelling of the reply."""
-    reply = _words_of(result)
-    total = _alnum("".join(reply))
-    if not total or not index:
-        return 0.0, "", False
-
-    def quoted(span: Tuple[int, int]) -> str:
-        return " ".join(reply[span[0]:span[1]])
-
-    covered, best, skipped, _work = _tile(reply, index, MAX_STARTS, None)
-    if not skipped or covered / total >= WARN_SHARE:
-        return covered / total, quoted(best), False
-    reachable = sum(_alnum(w) for w in reply if w in index.where)
-    if reachable / total < WARN_SHARE:
-        return covered / total, quoted(best), False
-    budget = budget or _Budget()
-    allowance = max(0, min(RECHECK_WORK, budget.left))
-    exact, exact_best, _skipped, work = _tile(reply, index, None, allowance)
-    budget.left -= min(work, allowance)
-    if exact is None:
-        return covered / total, quoted(best), True
-    return exact / total, quoted(exact_best), False
-
-
-def _echo_share(result: str, sent: str,
-                budget: Optional[_Budget] = None) -> Tuple[float, str, bool]:
-    """The share of the reply that stands in the arguments of the call it
-    answered, as `_share_in` weighs it."""
-    if not sent:
-        return 0.0, "", False
-    return _share_in(result, _arg_words(sent), budget)
 
 
 def _hands_back_what_it_was_given(result: str, sent: str) -> bool:
@@ -1026,7 +609,7 @@ def _hands_back_what_it_was_given(result: str, sent: str) -> bool:
 
     What it costs, counted afresh on AgentHallu for proverka7 (the corpus as
     bench/openai_roundtrip.py renders it; tests/test_openai_roundtrip_numbers.py
-    pins the figures and bench/echo_coverage.py measures the threshold). With
+    pins the figures). With
     the corpus's four echo tools declared it fires 313 times over 3535 tool
     results, 177 of them on tools nobody declared. Against the reader written
     for that corpus by hand it is stricter on 157 artifacts and laxer on none -
@@ -1034,9 +617,6 @@ def _hands_back_what_it_was_given(result: str, sent: str) -> bool:
     measurement of these 693 trajectories, not a property of the code, and the
     sixth review's three-character bypass was exactly a laxer case that this
     corpus does not contain.
-
-    What the warning path costs is stated where its one number is, at
-    WARN_SHARE, and in the README.
 
     Why this rule is allowed to be wrong. It can only move an artifact OUT of
     the root set - from evidence to model text. A mistake makes the audit
@@ -1048,31 +628,7 @@ def _hands_back_what_it_was_given(result: str, sent: str) -> bool:
     """
     if not sent:
         return False
-    return bool(_is_a_value_of(result, sent, whole_only=True))
-
-
-def _partly_hands_back(result: str, sent: str,
-                       budget: Optional[_Budget] = None) -> Tuple[str, bool]:
-    """Is enough of the reply covered by the text of the call it answered?
-
-    One question, one number, and the same pair used on the cross-turn path.
-    Returns the longest run it matched, or "" - the warning quotes it, so the
-    person reading the report sees what the reading saw - and whether the
-    reply could not be weighed to the end.
-
-    What used to be here as well: "a value of the call stands anywhere inside a
-    longer reply". It was dropped after its warnings were drawn and read: it
-    cost 300 of 693 trajectories on its own, and of ten random ones one was a
-    real echo (a tweet the model wrote, handed back with an id), one borderline,
-    and eight a tool doing its job - a search repeating its own query, an
-    invoice looked up by the id it was given, a browser naming the URL it
-    opened. It was first written down as none of ten; one is the measured
-    figure. A warning nobody can act on is not a safety property; it is noise
-    that teaches an operator to pass the flag without looking."""
-    if not sent:
-        return "", False
-    share, run, unchecked = _echo_share(result, sent, budget)
-    return (run if share >= WARN_SHARE else ""), unchecked
+    return bool(_is_a_value_of(result, sent))
 
 
 def _text(value: Any, _depth: int = 0) -> str:
@@ -1134,7 +690,7 @@ def _expand(messages: List[Dict[str, Any]]) -> Tuple[List[Dict[str, Any]], List[
     out: List[Dict[str, Any]] = []
     notes: List[str] = []
     # Every message this returns carries `_file_index`, its position in the
-    # list the person has on disk, so a warning can point at THEIR file: once a
+    # list the person has on disk, so a report can point at THEIR file: once a
     # message with two tool_result blocks is split, positions after it move.
     for file_index, message in enumerate(messages):
         role = str(message.get("role", ""))
@@ -1229,8 +785,7 @@ def looks_like_openai(data: Any) -> bool:
 
 #: The name the reader puts in where the log gives a tool none. It is this
 #: module's own word, not anything the operator can have meant, so it can be
-#: neither declared nor confirmed - the same discipline the echo gate already
-#: applies to a warning whose tool is unknown.
+#: not be declared.
 PLACEHOLDER = "tool"
 
 
@@ -1259,12 +814,10 @@ def to_trace(data: Any, *, name: str = "",
     """Return a raw trace dict (`artifacts`, `steps`, `_meta`) for a chat log.
 
     `external_tools` are tools the operator declares as returning external
-    evidence in their own words. The declaration clears the WARNINGS about such
-    a tool - an echo from another call, a result matched to no call - because
-    those are guesses, and the operator is taking on what this reader cannot
-    know. It never clears a DEMOTION: a result found in the arguments of the
-    very call it answers is a finding, not a guess, and one flag must not switch
-    off the only part of the protection that works for certain."""
+    evidence in their own words. It is counted as declared for strict mode. It
+    never clears a DEMOTION: a result found in the arguments of the very call it
+    answers is a finding, not a guess, and one flag must not switch off the only
+    part of the protection that works for certain."""
     if max_tool_chars < 1:
         raise ValueError("max_tool_chars must be at least 1")
     messages, notes = _expand(_messages_of(data))
@@ -1367,41 +920,14 @@ def to_trace(data: Any, *, name: str = "",
     unmatched: List[str] = []
     unresolved: List[str] = []
     echoed_back: List[str] = []   # results that quoted their own call back
-    # Results whose last line the model wrote into a call of an EARLIER turn:
-    # kept as evidence and reported - see `_hands_back_what_it_was_given`.
-    earlier_echoes: List[str] = []
-    # The same warnings as data. `check-trace` confirms them by tool name, and a
-    # name parsed back out of the text above could be forged by a tool's name.
-    earlier_echo_details: List[Dict[str, str]] = []
     # Every call of the turn now open, answered or not: how many per name, and
     # the pieces of their arguments, all together and per name.
     batch_count: Dict[str, int] = {}
-    # The calls of this turn, and of every turn before it, as indexed word
-    # sequences. A result is weighed against them by the same measure and the
-    # same number as against the call it answered: the seventh round left this
-    # path on the old "more than half of the reply, as a whole unit" reading,
-    # and the sixth round's three characters walked through it unchanged.
-    batch_text = _Words()
-    # And as sets of whole values, for the one question coverage cannot ask: a
-    # reply too short to hold a run of ECHO_MIN_CHARS. An interpreter that kept
-    # `answer = "B"` from an earlier turn and prints `B` hands back the model's
-    # own value, and no share of anything can see it.
-    batch_values: Set[str] = set()
-    earlier_values: Set[str] = set()
     batch_pieces_by_name: Dict[str, Set[str]] = {}
-    # The pieces of every call from turns already closed. Each call is read
-    # once, when it is declared, and each result is a set lookup - so reading a
-    # long run stays linear, not quadratic.
-    earlier_text = _Words()
     # Artifacts demoted against more than one call the log could not tell apart.
     # They are the model's text, but not known to be the one the user saw.
     unconfident_ids: Set[str] = set()
     step_ids: Set[str] = set()
-    # The exact re-weighing MAX_STARTS may call for, bounded over the whole log.
-    budget = _Budget()
-    # Warnings the reading worked out and did not raise, because the operator
-    # declared the tool external - each with the declaration that cleared it.
-    cleared: List[Dict[str, Any]] = []
 
     def step_id(base: str) -> str:
         """Two tool batches under one turn must not share an id: the report
@@ -1495,13 +1021,8 @@ def to_trace(data: Any, *, name: str = "",
                 doubt_covers_cand = False
                 cand_view = cand_pieces = None
                 batch_ids = set()
-                # The turn before this one is closed: its arguments become what
-                # a later result is checked against for an echo from earlier.
-                earlier_text.absorb(batch_text)
-                batch_text = _Words()
-                earlier_values |= batch_values
-                batch_values = set()
                 batch_pieces_by_name = {}
+
             for call in calls:
                 if not isinstance(call, dict):
                     continue
@@ -1529,8 +1050,6 @@ def to_trace(data: Any, *, name: str = "",
                         if _key(named) in echo and named != PLACEHOLDER:
                             cand_echo += 1
                         doubt_covers_cand = False
-                batch_text.add_call(args_sent)
-                batch_values |= _call_values(args_sent)
                 batch_pieces_by_name.setdefault(named, set()).update(entry.pieces)
                 if cid:
                     open_with_id += 1
@@ -1569,9 +1088,6 @@ def to_trace(data: Any, *, name: str = "",
             could_be: Set[str] = set()
             own: Optional[_Call] = None     # the call this answered, where known
             unplaced = False                # a result matched to no call at all
-            # False where the name is the reader's placeholder or a guess between
-            # several tools: a confirmation by name must not reach that warning.
-            name_known = bool(named_itself)
             # Did the LOG give this name, or is `tool` the reader's placeholder?
             # A declaration may only reach a name the log actually carries.
             named_by_log = bool(named_itself)
@@ -1593,7 +1109,6 @@ def to_trace(data: Any, *, name: str = "",
                 tool = tool or tool_names[cid]
                 own = calls_by_id.get(cid)
                 sent = own.args if own is not None else ""
-                name_known = name_known or (own is not None and own.named)
                 named_by_log = named_by_log or (own is not None and own.named)
                 entry = by_id.get(cid)
                 if entry is not None and not entry.done:
@@ -1662,7 +1177,6 @@ def to_trace(data: Any, *, name: str = "",
                         cand_pieces = frozenset().union(
                             *(batch_pieces_by_name.get(n, frozenset()) for n in cand_view))
                     confident, could_be = False, cand_view
-                name_known = matched and entry.named
                 named_by_log = entry.named
                 if not matched and not doubt_covers_cand:
                     # Doubt spreads over every name still in question, once per
@@ -1680,7 +1194,7 @@ def to_trace(data: Any, *, name: str = "",
             # A declaration reaches this result only where the LOG gave the name.
             # Where it did not, `tool` is this reader's own placeholder, and
             # declaring the reader's word must not turn every unnamed result in
-            # the file into external text - nor silence a warning about one.
+            # the file into external text.
             dkey = _key(tool) if named_by_log else ""
             # Uncertain, and one of the calls it might have answered echoes the
             # model: the file does not say which, so it is not evidence. Where
@@ -1718,52 +1232,6 @@ def to_trace(data: Any, *, name: str = "",
                           frozenset().union(*(batch_pieces_by_name.get(n, frozenset())
                                               for n in could_be)))
                 handed_back = _stands_among(content, [pieces or frozenset()])
-            # Also asked before the cut, for the same reason. Only for a result
-            # that stays evidence: a warning is a report, never a demotion.
-            warning: Optional[Tuple[str, str]] = None      # (kind, the line)
-            # A tool declared external, known by its own name, is vouched for:
-            # its warnings are not raised. They are still worked out, and kept
-            # with the declaration that cleared them - a warning taken away in
-            # silence is a pass nobody can see. `handed_back` above was decided
-            # before this and is not touched by the declaration.
-            vouched = name_known and dkey in external
-            if not handed_back and dkey not in echo and not ambiguous:
-                if unplaced:
-                    warning = ("unmatched", _matched_line(content))
-                else:
-                    # Three questions, one measure, one number. The call this
-                    # result answered first, because it is the one the log
-                    # actually ties to it; then the turns before this one; then
-                    # the rest of this turn. The answering call's own text is
-                    # in the batch index too, so a same-turn report can only be
-                    # reached when that call alone did not carry the reply -
-                    # which is what "another call of this turn" means.
-                    partly, unsure = _partly_hands_back(content, sent, budget)
-                    if partly:
-                        warning = ("answering_call", partly)
-                    else:
-                        shown = _short(_norm(content))
-                        # The whole reply as a value: as written, and with the
-                        # quotes around it taken off.
-                        forms: List[str] = []
-                        for text in dict.fromkeys((content, _unquoted(content))):
-                            whole = _norm(_clean(text))
-                            forms += [f for f in _forms(text)
-                                      if len(f) > 1 or f == whole]
-                        share, run, unsure_earlier = _share_in(content, earlier_text, budget)
-                        if share >= WARN_SHARE:
-                            warning = ("earlier_turn", run)
-                        elif any(f in earlier_values for f in forms):
-                            warning = ("earlier_turn", shown)
-                        else:
-                            share, run, unsure_batch = _share_in(content, batch_text, budget)
-                            if share >= WARN_SHARE:
-                                warning = ("same_turn", run)
-                            elif any(f in batch_values for f in forms):
-                                warning = ("same_turn", shown)
-                            elif unsure or unsure_earlier or unsure_batch:
-                                # Not "no echo here": "not weighed to the end".
-                                warning = ("unchecked", shown)
             if len(content) > max_tool_chars:
                 content = content[:max_tool_chars]
                 cut = True
@@ -1775,6 +1243,7 @@ def to_trace(data: Any, *, name: str = "",
                 if handed_back and dkey not in echo:
                     echoed_back.append(f"tool[{k}] ({tool}): "
                                        + _short(_matched_line(content)))
+
                 if ambiguous:
                     unresolved.append(
                         f"tool[{k}] could have answered any of "
@@ -1786,31 +1255,6 @@ def to_trace(data: Any, *, name: str = "",
                 kind = "document"           # external text stored as fetched
             else:
                 kind = "tool_result"
-            if warning is not None:
-                kind_of, line = warning
-                # Addressed to the person's file: the message's position there,
-                # counted from 0, and the call id, which a search finds and a
-                # reformatting does not move. `result` stays the reading's own
-                # label, the one the artifact id carries.
-                file_index = message.get("_file_index", k)
-                call_id = cid or (own.cid if own is not None else "")
-                if name_known:
-                    who = tool
-                elif could_be and not matched:
-                    who = " or ".join(sorted(could_be)) + "?"
-                else:
-                    who = f"{tool}: the log gives no name"
-                where = f"tool[{file_index}] ({who})" + (f" call {call_id}" if call_id else "")
-                detail = {"result": f"tool[{k}]", "tool": tool if name_known else "",
-                          "line": _short(line), "message": file_index, "call_id": call_id,
-                          "kind": kind_of}
-                if vouched:
-                    cleared.append({**detail, "text": f"{where}, {_WARNING_KINDS[kind_of]}: "
-                                                      f"{_short(line)}",
-                                    "cleared_by": f"--tool-returns-external {external[dkey]}"})
-                else:
-                    earlier_echoes.append(f"{where}, {_WARNING_KINDS[kind_of]}: {_short(line)}")
-                    earlier_echo_details.append(detail)
             artifacts.append({"artifact_id": aid, "kind": kind,
                               "title": tool, "content": content})
             if cut:
@@ -1902,9 +1346,6 @@ def to_trace(data: Any, *, name: str = "",
             spelling for table in (echo, verbatim, external)
             for key, spelling in table.items() if key not in named_in_log),
         "echoed_back_tool_results": echoed_back,
-        "echoes_from_earlier_turns": earlier_echoes,
-        "echo_warning_details": earlier_echo_details,
-        "echo_warnings_cleared_by_declaration": cleared,
         "notes": notes,
     }
     return {"artifacts": artifacts, "steps": steps, "_meta": meta}

@@ -16,8 +16,8 @@ trace, and a converted log has no claims on it yet. That is the boundary -
 converting is reading, posting is a separate act, and neither is a verdict.
 
 The exit code is the product decision here: 0 when every claim in the final answer
-traces back to a root and no echo warning carried over from the reading is left
-unconfirmed, and exactly one artifact is marked as the answer; 1 otherwise; 2 when
+traces back to a root, at least half of the answer stands under a claim, and
+exactly one artifact is marked as the answer; 1 otherwise; 2 when
 the audit could not run at all (a malformed or unreadable file, a missing SDK or
 key, a proposer failure) or could not finish (a claim's chain deeper than the
 ledger walks, and nothing else wrong). A bad API key must never
@@ -27,11 +27,9 @@ you can put in CI and fail a build on.
 `check-trace` comes before either: it reads a raw trace and reports how much of
 the run a provenance audit can look at, and what would have to be recorded for
 the rest. No model, no claims, no cost - and a `partial` verdict there is why a
-later clean audit may mean less than it looks. It also exits 1 while the reading
-reports a result that may hand back the model's own text - a line from another
-call, or a result matched to no call - that nobody has reviewed
-(`unreviewed_echo_warnings`, cleared tool by tool with `--accept-echo-warning NAME`).
-`tallystick.audit()` raises `UnreviewedEchoWarnings` in the same place.
+later clean audit may mean less than it looks. A tool result that the log shows
+to be a value of the call it answered is read as model text, not as a root, and
+each one is named in the report; nothing about it waits for a confirmation.
 
 `propose` is the only place the verdict path touches the model side, and it does so
 lazily, inside the subcommand, so `tallystick audit` never imports an SDK.
@@ -49,42 +47,24 @@ from .auditability import (DEFAULT_MIN_REACHABLE, MULTIPLE_FINAL_ANSWERS, check_
                            multiple_final_answers, report)
 from .convert import (FORMATS, describe, detect, hint_for, looks_like_trace, read_any,
                       trace_size, trace_size_line)
-from .echo_gate import FIELDS as _ECHO_FIELDS, UNREVIEWED_ECHO
-from .echo_gate import cleared_echo_warnings as _cleared_echo_warnings
-from .echo_gate import echo_warnings as _echo_warnings
-from .echo_gate import split_echo_warnings as _split_echo_warnings
+from .echo_gate import legacy_note as _legacy_echo_note
 from .adapters.openai_chat import DEFAULT_MAX_TOOL_CHARS
 from .io import load_run, read_json_file, read_meta
 from .ledger import TOO_DEEP, close_books
-from .report import chain_view, summary
+from .report import answer_cover, chain_view, summary
 from .types import TraceError
 
 SUBCOMMANDS = ("audit", "check-trace", "convert", "propose")
 
+#: The reason for exit 1 from `audit` when more than half of the final answer's
+#: letters and digits stand under no claim. The claims may all close; the
+#: verdict then speaks for less than half of what the user saw, and a clean
+#: exit would certify the rest unchecked (review 16, 3.3).
+ANSWER_MOSTLY_UNCLAIMED = "answer_mostly_unclaimed"
+
 #: The reason for exit 2 from `audit` when the only claims that did not close
 #: are ones whose chain is deeper than the ledger walks. Could not check.
 CHAIN_TOO_DEEP = "chain_too_deep"
-
-#: The flag that confirms one tool's echo warnings. The reason it clears,
-#: UNREVIEWED_ECHO, lives in echo_gate with the rest of the gate, because
-#: `tallystick.audit()` applies the same gate from Python.
-ACCEPT_ECHO_FLAG = "--accept-echo-warning"
-
-
-def _add_echo_gate_args(parser: argparse.ArgumentParser) -> None:
-    """The flag that confirms echo warnings, one tool at a time. There is no
-    flag that confirms them all: accepted once in CI, it would pass next
-    month's new warning about a different tool without a word."""
-    parser.add_argument(
-        ACCEPT_ECHO_FLAG, dest="accept_echo_warnings", action="append", default=[],
-        metavar="NAME",
-        help="confirm, for one tool, that you reviewed the results the reading "
-             "kept as evidence although they may hand back the model's own text "
-             "(a line it wrote in another call, or a result matched to no call). "
-             "Repeatable, one tool each time. A warning about any "
-             f"tool not named keeps the exit at 1 ({UNREVIEWED_ECHO}); a "
-             "confirmation clears that reason and no other")
-
 
 #: The reason for exit 1 in strict mode: a tool in the log was declared neither
 #: as returning the model's text, nor text verbatim, nor external evidence.
@@ -160,97 +140,23 @@ def _say_strict(args: argparse.Namespace, undeclared, blocked: bool) -> None:
         print(line)
 
 
-def _gate_block(code: int, reasons: list[str], unreviewed: list[dict],
-                accepted: list[dict], cleared: list[dict] = ()) -> dict:
+def _gate_block(code: int, reasons: list[str]) -> dict:
     """The exit code and why, for --json. `verdict` alone would read "auditable"
-    on a run that exits 1 for an unreviewed echo."""
-    def plain(ws):
-        return [{k: w[k] for k in _ECHO_FIELDS} for w in ws]
-    warnings = {"accepted": plain(accepted), "unreviewed": plain(unreviewed)}
-    if cleared:
-        # Only when a declaration cleared something, so a file with nothing
-        # cleared is the file a CI job already parses.
-        warnings["cleared_by_declaration"] = [
-            {**{k: w[k] for k in _ECHO_FIELDS}, "kind": w["kind"], "cleared_by": w["cleared_by"]}
-            for w in cleared]
-    return {"exit_code": code, "reasons": reasons, "echo_warnings": warnings}
+    on a run that exits 1 for another reason."""
+    return {"exit_code": code, "reasons": reasons}
 
 
-def _echo_gate_lines(unreviewed: list[dict], accepted: list[dict], *,
-                     short: bool, cleared: list[dict] = ()) -> list[str]:
-    """What is said about echo warnings. `short` is the `--quiet` form, for
-    stderr: a CI job that never shows the terminal must still leave every
-    warning in its log."""
-    import shlex
-
-    def listed(ws, indent):
-        lines = [f"{indent}{w['text']}" for w in ws[:10]]
-        if len(ws) > 10:
-            lines.append(f"{indent}(+{len(ws) - 10} more, all of them in --json)")
-        return lines
-
-    lines: list[str] = []
-    if unreviewed:
-        n = len(unreviewed)
-        if short:
-            lines.append(f"tallystick: exit 1 - {UNREVIEWED_ECHO}: {n} tool result(s) may "
-                         f"hand back the model's own text; review them, "
-                         f"then pass --tool-returns-model-text NAME or "
-                         f"{ACCEPT_ECHO_FLAG} NAME")
-        else:
-            lines += [f"UNREVIEWED ECHO WARNINGS - exit 1 ({UNREVIEWED_ECHO})",
-                      f"  {n} tool result(s) may hand back text the model wrote: a line",
-                      "  from another call, earlier or in the same turn, or a result the",
-                      "  reading matched to no call. They were kept as evidence, so the",
-                      "  verdict above counts them as evidence: a clean result here is not",
-                      "  yet a checked one. Each warning names the message in your file",
-                      "  and the call id. For each tool: if it hands the model's own text",
-                      "  back, pass --tool-returns-model-text NAME; if its result is a",
-                      "  real confirmation, confirm that tool by name."]
-        lines += listed(unreviewed, "  " if short else "    ")
-        names = sorted({w["tool"] for w in unreviewed if w["tool"]})
-        if names:
-            lines.append("  to confirm: " + " ".join(
-                f"{ACCEPT_ECHO_FLAG} {shlex.quote(name)}" for name in names))
-        if any(not w["tool"] for w in unreviewed):
-            lines.append("  a warning with no tool known by name - the log names none, the "
-                         "result was placed by position between several tools, or the trace "
-                         "predates these records - cannot be confirmed by name; declare the "
-                         "tool with --tool-returns-model-text, or record names and call ids")
-    if accepted:
-        lines.append(f"tallystick: {len(accepted)} echo warning(s) accepted by name with "
-                     f"{ACCEPT_ECHO_FLAG}, kept as evidence:" if short else
-                     f"Echo warnings accepted by name with {ACCEPT_ECHO_FLAG}: "
-                     f"{len(accepted)} tool result(s) kept as evidence.")
-        lines += listed(accepted, "  " if short else "    ")
-    if cleared:
-        # Not a block: the operator declared these tools external and took on
-        # what the reading cannot know. But a warning removed without a word is
-        # a silent pass, so each one is named with the declaration that did it.
-        lines.append(f"tallystick: {len(cleared)} echo warning(s) cleared by a declaration, "
-                     f"not by review:" if short else
-                     f"Echo warnings cleared by a declaration, not by review: "
-                     f"{len(cleared)} tool result(s) kept as evidence with no warning.")
-        indent = "  " if short else "    "
-        lines += [f"{indent}{w['text']} - cleared by {w['cleared_by']}" for w in cleared[:10]]
-        if len(cleared) > 10:
-            lines.append(f"{indent}(+{len(cleared) - 10} more, all of them in --json)")
-    return lines
-
-
-def _say_echo_gate(unreviewed: list[dict], accepted: list[dict], *, quiet: bool,
-                   cleared: list[dict] = ()) -> None:
-    """Under the report - or, with --quiet, on stderr, which keeps stdout empty
-    for scripts while every CI log still records the warning."""
-    lines = _echo_gate_lines(unreviewed, accepted, short=quiet, cleared=cleared)
-    if not lines:
+def _say_legacy_echo(meta, *, quiet: bool) -> None:
+    """One note for a trace an earlier reader wrote echo warnings into. Not a
+    reason for any exit code: see `echo_gate`."""
+    note = _legacy_echo_note(meta)
+    if not note:
         return
     if quiet:
-        for line in lines:
-            print(line, file=sys.stderr)
+        print(f"tallystick: note: {note}", file=sys.stderr)
     else:
         print()
-        for line in lines:
+        for line in _wrapped(f"note: {note}"):
             print(line)
 
 
@@ -280,9 +186,9 @@ def _add_source_args(parser: argparse.ArgumentParser) -> None:
         "--tool-returns-external", dest="external_tools", action="append",
         default=[], metavar="NAME",
         help="a tool whose result is external evidence in its own words (a "
-             "search API's summary, an API response): counted as declared, and "
-             "its echo warnings are cleared - you vouch for it. A result found in "
-             "the arguments of the very call it answers is still read as the "
+             "search API's summary, an API response): counted as declared for "
+             "--require-declared-tools. It does not stop the reading: a result "
+             "that is a value of the very call it answered is still read as the "
              "model's own text. Repeatable")
     parser.add_argument(
         "--max-tool-chars", type=int, default=DEFAULT_MAX_TOOL_CHARS,
@@ -352,14 +258,7 @@ def _reading_notes(meta: dict, undeclared=None) -> list[str]:
                        # until review asked why.
                        ("echoed_back_tool_results",
                         "result(s) that quoted their own call back, so read as "
-                        "the model's text"),
-                       # Not a demotion: the log cannot tell a value handed back
-                       # from an earlier turn from one a tool confirmed. Said
-                       # here so the operator can decide with
-                       # --tool-returns-model-text.
-                       ("echoes_from_earlier_turns",
-                        "result(s) kept as evidence that may hand back the "
-                        "model's own text")):
+                        "the model's text")):
         items = meta.get(key) or []
         if items:
             shown = ", ".join(str(i) for i in items[:6])
@@ -463,7 +362,7 @@ def _audit(args: argparse.Namespace) -> int:
     raw = None
     try:
         # What `load_run_file` does, in two steps, so the reading's `_meta` that
-        # `propose` carried into the posted trace is at hand for the echo gate.
+        # `propose` carried into the posted trace is at hand for the notes below.
         raw = read_json_file(args.trace)
         run = load_run(raw)
         read_meta(raw)
@@ -500,14 +399,6 @@ def _audit(args: argparse.Namespace) -> int:
                   "  there, it has no question to ask.", file=sys.stderr)
         return 2
 
-    # The echo gate `check-trace` applies, on the posted copy. Books that
-    # balance on a note the model wrote itself are not a checked result until
-    # someone has looked, and a gate the second command walks around is not a
-    # gate. Exit 2 above stays 2: this decides between 0 and 1 only.
-    unreviewed, accepted = _split_echo_warnings(
-        _echo_warnings(raw.get("_meta") if isinstance(raw, dict) else None),
-        getattr(args, "accept_echo_warnings", None))
-    cleared = _cleared_echo_warnings(raw.get("_meta") if isinstance(raw, dict) else None)
     undeclared = _undeclared_tool_results(raw)
     strict = _strict_blocks(args, undeclared)
     reasons: list[str] = []
@@ -525,8 +416,9 @@ def _audit(args: argparse.Namespace) -> int:
     finals = multiple_final_answers(run)
     if finals:
         reasons.append(MULTIPLE_FINAL_ANSWERS)
-    if unreviewed:
-        reasons.append(UNREVIEWED_ECHO)
+    cover = answer_cover(run, balance)
+    if cover.mostly_unclaimed:
+        reasons.append(ANSWER_MOSTLY_UNCLAIMED)
     if strict:
         reasons.append(UNDECLARED_TOOLS)
     code = 2 if CHAIN_TOO_DEEP in reasons else 1 if reasons else 0
@@ -547,16 +439,30 @@ def _audit(args: argparse.Namespace) -> int:
                 f"Mark one answer, or record the others as intermediate")
         print(said if args.quiet else f"\n{said[len('tallystick: '):]}",
               file=sys.stderr if args.quiet else sys.stdout)
+    if cover.mostly_unclaimed:
+        said = (f"tallystick: exit {code} - {ANSWER_MOSTLY_UNCLAIMED}: "
+                f"{cover.unclaimed:.1%} of the final answer ({cover.total - cover.claimed} of "
+                f"{cover.total} letters and digits) stands under no claim, so the verdict "
+                f"speaks for less than half of it. Post claims on the rest of the answer")
+        print(said if args.quiet else f"\n{said[len('tallystick: '):]}",
+              file=sys.stderr if args.quiet else sys.stdout)
     if CHAIN_TOO_DEEP in reasons and (args.quiet or args.chain):
         print(f"tallystick: exit 2 - {CHAIN_TOO_DEEP}: {len(balance.unchecked())} claim(s) "
               f"in the final answer rest on a {TOO_DEEP}; they were not checked, and "
               f"nothing was found against them", file=sys.stderr)
-    _say_echo_gate(unreviewed, accepted, quiet=args.quiet, cleared=cleared)
+    _say_legacy_echo(raw.get("_meta") if isinstance(raw, dict) else None, quiet=args.quiet)
     _say_strict(args, undeclared, strict)
 
     if args.json_out:
         payload = {
-            "coverage": balance.coverage,
+            # The whole answer, as the terminal prints it. The share of claims
+            # that close, which this key held before round 18, is
+            # `claims_closed`.
+            "coverage": cover.coverage,
+            "answer": {"letters_and_digits": cover.total, "under_a_claim": cover.claimed,
+                       "under_claims_that_close": cover.closed,
+                       "under_no_claim_share": cover.unclaimed},
+            "claims_closed": balance.coverage,
             "laundering_rate": balance.laundering_rate,
             "books_balance": balance.books_balance,
             "counts": balance.counts(balance.final_claim_ids),
@@ -573,7 +479,7 @@ def _audit(args: argparse.Namespace) -> int:
                 for a in balance.audits.values()
             ],
         }
-        payload["gate"] = _gate_block(code, reasons, unreviewed, accepted, cleared)
+        payload["gate"] = _gate_block(code, reasons)
         try:
             _write_json(args.json_out, payload)
         except CannotWrite as exc:
@@ -613,20 +519,9 @@ def _check_trace(args: argparse.Namespace) -> int:
     # blocked: it is how the format records a whole history sent every turn.
     size = _trace_size(source, seen.get("raw"), raw, None, _file_bytes(args.trace))
     size_lines = _wrapped(trace_size_line(size)) if size else []
-    # A tool result ending in a line the model wrote in an earlier call is kept
-    # as evidence, because the log cannot tell a value handed back from a value
-    # confirmed - so the verdict counts it as evidence. Exiting 0 on that, with
-    # nobody having looked, certifies a place nobody checked. It exits 1 until
-    # the operator confirms each tool by name; a confirmation clears that
-    # reason only, and only for the tool it names.
-    unreviewed, accepted = _split_echo_warnings(
-        _echo_warnings(meta), getattr(args, "accept_echo_warnings", None))
-    cleared = _cleared_echo_warnings(meta)
     reasons: list[str] = []
     if result.verdict != "auditable":
         reasons.append(f"verdict:{result.verdict}")
-    if unreviewed:
-        reasons.append(UNREVIEWED_ECHO)
     strict = _strict_blocks(args, undeclared)
     if strict:
         reasons.append(UNDECLARED_TOOLS)
@@ -655,8 +550,8 @@ def _check_trace(args: argparse.Namespace) -> int:
                        ("source", "reader_confidence", "skipped_empty",
                         "dropped_messages", "truncated", "guessed_tool_names",
                         "unmatched_tool_results", "unresolved_tool_results",
-                        "echoed_back_tool_results", "echoes_from_earlier_turns",
-                        "echo_warning_details", "echo_warnings_cleared_by_declaration",
+                        "echoed_back_tool_results",
+                        "echoes_from_earlier_turns", "echo_warning_details",
                         "model_text_tools", "verbatim_tools", "external_tools",
                         "notes", "otel") if k in meta}
             if undeclared is not None:
@@ -666,7 +561,7 @@ def _check_trace(args: argparse.Namespace) -> int:
                 reading["trace_size"] = size
             if reading:
                 payload["reading"] = reading
-        payload["gate"] = _gate_block(code, reasons, unreviewed, accepted, cleared)
+        payload["gate"] = _gate_block(code, reasons)
         try:
             _write_json(args.json_out, payload)
         except CannotWrite as exc:
@@ -674,7 +569,7 @@ def _check_trace(args: argparse.Namespace) -> int:
             return 2
     if not args.quiet:
         print(report(result))
-    _say_echo_gate(unreviewed, accepted, quiet=args.quiet, cleared=cleared)
+    _say_legacy_echo(meta, quiet=args.quiet)
     _say_strict(args, undeclared, strict)
     if args.quiet and size:
         # Not a verdict and not in the exit code, but a CI job that runs
@@ -797,9 +692,9 @@ def _propose(args: argparse.Namespace) -> int:
               file=sys.stderr)
         return 2
 
-    # The reading's `_meta` goes into the posted trace: it holds the echo
-    # warnings `audit` gates on. Without it a warning ended at this file
-    # boundary, and the posted copy of a laundering log audited clean.
+    # The reading's `_meta` goes into the posted trace: what the reading left
+    # out and read as the model's text is said again by `audit`, and strict
+    # mode counts the declarations from it.
     meta = raw.get("_meta") if isinstance(raw, dict) else None
     if isinstance(meta, dict):
         posted["_meta"] = meta
@@ -825,7 +720,6 @@ def _propose(args: argparse.Namespace) -> int:
     print()
     audit_args = argparse.Namespace(
         trace=args.out, chain=None, quiet=False, json_out=None,
-        accept_echo_warnings=list(getattr(args, "accept_echo_warnings", None) or []),
         require_declared_tools=getattr(args, "require_declared_tools", False))
     return _audit(audit_args)
 
@@ -845,9 +739,8 @@ def build_parser() -> argparse.ArgumentParser:
     a.add_argument("--chain", metavar="CLAIM_ID",
                    help="print the full provenance chain for one claim")
     a.add_argument("--quiet", action="store_true",
-                   help="exit code only - except echo warnings carried over from "
-                        "the reading, which are still printed on stderr")
-    _add_echo_gate_args(a)
+                   help="exit code only - a reason other than the books not "
+                        "balancing is still printed on stderr, one line each")
     _add_strict_args(a)
     a.set_defaults(func=_audit)
 
@@ -864,9 +757,7 @@ def build_parser() -> argparse.ArgumentParser:
     c.add_argument("--json", dest="json_out", metavar="PATH",
                    help="write the machine-readable report here")
     c.add_argument("--quiet", action="store_true",
-                   help="exit code only - except echo warnings, which are still "
-                        "printed on stderr, one line each")
-    _add_echo_gate_args(c)
+                   help="exit code only")
     _add_strict_args(c)
     _add_source_args(c)
     c.set_defaults(func=_check_trace)
@@ -894,7 +785,6 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--no-audit", action="store_true",
                    help="write the posted trace without auditing it")
     # For the audit `propose` runs on the file it wrote.
-    _add_echo_gate_args(p)
     _add_strict_args(p)
     p.set_defaults(func=_propose)
     return parser
@@ -906,7 +796,7 @@ def _escape_what_cannot_be_printed():
     streams back.
 
     A lone surrogate - half of an emoji cut in a UTF-16 log - is valid JSON and
-    reaches the report in a claim's text, an accepted warning's line or a note.
+    reaches the report in a claim's text, a quoted tool result or a note.
     print() raised UnicodeEncodeError on it, and the interpreter exited 1, "the
     books do not balance", on books that balance; with --quiet the same file
     exited 0 (review 16, 3.1). A file written with such a character is refused
