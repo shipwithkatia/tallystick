@@ -126,14 +126,27 @@ def json_bytes(obj: Any) -> int:
 
 
 def trace_size(log: Any, trace: Dict[str, Any],
-               trace_bytes: Optional[int] = None) -> Optional[Dict[str, Any]]:
+               trace_bytes: Optional[int] = None,
+               log_disk_bytes: Optional[int] = None) -> Optional[Dict[str, Any]]:
     """How much bigger a converted trace is than the log it was read from, or
     None when it is less than TRACE_SIZE_NOTE_RATIO times.
 
-    Both sides are measured the same way, as the JSON `convert` writes, so the
-    ratio is what the reading added and not how the log on disk happened to be
-    indented. `trace_bytes` is the size of a file already written, to spare a
-    second serialisation of a trace that may be a hundred megabytes."""
+    The ratio that DECIDES is measured the same way on both sides, as the JSON
+    `convert` writes: it then says what the reading added, and does not move
+    when someone pretty-prints their log. `log_disk_bytes` never touches it. It
+    is the log's size on disk, reported alongside so that every number in the
+    line can be checked with `ls` - a line that called a 67 KB file "109 KB",
+    its size after reformatting, sent a person looking for a number that was
+    nowhere on their machine.
+
+    The price of deciding on the first ratio and not the second: a log stored
+    compactly - an API response, a JSONL line - can grow more than tenfold on
+    disk while the reading itself added less, and then nothing is said. Measured
+    on one such log of 300 turns: 11.6x on disk, 7.2x added, silence.
+
+    `trace_bytes` is the size of a file already written, to spare a second
+    serialisation of a trace that may be a hundred megabytes; `convert` writes
+    with the same indentation this measures, so the two agree byte for byte."""
     log_bytes = json_bytes(log)
     if not log_bytes:
         return None
@@ -143,19 +156,34 @@ def trace_size(log: Any, trace: Dict[str, Any],
     if ratio < TRACE_SIZE_NOTE_RATIO:
         return None
     steps = trace.get("steps") or []
-    return {"log_bytes": log_bytes, "trace_bytes": trace_bytes, "ratio": round(ratio, 2),
+    size = {"log_bytes": log_bytes, "trace_bytes": trace_bytes, "ratio": round(ratio, 2),
             "steps": len(steps),
             "input_references": sum(len(s.get("inputs") or []) for s in steps)}
+    if log_disk_bytes:
+        size["log_disk_bytes"] = log_disk_bytes
+        size["disk_ratio"] = round(trace_bytes / log_disk_bytes, 2)
+    return size
 
 
 def trace_size_line(size: Dict[str, Any]) -> str:
-    """The sentence a person reads about `trace_size`."""
+    """The sentence a person reads about `trace_size`.
+
+    Where the log came from a file, the first three numbers are the two files
+    and the ratio between them - all three checkable with `ls` - and what the
+    reading added is said separately, named as the measure it is."""
     def amount(n: int) -> str:
         return f"{n / 1048576:,.1f} MB" if n >= 1048576 else f"{n / 1024:,.0f} KB"
-    return (f"trace size: the trace is {size['ratio']:.0f}x the log it was read from "
-            f"({amount(size['log_bytes'])} -> {amount(size['trace_bytes'])}), "
-            f"{size['steps']} steps holding {size['input_references']:,} references to "
-            f"earlier artifacts. A chat sends its whole history every turn, and the "
+    if "log_disk_bytes" in size:
+        head = (f"trace size: the trace is {amount(size['trace_bytes'])} from a log of "
+                f"{amount(size['log_disk_bytes'])} on disk ({size['disk_ratio']:.0f}x). "
+                f"Measured as tallystick writes JSON on both sides, the reading added "
+                f"{size['ratio']:.0f}x")
+    else:
+        head = (f"trace size: the reading added {size['ratio']:.0f}x "
+                f"({amount(size['log_bytes'])} -> {amount(size['trace_bytes'])}, both "
+                f"as tallystick writes JSON)")
+    return (f"{head}. {size['steps']} steps hold {size['input_references']:,} references "
+            f"to earlier artifacts: a chat sends its whole history every turn, and the "
             f"format records each step's inputs as a list, so the trace grows with the "
             f"square of the turns; the text itself is stored once. Nothing is wrong "
             f"with the run (docs/auditable-traces.md, 'Steps, with their real inputs').")

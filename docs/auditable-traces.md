@@ -82,7 +82,10 @@ step before had" would be read by an older version of the core without an
 error, and give a wrong verdict in silence. So `tallystick convert` and
 `check-trace` say it instead - how big, how many steps, and why - once a trace
 is ten times the log it was read from (`TRACE_SIZE_NOTE_RATIO` in
-`tallystick/convert.py`). It changes no exit code.
+`tallystick/convert.py`). That tenfold is measured as tallystick writes JSON on
+both sides, so the log's own formatting cannot move it, while the line itself
+gives the two files as they lie on disk - where a log stored compactly shows a
+larger ratio than the one that decided. It changes no exit code.
 
 ### 3. The answer, marked as the answer
 

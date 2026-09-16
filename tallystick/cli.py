@@ -549,7 +549,7 @@ def _check_trace(args: argparse.Namespace) -> int:
     notes = _reading_notes(meta if isinstance(meta, dict) else {}, undeclared)
     # A converted chat can come out many times the size of the log. Said, not
     # blocked: it is how the format records a whole history sent every turn.
-    size = _trace_size(source, seen.get("raw"), raw)
+    size = _trace_size(source, seen.get("raw"), raw, None, args.trace)
     size_lines = _wrapped(trace_size_line(size)) if size else []
     # A tool result ending in a line the model wrote in an earlier call is kept
     # as evidence, because the log cannot tell a value handed back from a value
@@ -621,14 +621,31 @@ def _check_trace(args: argparse.Namespace) -> int:
     return code
 
 
-def _trace_size(source: str, log, trace, trace_bytes=None):
+def _file_bytes(path) -> int | None:
+    """The size of the input on disk, or None where it was not a plain file - a
+    pipe, a process substitution, a device. A size nobody can check with `ls` is
+    worse than no size at all, so it is not guessed.
+
+    The guard is not decoration: `<(gunzip -c log.json.gz)` hands this a path
+    like /dev/fd/63, whose `st_size` is 65536 here - the pipe's buffer, which
+    has nothing to do with the log. A FIFO reports 0, which `trace_size` then
+    treats as no size at all."""
+    try:
+        p = Path(path)
+        return p.stat().st_size if p.is_file() else None
+    except OSError:
+        return None
+
+
+def _trace_size(source: str, log, trace, trace_bytes=None, log_path=None):
     """`trace_size` for what was read. A file read as a trace needs no guard:
     the "log" and the trace are then the same object, the ratio is 1, and
     nothing is said - a mutation test showed a separate check here changed
     nothing, so there is none."""
     if log is None or not isinstance(trace, dict):
         return None
-    return trace_size(log, trace, trace_bytes)
+    return trace_size(log, trace, trace_bytes,
+                      _file_bytes(log_path) if log_path is not None else None)
 
 
 def _wrapped(text: str) -> list[str]:
@@ -672,7 +689,8 @@ def _convert(args: argparse.Namespace) -> int:
     # The size of the file just written, so a trace of a hundred megabytes is
     # not serialised a second time to be measured. `os` is kept out of the
     # verdict path by tests/test_no_model_imports.py; pathlib is already here.
-    size = _trace_size(source, seen.get("raw"), raw, Path(args.out).stat().st_size)
+    size = _trace_size(source, seen.get("raw"), raw, Path(args.out).stat().st_size,
+                       args.trace)
     for line in _wrapped(trace_size_line(size)) if size else []:
         print(f"  {line}")
     if not args.quiet:
