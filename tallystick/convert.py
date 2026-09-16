@@ -139,6 +139,10 @@ def trace_size(log: Any, trace: Dict[str, Any],
     its size after reformatting, sent a person looking for a number that was
     nowhere on their machine.
 
+    None, too, when the text cannot be written as UTF-8 at all (a lone
+    surrogate): there is then no file whose size the line could name, and a
+    line about size is no reason for `check-trace` to fail (review 13, 6.2).
+
     The price of deciding on the first ratio and not the second: a log stored
     compactly - an API response, a JSONL line - can grow more than tenfold on
     disk while the reading itself added less, and then nothing is said. Measured
@@ -147,11 +151,14 @@ def trace_size(log: Any, trace: Dict[str, Any],
     `trace_bytes` is the size of a file already written, to spare a second
     serialisation of a trace that may be a hundred megabytes; `convert` writes
     with the same indentation this measures, so the two agree byte for byte."""
-    log_bytes = json_bytes(log)
-    if not log_bytes:
+    try:
+        log_bytes = json_bytes(log)
+        if not log_bytes:
+            return None
+        if trace_bytes is None:
+            trace_bytes = json_bytes(trace)
+    except UnicodeEncodeError:
         return None
-    if trace_bytes is None:
-        trace_bytes = json_bytes(trace)
     ratio = trace_bytes / log_bytes
     if ratio < TRACE_SIZE_NOTE_RATIO:
         return None

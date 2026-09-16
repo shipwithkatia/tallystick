@@ -18,7 +18,7 @@ books say so without anyone being asked to judge.
 
 from .auditability import Auditability, check_trace
 from .echo_gate import UnreviewedEchoWarnings, echo_warnings, split_echo_warnings
-from .io import load_run, load_run_file, read_json_file
+from .io import load_run, load_run_file, read_json_file, read_meta
 from .ledger import ChainHop, ClaimAudit, ClaimStatus, TrialBalance, close_books
 from .report import chain_view, summary
 from .types import (
@@ -52,6 +52,7 @@ def audit(source, *, accept_echo_warnings=()) -> TrialBalance:
         return close_books(source)
     raw = source if isinstance(source, dict) else read_json_file(source)
     run = load_run(raw)
+    read_meta(raw)
     unreviewed, _accepted = split_echo_warnings(
         echo_warnings(raw.get("_meta") if isinstance(raw, dict) else None),
         accept_echo_warnings)

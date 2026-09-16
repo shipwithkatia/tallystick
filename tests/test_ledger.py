@@ -152,19 +152,43 @@ def test_a_citation_into_unclaimed_text_does_not_fund(data):
     assert balance.audits["ans_3"].break_step_id == "s3"
 
 
+def _with_duplicate_step_id(data):
+    """The example with a second step under the answer step's id. One copy sees
+    the summary, the other sees nothing, so whichever one a lookup takes first
+    decides every answer claim. Review 13 (1.1): the shuffle test used to run
+    only on a file without repeated ids, and passed while the verdict flipped."""
+    d = copy.deepcopy(data)
+    d["steps"].append({"step_id": "s4", "kind": "answer", "inputs": [], "outputs": ["answer"]})
+    return d
+
+
+def _outcome(d):
+    """What an audit of `d` comes to: the balance, or the refusal."""
+    try:
+        bal = audit(d)
+    except TraceError as exc:
+        return ("TraceError", str(exc))
+    return ({cid: (x.status.value, x.depth, x.break_step_id)
+             for cid, x in bal.audits.items()}, bal.books_balance)
+
+
+@pytest.mark.parametrize("variant", ["as_filed", "duplicate_step_id"])
 @pytest.mark.parametrize("seed", [1, 7, 42, 1234])
-def test_verdict_does_not_depend_on_array_order(data, seed):
+def test_verdict_does_not_depend_on_array_order(data, seed, variant):
     """Shuffle every array in the file; the balance must not move."""
     import random as _r  # test-only; the library itself never imports it
-    d = copy.deepcopy(data)
+    if variant == "duplicate_step_id":
+        data = _with_duplicate_step_id(data)
     rng = _r.Random(seed)
-    for key in ("artifacts", "steps", "claims", "entries"):
-        rng.shuffle(d[key])
-    a, b = audit(data), audit(d)
-    sig = lambda bal: {cid: (x.status.value, x.depth, x.break_step_id)
-                       for cid, x in bal.audits.items()}
-    assert sig(a) == sig(b)
-    assert a.books_balance == b.books_balance
+    for order in range(4):
+        d = copy.deepcopy(data)
+        if order == 3:
+            for key in ("artifacts", "steps", "claims", "entries"):
+                d[key].reverse()       # a shuffle that surely moves the steps
+        else:
+            for key in ("artifacts", "steps", "claims", "entries"):
+                rng.shuffle(d[key])
+        assert _outcome(data) == _outcome(d)
 
 
 def test_an_empty_trace_does_not_balance():

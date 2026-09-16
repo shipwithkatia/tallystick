@@ -200,6 +200,19 @@ def _as_dict(f: Finding) -> Dict[str, Any]:
     return {"code": f.code, "subject": f.subject, "detail": f.detail, "fatal": f.fatal}
 
 
+#: The finding, and `tallystick audit`'s reason for exit 1, when more than one
+#: artifact is marked as the answer. One name and one function for both
+#: commands: review 13 found `audit` passing a file `check-trace` called defective.
+MULTIPLE_FINAL_ANSWERS = "multiple_final_answers"
+
+
+def multiple_final_answers(run: Run) -> List[str]:
+    """The ids of the artifacts marked final_answer, sorted, when there is more
+    than one; otherwise an empty list."""
+    finals = sorted(a.artifact_id for a in run.final_artifacts())
+    return finals if len(finals) > 1 else []
+
+
 def check_trace(run: Run, *, min_reachable: Optional[float] = None,
                 meta: Optional[Dict[str, Any]] = None) -> Auditability:
     """Report what a provenance audit of `run` will and will not be able to see.
@@ -329,9 +342,9 @@ def check_trace(run: Run, *, min_reachable: Optional[float] = None,
             "no_final_answer", "-",
             "nothing is marked as the run's answer, so there is nothing to audit back "
             "from", fatal=True))
-    elif len(finals) > 1:
+    elif multiple_final_answers(run):
         findings.append(Finding(
-            "multiple_final_answers", ", ".join(sorted(finals)),
+            MULTIPLE_FINAL_ANSWERS, ", ".join(multiple_final_answers(run)),
             "more than one artifact is marked as the run's answer; the audit cannot "
             "tell which one the user saw"))
     if run.steps and not reachable:

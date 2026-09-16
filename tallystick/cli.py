@@ -17,8 +17,10 @@ converting is reading, posting is a separate act, and neither is a verdict.
 
 The exit code is the product decision here: 0 when every claim in the final answer
 traces back to a root and no echo warning carried over from the reading is left
-unconfirmed, 1 otherwise, 2 when the audit could not run at all (a
-malformed trace, a missing SDK or key, a proposer failure). A bad API key must never
+unconfirmed, and exactly one artifact is marked as the answer; 1 otherwise; 2 when
+the audit could not run at all (a malformed or unreadable file, a missing SDK or
+key, a proposer failure) or could not finish (a claim's chain deeper than the
+ledger walks, and nothing else wrong). A bad API key must never
 read as "books do not balance". That is what turns this from a report into a gate
 you can put in CI and fail a build on.
 
@@ -43,7 +45,8 @@ import shlex
 import sys
 from pathlib import Path
 
-from .auditability import DEFAULT_MIN_REACHABLE, check_trace, report
+from .auditability import (DEFAULT_MIN_REACHABLE, MULTIPLE_FINAL_ANSWERS, check_trace,
+                           multiple_final_answers, report)
 from .convert import (FORMATS, describe, detect, hint_for, looks_like_trace, read_any,
                       trace_size, trace_size_line)
 from .echo_gate import FIELDS as _ECHO_FIELDS, UNREVIEWED_ECHO
@@ -51,12 +54,16 @@ from .echo_gate import cleared_echo_warnings as _cleared_echo_warnings
 from .echo_gate import echo_warnings as _echo_warnings
 from .echo_gate import split_echo_warnings as _split_echo_warnings
 from .adapters.openai_chat import DEFAULT_MAX_TOOL_CHARS
-from .io import load_run, read_json_file
-from .ledger import close_books
+from .io import load_run, read_json_file, read_meta
+from .ledger import TOO_DEEP, close_books
 from .report import chain_view, summary
 from .types import TraceError
 
 SUBCOMMANDS = ("audit", "check-trace", "convert", "propose")
+
+#: The reason for exit 2 from `audit` when the only claims that did not close
+#: are ones whose chain is deeper than the ledger walks. Could not check.
+CHAIN_TOO_DEEP = "chain_too_deep"
 
 #: The flag that confirms one tool's echo warnings. The reason it clears,
 #: UNREVIEWED_ECHO, lives in echo_gate with the rest of the gate, because
@@ -385,11 +392,41 @@ def _read_raw(args: argparse.Namespace, seen: dict | None = None):
     )
 
 
+class CannotWrite(Exception):
+    """An output file could not be written. Exit 2, never 1."""
+
+
 def _write_json(path: str, payload) -> None:
-    """Write a JSON output file. OSError here is a "could not run" failure, not a
-    verdict, so callers turn it into exit 2 - never into exit 1."""
-    with open(path, "w", encoding="utf-8") as fh:
-        json.dump(payload, fh, indent=2, ensure_ascii=False)
+    """Write a JSON output file, or raise CannotWrite and leave no file behind.
+
+    The whole file is encoded before the path is opened. `json.dump` into an
+    open file wrote chunk by chunk, so text UTF-8 cannot hold - a lone surrogate
+    such as \\ud83d, what a UTF-16 string cut inside an emoji serialises to -
+    failed halfway and left a cut-off file that the next command would read as
+    a trace (review 13, 2.3). A write that fails after opening removes what it
+    started."""
+    try:
+        data = json.dumps(payload, indent=2, ensure_ascii=False).encode("utf-8")
+    except UnicodeEncodeError as exc:
+        raise CannotWrite(
+            f"its text holds a character UTF-8 cannot store ({exc.reason}: "
+            f"{exc.object[exc.start:exc.end]!r}) - usually half of an emoji cut "
+            f"off in the log; nothing was written") from None
+    except RecursionError:
+        raise CannotWrite("it is nested too deeply to write; nothing was written") from None
+    try:
+        fh = open(path, "wb")
+    except OSError as exc:
+        raise CannotWrite(str(exc)) from None    # nothing opened, nothing to remove
+    try:
+        with fh:
+            fh.write(data)
+    except OSError as exc:
+        try:
+            Path(path).unlink()                  # only a file this call opened
+        except OSError:
+            pass
+        raise CannotWrite(str(exc)) from None
 
 
 _TRACE_SHAPE = ("`audit` needs a posted tallystick trace: a JSON object with 'artifacts'\n"
@@ -429,6 +466,7 @@ def _audit(args: argparse.Namespace) -> int:
         # `propose` carried into the posted trace is at hand for the echo gate.
         raw = read_json_file(args.trace)
         run = load_run(raw)
+        read_meta(raw)
     except (OSError, ValueError) as exc:
         # TraceError is a ValueError; so is json.JSONDecodeError. Either way the
         # input is unusable, and that is a different failure from "books don't
@@ -473,13 +511,25 @@ def _audit(args: argparse.Namespace) -> int:
     undeclared = _undeclared_tool_results(raw)
     strict = _strict_blocks(args, undeclared)
     reasons: list[str] = []
-    if not balance.books_balance:
+    if balance.injection_points():
         reasons.append("books_do_not_balance")
+    elif not balance.books_balance:
+        # Every claim that did not close is one whose chain is too deep to walk.
+        # Nothing was found against the run, so this is not exit 1: the audit
+        # could not finish, which is exit 2 - whatever else is said below.
+        reasons.append(CHAIN_TOO_DEEP)
+    # The measure `check-trace` applies, from the same function. With two
+    # answers the trace does not say which one the user saw, and claims posted
+    # on one of them do not say it either: a second answer nobody posted a
+    # claim on would otherwise leave as exit 0, checked by nothing.
+    finals = multiple_final_answers(run)
+    if finals:
+        reasons.append(MULTIPLE_FINAL_ANSWERS)
     if unreviewed:
         reasons.append(UNREVIEWED_ECHO)
     if strict:
         reasons.append(UNDECLARED_TOOLS)
-    code = 1 if reasons else 0
+    code = 2 if CHAIN_TOO_DEEP in reasons else 1 if reasons else 0
 
     if args.chain:
         if args.chain not in balance.audits:
@@ -490,6 +540,17 @@ def _audit(args: argparse.Namespace) -> int:
         print(chain_view(run, balance, args.chain))
     elif not args.quiet:
         print(summary(run, balance))
+    if finals:
+        said = (f"tallystick: exit {code} - {MULTIPLE_FINAL_ANSWERS}: {len(finals)} artifacts "
+                f"are marked final_answer ({', '.join(finals)}); the trace does not say "
+                f"which one the user saw, so a clean result on one is not a checked run. "
+                f"Mark one answer, or record the others as intermediate")
+        print(said if args.quiet else f"\n{said[len('tallystick: '):]}",
+              file=sys.stderr if args.quiet else sys.stdout)
+    if CHAIN_TOO_DEEP in reasons and (args.quiet or args.chain):
+        print(f"tallystick: exit 2 - {CHAIN_TOO_DEEP}: {len(balance.unchecked())} claim(s) "
+              f"in the final answer rest on a {TOO_DEEP}; they were not checked, and "
+              f"nothing was found against them", file=sys.stderr)
     _say_echo_gate(unreviewed, accepted, quiet=args.quiet, cleared=cleared)
     _say_strict(args, undeclared, strict)
 
@@ -515,7 +576,7 @@ def _audit(args: argparse.Namespace) -> int:
         payload["gate"] = _gate_block(code, reasons, unreviewed, accepted, cleared)
         try:
             _write_json(args.json_out, payload)
-        except OSError as exc:
+        except CannotWrite as exc:
             print(f"tallystick: cannot write {args.json_out}: {exc}", file=sys.stderr)
             return 2
 
@@ -538,6 +599,7 @@ def _check_trace(args: argparse.Namespace) -> int:
     try:
         raw, source = _read_raw(args, seen)  # one read; `_meta` comes from `raw`
         run = load_run(raw)
+        read_meta(raw)
     except (OSError, ValueError) as exc:
         print(f"tallystick: cannot read this trace: {exc}.{_hint(args, seen)}",
               file=sys.stderr)
@@ -607,7 +669,7 @@ def _check_trace(args: argparse.Namespace) -> int:
         payload["gate"] = _gate_block(code, reasons, unreviewed, accepted, cleared)
         try:
             _write_json(args.json_out, payload)
-        except OSError as exc:
+        except CannotWrite as exc:
             print(f"tallystick: cannot write {args.json_out}: {exc}", file=sys.stderr)
             return 2
     if not args.quiet:
@@ -661,14 +723,15 @@ def _convert(args: argparse.Namespace) -> int:
     try:
         raw, source = _read_raw(args, seen)
         run = load_run(raw)            # a converter that writes an unloadable
-    except (OSError, ValueError) as exc:   # file is worse than one that refuses
+        read_meta(raw)                 # file is worse than one that refuses
+    except (OSError, ValueError) as exc:
         print(f"tallystick: cannot read this log: {exc}.{_hint(args, seen)}",
               file=sys.stderr)
         return 2
 
     try:
         _write_json(args.out, raw)
-    except OSError as exc:
+    except CannotWrite as exc:
         print(f"tallystick: cannot write {args.out}: {exc}", file=sys.stderr)
         return 2
 
@@ -706,6 +769,7 @@ def _propose(args: argparse.Namespace) -> int:
     try:
         raw, _source = _read_raw(args)
         run = load_run(raw)
+        read_meta(raw)
     except (OSError, ValueError) as exc:
         print(f"tallystick: cannot read this trace: {exc}", file=sys.stderr)
         return 2
@@ -736,7 +800,7 @@ def _propose(args: argparse.Namespace) -> int:
 
     try:
         _write_json(args.out, posted)
-    except OSError as exc:
+    except CannotWrite as exc:
         print(f"tallystick: cannot write {args.out}: {exc}", file=sys.stderr)
         return 2
 

@@ -241,7 +241,18 @@ class Run:
         from .normalize import normalize  # local import keeps types.py dependency-free
 
         seen_out: Dict[str, str] = {}
+        seen_steps: set = set()
         for step in self.steps:
+            # Two steps under one id are refused, not resolved. Everything that
+            # asks "which step produced this" would otherwise take whichever came
+            # first in the file, and the order of an array would decide the
+            # verdict. Nothing in the trace says which of the two is the real
+            # one, and guessing is the thing this tool does not do.
+            if step.step_id in seen_steps:
+                raise TraceError(
+                    f"duplicate step id {step.step_id!r}: two steps under one id, "
+                    f"so nothing can tell which of them produced what")
+            seen_steps.add(step.step_id)
             for aid in (*step.inputs, *step.outputs):
                 if aid not in self.artifacts:
                     raise TraceError(

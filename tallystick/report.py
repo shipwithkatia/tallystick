@@ -22,6 +22,7 @@ _MARK = {
     ClaimStatus.UNSUPPORTED: "UNSUPPORTED",
     ClaimStatus.PRIOR_ONLY: "PRIOR ONLY",
     ClaimStatus.CIRCULAR: "CIRCULAR",
+    ClaimStatus.UNCHECKED: "NOT CHECKED",
 }
 
 
@@ -72,7 +73,23 @@ def summary(run: Run, balance: TrialBalance) -> str:
                 lines.append(f"{arrow}{hop.account}")
             lines.append("")
 
-    verdict = "BOOKS BALANCE" if balance.books_balance else "BOOKS DO NOT BALANCE"
+    unchecked = balance.unchecked()
+    if unchecked:
+        # Not a break, so not listed with the breaks: nothing was found against
+        # these claims, because their chains were not walked at all.
+        lines.append(f"{len(unchecked)} claim(s) were not checked - {unchecked[0].break_reason}, "
+                     f"which is past what this audit walks:")
+        lines.append("")
+        for audit in unchecked:
+            lines.append(f"  [{_MARK[audit.status]}] {audit.claim_id}: {audit.text.strip()}")
+        lines.append("")
+
+    if balance.books_balance:
+        verdict = "BOOKS BALANCE"
+    elif unchecked and not breaks:
+        verdict = "BOOKS NOT CHECKED"
+    else:
+        verdict = "BOOKS DO NOT BALANCE"
     lines.append(verdict)
     lines.append("")
     return "\n".join(lines)

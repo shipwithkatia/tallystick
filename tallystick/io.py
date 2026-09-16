@@ -185,6 +185,53 @@ def read_json_file(path: str | Path):
         return json.loads(text)
     except json.JSONDecodeError as exc:
         raise TraceError(f"{path} is not valid JSON: {exc}") from None
+    except RecursionError:
+        # Valid JSON grammar, nested deeper than the parser's stack. Not a
+        # verdict about anything: uncaught, it left the interpreter with exit 1,
+        # the code for "the books do not balance" (review 13, 2.2).
+        raise TraceError(
+            f"{path} is nested too deeply to read: its arrays or objects go "
+            f"deeper than the JSON reader can follow. No agent trace needs that "
+            f"depth; the file is probably not one") from None
+
+
+#: The `_meta` fields a command reads, by the shape it reads them in. A reading
+#: writes them; a person or another recorder can write them too, and a field of
+#: the wrong type used to escape as TypeError - exit 1, a verdict (review 13, 2.4).
+_META_LISTS = (
+    "model_text_tools", "verbatim_tools", "external_tools", "declarations_not_in_log",
+    "skipped_empty", "dropped_messages", "truncated", "guessed_tool_names",
+    "unmatched_tool_results", "unresolved_tool_results", "echoed_back_tool_results",
+    "echoes_from_earlier_turns", "echo_warning_details",
+    "echo_warnings_cleared_by_declaration", "notes",
+)
+_LIST_LIKE = (list, tuple, set, frozenset)
+
+
+def read_meta(raw: Any) -> Dict[str, Any] | None:
+    """The `_meta` block of a raw trace, or None where there is none.
+
+    Raises TraceError when the block, or a field a command reads from it, has
+    the wrong type. Refused rather than skipped: `_meta` is where a reading
+    leaves its echo warnings, and a warnings field that cannot be read, passed
+    over in silence, is a gate that opens on malformed input."""
+    if not isinstance(raw, dict) or raw.get("_meta") is None:
+        return None
+    meta = raw["_meta"]
+    if not isinstance(meta, dict):
+        raise TraceError(f"'_meta' must be an object, got {type(meta).__name__}")
+    for key in _META_LISTS:
+        value = meta.get(key)
+        if value is not None and not isinstance(value, _LIST_LIKE):
+            raise TraceError(f"_meta.{key} must be a list, got {type(value).__name__}")
+    otel = meta.get("otel")
+    if otel is not None:
+        if not isinstance(otel, dict):
+            raise TraceError(f"_meta.otel must be an object, got {type(otel).__name__}")
+        notes = otel.get("notes")
+        if notes is not None and not isinstance(notes, _LIST_LIKE):
+            raise TraceError(f"_meta.otel.notes must be a list, got {type(notes).__name__}")
+    return meta
 
 
 def load_run_file(path: str | Path) -> Run:

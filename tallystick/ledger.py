@@ -24,8 +24,11 @@ Two rules keep the walk sound:
   * The cited span must actually be accounted for. Text nobody took responsibility
     for (no claim covers it) cannot fund anything.
 
-Results do not depend on the order of arrays in the input file: candidates are
-ranked explicitly, and nothing computed while a cycle was open is memoised.
+Results do not depend on the order of arrays in the input file, nor on how the
+claims are named: candidates are ranked explicitly, nothing computed while a
+cycle was open is memoised, and the depth limit is a property of each claim's
+chain, measured before the walk - not of how far the walk had come when it met
+the claim (review 13, 1.2: it used to be, and renaming a claim flipped a verdict).
 """
 
 from __future__ import annotations
@@ -35,11 +38,16 @@ from enum import Enum
 from typing import Dict, List, Optional, Set, Tuple
 
 from .types import AccountType, Claim, Run
-from .verify import verify_run
+from .verify import components, verify_run
 
-#: Chains longer than this are treated as broken. Real runs are tens of hops deep
-#: at most; anything past this is a loop the cycle guard could not see or a bug.
+#: A claim whose provenance goes deeper than this is not checked. Real runs are
+#: tens of hops deep at most. The limit keeps the recursive walk within Python's
+#: stack; it is not a finding about the run, so hitting it is UNCHECKED - "could
+#: not check" - and never LAUNDERED, which would be "checked, does not close".
 MAX_DEPTH = 256
+
+#: The reason an UNCHECKED claim carries. Stable, like verify.py's reasons.
+TOO_DEEP = f"chain deeper than {MAX_DEPTH}"
 
 # --------------------------------------------------------------------------- #
 # Outcomes
@@ -54,10 +62,13 @@ class ClaimStatus(str, Enum):
     LAUNDERED = "laundered"      # funded locally, chain breaks further back
     UNSUPPORTED = "unsupported"  # nothing funds it at its own step
     PRIOR_ONLY = "prior_only"    # only the model's own knowledge was offered
-    CIRCULAR = "circular"        # provenance loops or runs too deep; unfunded
+    CIRCULAR = "circular"        # provenance loops; unfunded
+    UNCHECKED = "unchecked"      # chain deeper than MAX_DEPTH; not checked, no verdict
 
 
-#: Statuses that mean "the books did not close for this claim".
+#: Statuses that mean "the books did not close for this claim". UNCHECKED is
+#: not one of them: that claim was not checked, which is not the same as a
+#: claim checked and found wanting. It does not balance either.
 FAILING = (ClaimStatus.LAUNDERED, ClaimStatus.UNSUPPORTED,
            ClaimStatus.PRIOR_ONLY, ClaimStatus.CIRCULAR)
 
@@ -66,10 +77,11 @@ FAILING = (ClaimStatus.LAUNDERED, ClaimStatus.UNSUPPORTED,
 _RANK = {
     ClaimStatus.GROUNDED: 0,
     ClaimStatus.ASSUMED: 1,
-    ClaimStatus.LAUNDERED: 2,
-    ClaimStatus.CIRCULAR: 3,
-    ClaimStatus.PRIOR_ONLY: 4,
-    ClaimStatus.UNSUPPORTED: 5,
+    ClaimStatus.UNCHECKED: 2,   # never met inside a walk: see close_books
+    ClaimStatus.LAUNDERED: 3,
+    ClaimStatus.CIRCULAR: 4,
+    ClaimStatus.PRIOR_ONLY: 5,
+    ClaimStatus.UNSUPPORTED: 6,
 }
 
 
@@ -132,6 +144,14 @@ class TrialBalance:
         for cid in claim_ids:
             out[self.audits[cid].status.value] += 1
         return out
+
+    def unchecked(self) -> List[ClaimAudit]:
+        """Final claims that were not checked because their chain is deeper than
+        MAX_DEPTH. The books do not balance with one of these in the answer, but
+        nothing was found against it either; the CLI exits 2 when these are the
+        only claims that did not close."""
+        return [self.audits[c] for c in self.final_claim_ids
+                if self.audits[c].status is ClaimStatus.UNCHECKED]
 
     @property
     def books_balance(self) -> bool:
@@ -198,12 +218,56 @@ def _span_is_accounted_for(run: Run, artifact_id: str, start: int, end: int,
     return True
 
 
+def _upstream(run: Run, entry) -> Optional[List[Claim]]:
+    """The claims a verified evidence entry makes the walk resolve next, or None
+    where the entry ends the walk (a root, an assumption, a span nobody vouched
+    for). One function for the walk and for `_heights`, so the depth measured
+    before the walk is the depth the walk goes."""
+    acct = entry.account
+    if not entry.verified or acct.type is not AccountType.EVIDENCE:
+        return None
+    cited = run.artifacts[acct.artifact_id]
+    if cited.kind.is_root:
+        return None
+    upstream = run.claims_covering(cited.artifact_id, acct.start, acct.end)
+    if not upstream or not _span_is_accounted_for(
+            run, cited.artifact_id, acct.start, acct.end, upstream):
+        return None
+    return upstream
+
+
+def _heights(run: Run) -> Dict[str, int]:
+    """How deep the walk from each claim can go: 0 for a claim whose entries end
+    at roots (or that nothing funds), otherwise one more than the deepest claim
+    it resolves next. Depends on the graph alone - not on names, not on file
+    order, not on which claim the walk started from.
+
+    A cycle of claims counts as deep as it is long, plus what lies beyond it:
+    that bounds the walk inside it."""
+    edges: Dict[str, List[str]] = {cid: [] for cid in run.claims}
+    for entry in run.entries:
+        claim = run.claims[entry.claim_id]
+        if run.artifacts[claim.artifact_id].kind.is_root:
+            continue    # the walk grounds these without looking at entries
+        for parent in _upstream(run, entry) or ():
+            edges[claim.claim_id].append(parent.claim_id)
+
+    height: Dict[str, int] = {}
+    for members in components(sorted(edges), edges):
+        # Listed after everything it reaches, so every height it needs is known.
+        inside = set(members)
+        out = [height[c] for m in members for c in edges[m] if c not in inside]
+        h = (len(members) - 1) + (1 + max(out) if out else 0)
+        for m in members:
+            height[m] = h
+    return height
+
+
 def _resolve(
     run: Run,
     claim: Claim,
     audits: Dict[str, ClaimAudit],
     visiting: Set[str],
-    depth: int,
 ) -> Tuple[ClaimAudit, bool]:
     """Depth-first walk from a claim back towards root artifacts.
 
@@ -229,11 +293,12 @@ def _resolve(
 
     # Cycle guard. Bookkeeping calls this a circular reference; either way nothing
     # real is behind it. Not cached: the verdict depends on the entry point.
-    if claim.claim_id in visiting or depth > MAX_DEPTH:
+    # There is no depth guard here: close_books settles every claim deeper than
+    # MAX_DEPTH before any walk starts, so no walk goes deeper than that.
+    if claim.claim_id in visiting:
         return make(ClaimStatus.CIRCULAR, break_claim_id=claim.claim_id,
                     break_step_id=step_id,
-                    break_reason="circular provenance" if depth <= MAX_DEPTH
-                    else f"chain deeper than {MAX_DEPTH}"), True
+                    break_reason="circular provenance"), True
 
     entries = run.entries_for(claim.claim_id)
     verified = [e for e in entries if e.verified]
@@ -291,12 +356,11 @@ def _resolve(
         # funded. Every claim the cited span touches must close, and the span must
         # be fully accounted for by claims - otherwise the citation inherits the
         # worst thing it covers, or covers text nobody vouched for.
-        upstream = run.claims_covering(cited.artifact_id, acct.start, acct.end)
+        upstream = _upstream(run, entry)
         cited_step = run.producing_step(cited.artifact_id)
         cited_step_id = cited_step.step_id if cited_step else None
 
-        if not upstream or not _span_is_accounted_for(
-                run, cited.artifact_id, acct.start, acct.end, upstream):
+        if upstream is None:
             candidates.append(make(
                 ClaimStatus.LAUNDERED, chain=[hop],
                 break_step_id=cited_step_id,
@@ -308,7 +372,7 @@ def _resolve(
         worst: Optional[ClaimAudit] = None
         best_ok: Optional[ClaimAudit] = None
         for parent in sorted(upstream, key=lambda c: (c.start, c.claim_id)):
-            presult, ptaint = _resolve(run, parent, audits, visiting, depth + 1)
+            presult, ptaint = _resolve(run, parent, audits, visiting)
             tainted = tainted or ptaint
             if presult.ok:
                 if best_ok is None or presult._key() < best_ok._key():
@@ -364,10 +428,19 @@ def close_books(run: Run) -> TrialBalance:
     verify_run(run)
 
     balance = TrialBalance()
+    # Too deep to walk: settled first, from the graph, so the answer is the same
+    # whichever claim a walk would have started from. Every claim a walk from a
+    # shallower claim reaches is shallower still, so no walk below meets one.
+    for claim_id, height in _heights(run).items():
+        if height > MAX_DEPTH:
+            claim = run.claims[claim_id]
+            balance.audits[claim_id] = ClaimAudit(
+                claim_id=claim_id, text=claim.text, artifact_id=claim.artifact_id,
+                status=ClaimStatus.UNCHECKED, break_reason=TOO_DEEP)
     # Resolve in a fixed order so that anything cycle-dependent is at least
     # reproducible; sorted ids, not file order.
     for claim_id in sorted(run.claims):
-        audit, _ = _resolve(run, run.claims[claim_id], balance.audits, set(), 0)
+        audit, _ = _resolve(run, run.claims[claim_id], balance.audits, set())
         balance.audits.setdefault(claim_id, audit)
 
     balance.final_claim_ids = sorted(
