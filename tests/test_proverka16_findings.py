@@ -251,6 +251,13 @@ NOTE_20_WORDS = ("Sydney is the capital of Australia and it was chosen in 1901 b
                  "federation needed a neutral site between the two.")
 
 
+@pytest.mark.xfail(strict=True, reason=(
+    "known hole, right in substance: a short note read back inside a memory "
+    "store's record (mem0, LangGraph Store) passes with no demotion and no note - "
+    "the record's fields are more than half of the reply. Described in README.md, "
+    "Known limitations, first item (python bench/store_record_threshold.py). Kept "
+    "red on purpose by the owner's decision of 16 September 2026, after "
+    "review 20; round 21 marked it"))
 def test_a_note_read_back_from_a_memory_store_record_is_reported():
     """A memory store answers with the note inside its record - an id, a hash, a
     score, timestamps - the shape of a mem0 search result. Nobody is evading
@@ -268,6 +275,12 @@ def test_a_note_read_back_from_a_memory_store_record_is_reported():
     assert echo_warnings(stored["_meta"]), "the same note in a store record warns on nothing"
 
 
+@pytest.mark.xfail(strict=True, reason=(
+    "known hole, right in substance: the model's draft pasted back as a `user` "
+    "message is a root and nothing compares it with the model's text. Described in "
+    "README.md, Known limitations, the item on a draft pasted back as a `user` "
+    "message. Kept red on purpose by the owner's decision of 16 September 2026 "
+    "after review 20; round 21 marked it"))
 def test_the_models_draft_pasted_back_as_a_user_message_is_not_silent_evidence(tmp_path):
     """A self-refine loop: the model writes a draft, the harness pastes it back
     in a `user` message ("here is your previous draft"), the model answers with
