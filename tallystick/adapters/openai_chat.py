@@ -736,12 +736,30 @@ RECHECK_WORK_TOTAL = 20_000_000
 _JOIN = "\x00"
 
 
-#: Scripts written without spaces between words: Thai, Lao, Myanmar, Khmer,
-#: Japanese kana, Han, halfwidth katakana. Korean is written with spaces and is
-#: not here.
-_NO_SPACES = re.compile("[\u0e00-\u0eff\u1000-\u109f\u1780-\u17ff"
+#: Scripts whose ordinary modern writing puts no space between words, so a note
+#: in them is one whitespace word however long it is: Thai, Lao, Tibetan,
+#: Myanmar, Khmer, Japanese kana, Han, halfwidth katakana. That is the rule for
+#: being here, not a list of languages someone thought of: Tibetan was missing
+#: (review 16, 2.3) because the list was written down from memory. Korean is
+#: written with spaces and is not here. Scripts that meet the rule and are still
+#: not here, each untested and so left out rather than added blind: Tai Tham,
+#: Tai Le, New Tai Lue, Tai Viet, Balinese, Javanese, Yi, and the Han and kana
+#: blocks outside the ranges below (extensions B and later, kana supplements).
+_NO_SPACES = re.compile("[\u0e00-\u0eff\u0f00-\u0fff\u1000-\u109f\u1780-\u17ff"
                         "\u3040-\u30ff\u31f0-\u31ff\u3400-\u4dbf"
                         "\u4e00-\u9fff\uf900-\ufaff\uff66-\uff9f]")
+
+#: Tibetan is cut only at marks from outside its own block - a quote, a colon,
+#: a bracket - and not at its own. The tsheg (་) between syllables and the vowel
+#: signs above and below a letter are not letters to `_WORD`, and cutting there
+#: made every note a string of single consonants: on a chat of 100 turns with
+#: no echo in it, 1,000 Tibetan characters a call, the index ran out of
+#: RECHECK_WORK and 39 replies came back `unchecked`, exit 1; with this, none
+#: (round 17; tests/test_round17.py). Thai, Lao, Khmer and Myanmar are still cut
+#: at their vowel signs, and a long chat in Thai has the same cost - measured in
+#: round 17 and left for the owner, not changed here.
+_TIBETAN = re.compile("[\u0f00-\u0fff]")
+_TIBETAN_WORD = re.compile("(?:[^\\W_]|[\u0f00-\u0fff])+")
 
 
 def _words_of(text: str) -> List[str]:
@@ -777,7 +795,7 @@ def _words_of(text: str) -> List[str]:
     words: List[str] = []
     for word in _clean(text).split():
         if _NO_SPACES.search(word):
-            words.extend(_WORD.findall(word))
+            words.extend((_TIBETAN_WORD if _TIBETAN.search(word) else _WORD).findall(word))
         else:
             words.append(word)
     return words
@@ -1250,6 +1268,24 @@ def to_trace(data: Any, *, name: str = "",
     if max_tool_chars < 1:
         raise ValueError("max_tool_chars must be at least 1")
     messages, notes = _expand(_messages_of(data))
+    # The placeholder is dropped from every declaration below, and that used to
+    # happen in silence: on a log whose tool is literally named `tool` the flag
+    # changed nothing and nothing said so (review 16, 2.4). It stays refused -
+    # this reader files calls by name, and a call the log left unnamed is filed
+    # under the same word, so no declaration of it can be kept off those - but
+    # the refusal is said out loud.
+    refused = sorted({flag for flag, names in (
+        ("--tool-returns-model-text", model_text_tools),
+        ("--tool-returns-verbatim", verbatim_tools),
+        ("--tool-returns-external", external_tools))
+        for raw in names or () if _key(raw) == PLACEHOLDER})
+    if refused:
+        notes = list(notes) + [
+            f"{' and '.join(refused)} {PLACEHOLDER}: not applied. `{PLACEHOLDER}` is the "
+            f"name this reading gives a call the log left unnamed, so it cannot be "
+            f"declared - the declaration would reach every unnamed call. A tool the "
+            f"log itself names `{PLACEHOLDER}` cannot be declared either, and "
+            f"--require-declared-tools cannot pass while one is in the log"]
     echo = _declared(model_text_tools)
     verbatim = _declared(verbatim_tools)
     external = _declared(external_tools)

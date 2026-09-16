@@ -172,6 +172,14 @@ def main(argv: List[str]) -> int:
         if isinstance(obj, dict) and "history" in obj:
             trajectories.append((p, obj))
     n = len(trajectories)
+    if not n:
+        # Without the corpus this printed zeros and then divided by them:
+        # ZeroDivisionError, exit 1 (review 16, 5.2). Nothing found is said.
+        print(f"no AgentHallu trajectories under {root} - nothing to measure. The "
+              f"corpus is not in this repository: git clone "
+              f"https://github.com/liuxuannan/AgentHallu and pass the clone",
+              file=sys.stderr)
+        return 2
 
     # What already holds the exit code at 1 today, in both configurations.
     today = {"no flags": set(), "4 echo tools declared": set()}

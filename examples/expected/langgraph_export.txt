@@ -1,5 +1,0 @@
-$ tallystick check-trace examples/logs/langgraph_export.json
-
-tallystick: cannot read this trace: steps[0] is missing 'step_id'. It also parses as an OpenAI chat message list, but it carries a trace's own keys, so check which of the two it is before reading it as the other.
-
-exit: 2

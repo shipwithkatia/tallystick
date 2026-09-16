@@ -63,10 +63,14 @@ exists to catch.
 ## Checking that your copy agrees
 
 ```
-tallystick check-trace examples/logs/clean_run.json > /tmp/got.txt
+tallystick check-trace examples/logs/clean_run.json > /tmp/got.txt; echo "exit $?"
 diff /tmp/got.txt examples/expected/clean_run.txt
 ```
 
-No output from `diff` means your copy says exactly what this repository's does.
-`tests/test_examples.py` runs that comparison for all six on every commit, so
-the expected files cannot quietly drift away from the code.
+The first line prints `exit 0`, the code in the table above. No output from
+`diff` means your copy says exactly what this repository's does. Each
+`examples/expected/<name>.txt` holds what the command prints and nothing else;
+the two files that are refused print their reason to stderr instead, and that
+is in `examples/expected/<name>.stderr.txt`. `tests/test_examples.py` runs these
+comparisons, with the exit codes, for all six on every commit, so the expected
+files cannot quietly drift away from the code.

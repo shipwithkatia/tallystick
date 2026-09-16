@@ -1,5 +1,3 @@
-$ tallystick check-trace examples/logs/clean_run.json
-
 Read as openai: 5 artifact(s) from examples/logs/clean_run.json. The report below judges that reading.
   undeclared tools: 1 result(s) from 1 tool name(s) nobody declared (read_file) - counted, not blocked
 
@@ -31,5 +29,3 @@ the walk goes through is the model's own words.
   wrong, runs below 80% had that point out of reach 59% of the time,
   against 29% above it - mostly because there is more out of reach to
   begin with, not because a low number predicts trouble.
-
-exit: 0

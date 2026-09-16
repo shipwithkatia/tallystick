@@ -3,6 +3,10 @@
     git clone https://github.com/liuxuannan/AgentHallu bench/work-agenthallu/AgentHallu
     python bench/auditability_agenthallu.py
 
+--data defaults to bench/work-agenthallu/AgentHallu/AgentHallu: the folder INSIDE
+the clone, which holds one folder per framework. Given a folder where it finds no
+labelled trajectory, it says so and exits 2 rather than printing a table of zeros.
+
 No model, no API key, no cost: `tallystick check-trace` reads the file and
 nothing else, so this runs over every trajectory in the dataset rather than the
 subset a paid run could afford.
@@ -205,6 +209,21 @@ def main(argv=None) -> int:
         return 2
     rows = rows_for(data, include_codeact=not args.exclude_codeact)
     labelled = [r for r in rows if r["hallucinated"]]
+    if not labelled:
+        # Nothing found is not a count. Given the clone's root instead of the
+        # folder inside it, this printed "0 trajectories, 0 labelled", a table of
+        # 0/0 and exit 0 - a result that looks computed (review 16, 4.1).
+        found = (f"{len(rows)} trajectories and none of them labelled" if rows
+                 else "no trajectories")
+        inner = data / "AgentHallu"
+        print(f"{found} under {data}/<framework>/*.json - nothing to count, so "
+              f"no table is printed. The corpus is not in this repository: "
+              f"`git clone https://github.com/liuxuannan/AgentHallu` puts it in "
+              f"AgentHallu/AgentHallu/, one folder per framework, and --data takes "
+              f"that inner folder." + (f" Here that is: --data {inner}"
+                                       if inner.is_dir() else ""),
+              file=sys.stderr)
+        return 2
     print(f"{len(rows)} trajectories, {len(labelled)} labelled, "
           f"{sum(1 for r in labelled if r['beyond'])} of them beyond the audit's boundary")
     print()

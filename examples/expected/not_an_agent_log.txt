@@ -1,5 +1,0 @@
-$ tallystick check-trace examples/logs/not_an_agent_log.json
-
-tallystick: cannot read this trace: this file is not a shape tallystick can read. It is not a trace (no 'artifacts' or 'steps'), not an OpenAI chat message list and not an OpenTelemetry GenAI span export. docs/auditable-traces.md says what a trace has to contain, and tallystick/adapters/ has the converters.
-
-exit: 2

@@ -25,25 +25,47 @@ Two rules keep the walk sound:
     for (no claim covers it) cannot fund anything.
 
 Results do not depend on the order of arrays in the input file, nor on how the
-claims are named: candidates are ranked explicitly, nothing computed while a
-cycle was open is memoised, and the depth limit is a property of each claim's
-chain, measured before the walk - not of how far the walk had come when it met
-the claim (review 13, 1.2: it used to be, and renaming a claim flipped a verdict).
+claims are named: candidates are ranked explicitly, and the depth limit is a
+property of each claim's chain, measured before the walk - not of how far the
+walk had come when it met the claim (review 13, 1.2: it used to be, and renaming
+a claim flipped a verdict).
+
+Claims that cite each other in a loop are settled together, not walked. The walk
+used to follow every simple path through such a loop and remember nothing it
+computed there, so a hand-made trace of 11 KB kept `audit` busy for 42 seconds,
+and each claim more cost nine times that (review 16, 1.1). Now each loop is a
+strongly connected component, settled once, after everything it cites, its
+claims closing one at a time, best verdict first (`_settle`). A claim closes
+there exactly when it would on a walk that never passes the same claim twice -
+a proof that loops back through a claim is never needed, because the part
+after the second visit already proves that claim - so the status is that of
+the old walk, reached without enumerating paths (round 17: the same status for
+every claim of 40,000 random traces, 4,180 of them with a loop). What the loop
+cannot fund is reported as circular at the claim being settled.
+
+An all-of closes on its WORST member, closing members included: a quote over a
+grounded sentence and an assumed one rests on the assumption (review 16, 1.2).
+Taking the best closing member hid the assumption under "grounded", which
+types.py promises never happens, and inside a loop it made the verdict depend
+on which claim sorts first (review 16, 1.3).
 """
 
 from __future__ import annotations
 
+import heapq
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from .types import AccountType, Claim, Run
 from .verify import components, verify_run
 
 #: A claim whose provenance goes deeper than this is not checked. Real runs are
-#: tens of hops deep at most. The limit keeps the recursive walk within Python's
-#: stack; it is not a finding about the run, so hitting it is UNCHECKED - "could
-#: not check" - and never LAUNDERED, which would be "checked, does not close".
+#: tens of hops deep at most. The limit was set to keep a recursive walk within
+#: Python's stack; claims are no longer walked recursively (round 17), and the
+#: limit stays because exit 2 on a chain this deep is what the README promises.
+#: It is not a finding about the run, so hitting it is UNCHECKED - "could not
+#: check" - and never LAUNDERED, which would be "checked, does not close".
 MAX_DEPTH = 256
 
 #: The reason an UNCHECKED claim carries. Stable, like verify.py's reasons.
@@ -236,7 +258,22 @@ def _upstream(run: Run, entry) -> Optional[List[Claim]]:
     return upstream
 
 
-def _heights(run: Run) -> Dict[str, int]:
+def _claim_graph(run: Run) -> Tuple[Dict[str, List[str]], List[List[str]]]:
+    """Which claims each claim resolves next, and the strongly connected
+    components of that graph, each listed after every component it reaches.
+    One graph for the depth limit and for settling, so what is measured is what
+    is walked."""
+    edges: Dict[str, List[str]] = {cid: [] for cid in run.claims}
+    for entry in run.entries:
+        claim = run.claims[entry.claim_id]
+        if run.artifacts[claim.artifact_id].kind.is_root:
+            continue    # settled as grounded without looking at entries
+        for parent in _upstream(run, entry) or ():
+            edges[claim.claim_id].append(parent.claim_id)
+    return edges, components(sorted(edges), edges)
+
+
+def _heights(edges: Dict[str, List[str]], comps: List[List[str]]) -> Dict[str, int]:
     """How deep the walk from each claim can go: 0 for a claim whose entries end
     at roots (or that nothing funds), otherwise one more than the deepest claim
     it resolves next. Depends on the graph alone - not on names, not on file
@@ -244,16 +281,8 @@ def _heights(run: Run) -> Dict[str, int]:
 
     A cycle of claims counts as deep as it is long, plus what lies beyond it:
     that bounds the walk inside it."""
-    edges: Dict[str, List[str]] = {cid: [] for cid in run.claims}
-    for entry in run.entries:
-        claim = run.claims[entry.claim_id]
-        if run.artifacts[claim.artifact_id].kind.is_root:
-            continue    # the walk grounds these without looking at entries
-        for parent in _upstream(run, entry) or ():
-            edges[claim.claim_id].append(parent.claim_id)
-
     height: Dict[str, int] = {}
-    for members in components(sorted(edges), edges):
+    for members in comps:
         # Listed after everything it reaches, so every height it needs is known.
         inside = set(members)
         out = [height[c] for m in members for c in edges[m] if c not in inside]
@@ -267,17 +296,15 @@ def _resolve(
     run: Run,
     claim: Claim,
     audits: Dict[str, ClaimAudit],
-    visiting: Set[str],
-) -> Tuple[ClaimAudit, bool]:
-    """Depth-first walk from a claim back towards root artifacts.
+    settling: Dict[str, Optional[ClaimAudit]],
+) -> ClaimAudit:
+    """The verdict on one claim, from the verdicts of the claims it cites.
 
-    Returns (audit, tainted). `tainted` is True when the result was computed while
-    a cycle involving an ancestor was open; such results depend on where the walk
-    entered the cycle and are therefore not memoised.
+    `audits` holds claims already settled. `settling` holds the claims of the
+    loop being settled with this one: the best verdict each has closed on so
+    far, or None while it has not closed. A cited claim still open in the loop
+    is circular from here - on this pass nothing real stands behind it yet.
     """
-    if claim.claim_id in audits:
-        return audits[claim.claim_id], False
-
     step = run.producing_step(claim.artifact_id)
     step_id = step.step_id if step else None
 
@@ -288,17 +315,19 @@ def _resolve(
     # A claim located in a root artifact is not something the agent asserted; it is
     # the evidence itself. Nothing to fund.
     if run.artifacts[claim.artifact_id].kind.is_root:
-        audits[claim.claim_id] = make(ClaimStatus.GROUNDED)
-        return audits[claim.claim_id], False
+        return make(ClaimStatus.GROUNDED)
 
-    # Cycle guard. Bookkeeping calls this a circular reference; either way nothing
-    # real is behind it. Not cached: the verdict depends on the entry point.
-    # There is no depth guard here: close_books settles every claim deeper than
-    # MAX_DEPTH before any walk starts, so no walk goes deeper than that.
-    if claim.claim_id in visiting:
+    def cited(parent: Claim) -> ClaimAudit:
+        if parent.claim_id in audits:
+            return audits[parent.claim_id]
+        so_far = settling[parent.claim_id]     # KeyError: settled out of order
+        if so_far is not None:
+            return so_far
+        # Bookkeeping calls this a circular reference; either way nothing real
+        # is behind it. Named at the claim being settled: its provenance comes
+        # back to the loop it is in.
         return make(ClaimStatus.CIRCULAR, break_claim_id=claim.claim_id,
-                    break_step_id=step_id,
-                    break_reason="circular provenance"), True
+                    break_step_id=step_id, break_reason="circular provenance")
 
     entries = run.entries_for(claim.claim_id)
     verified = [e for e in entries if e.verified]
@@ -309,19 +338,15 @@ def _resolve(
         only_prior = bool(entries) and all(
             e.account.type is AccountType.PRIOR for e in entries
         )
-        audit = make(
+        return make(
             ClaimStatus.PRIOR_ONLY if only_prior else ClaimStatus.UNSUPPORTED,
             break_claim_id=claim.claim_id, break_step_id=step_id,
             break_reason=("model prior, no external evidence" if only_prior
                           else (entries[0].reason if entries else "no entry posted")),
         )
-        audits[claim.claim_id] = audit
-        return audit, False
 
-    visiting.add(claim.claim_id)
     candidates: List[ClaimAudit] = []
     groups: List[str] = []          # parallel to candidates; "" = no group
-    tainted = False
 
     for entry in entries:
         if not entry.verified:
@@ -345,10 +370,10 @@ def _resolve(
             candidates.append(make(ClaimStatus.ASSUMED, chain=[hop]))
             continue
 
-        cited = run.artifacts[acct.artifact_id]
+        cited_artifact = run.artifacts[acct.artifact_id]
 
         # Root artifact: the chain legitimately stops here.
-        if cited.kind.is_root:
+        if cited_artifact.kind.is_root:
             candidates.append(make(ClaimStatus.GROUNDED, chain=[hop]))
             continue
 
@@ -357,7 +382,7 @@ def _resolve(
         # be fully accounted for by claims - otherwise the citation inherits the
         # worst thing it covers, or covers text nobody vouched for.
         upstream = _upstream(run, entry)
-        cited_step = run.producing_step(cited.artifact_id)
+        cited_step = run.producing_step(cited_artifact.artifact_id)
         cited_step_id = cited_step.step_id if cited_step else None
 
         if upstream is None:
@@ -369,14 +394,16 @@ def _resolve(
             ))
             continue
 
+        # All-of: the worst member decides, and among members that close the
+        # worst decides too - an assumed sentence under the quote makes the quote
+        # rest on an assumption, however grounded its neighbour is.
         worst: Optional[ClaimAudit] = None
-        best_ok: Optional[ClaimAudit] = None
+        worst_ok: Optional[ClaimAudit] = None
         for parent in sorted(upstream, key=lambda c: (c.start, c.claim_id)):
-            presult, ptaint = _resolve(run, parent, audits, visiting)
-            tainted = tainted or ptaint
+            presult = cited(parent)
             if presult.ok:
-                if best_ok is None or presult._key() < best_ok._key():
-                    best_ok = presult
+                if worst_ok is None or presult._key() > worst_ok._key():
+                    worst_ok = presult
             else:
                 if worst is None or presult._key() > worst._key():
                     worst = presult
@@ -389,17 +416,16 @@ def _resolve(
                 break_reason=worst.break_reason,
             ))
         else:
-            assert best_ok is not None
-            candidates.append(make(best_ok.status, chain=[hop] + best_ok.chain))
-
-    visiting.discard(claim.claim_id)
+            assert worst_ok is not None
+            candidates.append(make(worst_ok.status, chain=[hop] + worst_ok.chain))
 
     # Between independent entries the claim closes on the best (any-of): a real
     # second source is a real second source. Within a group - entries that came
     # from one quote covering several claims - it closes on the WORST (all-of):
     # the quote vouched for all of that text at once. Without this a proposer
     # that snaps a quote to claim boundaries would bypass the all-of rule that
-    # _span_is_accounted_for enforces for a single wide entry.
+    # _span_is_accounted_for enforces for a single wide entry. The worst member
+    # decides whether the group closes and, where it does, on what.
     merged: List[ClaimAudit] = []
     by_group: Dict[str, List[ClaimAudit]] = {}
     for g, cand in zip(groups, candidates):
@@ -409,13 +435,69 @@ def _resolve(
             merged.append(cand)
     for members in by_group.values():
         failing = [m for m in members if not m.ok]
-        merged.append(max(failing, key=lambda a: a._key()) if failing
-                      else min(members, key=lambda a: a._key()))
+        merged.append(max(failing or members, key=lambda a: a._key()))
 
-    result = min(merged, key=lambda a: a._key())
-    if not tainted:
-        audits[claim.claim_id] = result
-    return result, tainted
+    return min(merged, key=lambda a: a._key())
+
+
+def _settle(run: Run, members: List[str], edges: Dict[str, List[str]],
+            audits: Dict[str, ClaimAudit]) -> None:
+    """Settle one strongly connected component of the claim graph; everything it
+    cites outside itself is already in `audits`.
+
+    Inside a loop, claims close one at a time, best verdict first (Knuth's
+    generalisation of Dijkstra's shortest paths). That order is sound because a
+    chain is always worse than every claim it is built from: it has the worst
+    status among them and one link more. So when the best claim still open is
+    taken, nothing that closes later can give it a better chain, and its verdict
+    is final. Each time a claim closes, only the claims that cite it are
+    recomputed.
+
+    A first version swept the whole loop until nothing changed. It gave the same
+    verdicts, but a ring of 250 claims with one document at the far end took 250
+    sweeps - 7 s with 2,000-character texts, and the square of the ring's length
+    (lab notes of round 17). The order of the sweeps was set by the claim names.
+
+    Claims that never close keep what they come to once every claim that closes
+    has closed; what the loop cannot fund is circular from them."""
+    settling: Dict[str, Optional[ClaimAudit]] = {m: None for m in members}
+    if len(members) == 1 and members[0] not in edges[members[0]]:
+        audits[members[0]] = _resolve(run, run.claims[members[0]], audits, settling)
+        return
+    inside = set(members)
+    cited_by: Dict[str, List[str]] = {m: [] for m in members}
+    for m in sorted(members):
+        for parent in sorted(set(edges[m])):
+            if parent in inside:
+                cited_by[parent].append(m)
+
+    best: Dict[str, ClaimAudit] = {}            # best closing verdict so far, per claim
+    queue: List[Tuple[Tuple, str]] = []
+
+    def consider(m: str) -> None:
+        audit = _resolve(run, run.claims[m], audits, settling)
+        if audit.ok and (m not in best or audit._key() < best[m]._key()):
+            best[m] = audit
+            heapq.heappush(queue, (audit._key(), m))
+
+    for m in sorted(members):
+        consider(m)
+    while queue:
+        key, m = heapq.heappop(queue)
+        if settling[m] is not None or best[m]._key() != key:
+            continue                           # closed already, or a stale entry
+        settling[m] = best[m]
+        closed = (_RANK[best[m].status], best[m].depth)
+        for d in cited_by[m]:
+            if settling[d] is not None:
+                continue
+            # A chain through m has at least m's status and one link more, so a
+            # claim that already closes no worse than m itself gains nothing.
+            if d in best and (_RANK[best[d].status], best[d].depth) <= closed:
+                continue
+            consider(d)
+    for m in sorted(members):
+        audits[m] = settling[m] or _resolve(run, run.claims[m], audits, settling)
 
 
 def close_books(run: Run) -> TrialBalance:
@@ -428,20 +510,21 @@ def close_books(run: Run) -> TrialBalance:
     verify_run(run)
 
     balance = TrialBalance()
+    edges, comps = _claim_graph(run)
     # Too deep to walk: settled first, from the graph, so the answer is the same
     # whichever claim a walk would have started from. Every claim a walk from a
     # shallower claim reaches is shallower still, so no walk below meets one.
-    for claim_id, height in _heights(run).items():
+    for claim_id, height in _heights(edges, comps).items():
         if height > MAX_DEPTH:
             claim = run.claims[claim_id]
             balance.audits[claim_id] = ClaimAudit(
                 claim_id=claim_id, text=claim.text, artifact_id=claim.artifact_id,
                 status=ClaimStatus.UNCHECKED, break_reason=TOO_DEEP)
-    # Resolve in a fixed order so that anything cycle-dependent is at least
-    # reproducible; sorted ids, not file order.
-    for claim_id in sorted(run.claims):
-        audit, _ = _resolve(run, run.claims[claim_id], balance.audits, set())
-        balance.audits.setdefault(claim_id, audit)
+    # Every component after everything it cites, so what a claim cites outside
+    # its own loop is always settled before it.
+    for members in comps:
+        if not any(m in balance.audits for m in members):
+            _settle(run, members, edges, balance.audits)
 
     balance.final_claim_ids = sorted(
         c.claim_id

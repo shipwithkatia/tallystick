@@ -134,7 +134,9 @@ Tool names in all three declarations are matched with case and surrounding
 spaces ignored, and a name that matches no tool in the log is reported rather
 than left to do nothing in silence. The name `tool` cannot be declared: it is
 what this reader writes in where the log gives a call no name at all, so
-declaring it would reach every unnamed result in the file.
+declaring it would reach every unnamed result in the file. Declaring it is
+refused out loud, in a note under the report. That holds for a log whose tool is
+literally named `tool` too, so such a log cannot pass `--require-declared-tools`.
 
 ```bash
 tallystick check-trace my_log.json --tool-returns-external web_search
@@ -418,6 +420,9 @@ Because `check-trace` needs no model, the 80% line could be measured on the whol
 AgentHallu rather than the subset a paid run could afford —
 [`bench/auditability_agenthallu.py`](bench/auditability_agenthallu.py), output in
 [`bench/results/auditability-agenthallu.txt`](bench/results/auditability-agenthallu.txt).
+The corpus is not in this repository: `git clone https://github.com/liuxuannan/AgentHallu`
+and pass the folder inside the clone, `--data AgentHallu/AgentHallu`, which holds one
+folder per framework; given any other folder the script says it found nothing and exits 2.
 Of the 443 labelled trajectories, those at or above 80% have the hallucination beyond
 the audit's reach in 24 of 84 runs (29%); those below it, in 212 of 359 (59%).
 
@@ -483,7 +488,7 @@ asking nothing of tallystick.
 ## What I Learned
 
 - The interesting failure is not the fabricated sentence — it's the perfectly honest step that copies it. Each hop can be individually correct while the whole chain is wrong, and only a transitive walk sees that.
-- "Deterministic" is a property you have to defend structurally. Memoising a result computed while a cycle was open made the verdict depend on array order in the JSON file. Same run, same code, different exit code. The fix was to refuse to cache anything tainted by an open cycle, and the shuffle test now exists so it cannot regress silently.
+- "Deterministic" is a property you have to defend structurally. Memoising a result computed while a cycle was open made the verdict depend on array order in the JSON file. Same run, same code, different exit code. The fix was to refuse to cache anything tainted by an open cycle, and the shuffle test now exists so it cannot regress silently. That fix had its own price, found by a later review: with nothing cached inside a loop, the walk followed every path through it, and an 11 KB trace kept `audit` busy for 42 seconds. A loop of claims is now settled as a whole, best verdict first, which no order in the file and no name can move.
 - A README that overstates what the code does is the single most expensive defect in a project whose thesis is "unsupported claims should be named". The adversarial review pass caught seven such lines before publish.
 - **Writing and attacking are different jobs, and the same pass cannot do both.** Every serious defect in this repo was found not while writing but in a separate adversarial review run afterwards, by a reviewer whose only brief was to break it: the wide-citation bypass and the array-order dependence in v0.1; in v0.2, a false `laundered` verdict on a model that had followed the prompt correctly, a string-shaped answer that would have posted one claim per character, and three ways to sneak a model import past the boundary test. None of them were visible from inside the writing.
 - **A framework tells you what happened, not what a model saw.** LangChain logs retrievals, tool calls and model outputs, but nothing in it says which of those a given model call had in its context. The recorder recovers that from the prompt bytes, and the first review showed how easy it is to get subtly wrong: a 20-character floor meant for tiny tool results was also dropping short model outputs from the chain, and chat "content blocks" were being JSON-escaped so no multi-line document ever matched. Both mislocated the injection step — the one number the project promises — while every test stayed green, because the demo happened to use one long paragraph.

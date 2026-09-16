@@ -1,5 +1,3 @@
-$ tallystick check-trace examples/logs/otel_spans.json
-
 Read as otel: 3 artifact(s) from examples/logs/otel_spans.json. The report below judges that reading.
   reader: read against the OpenTelemetry GenAI specification and logs built to match it, not against a corpus of real exports
 
@@ -23,5 +21,3 @@ Can this run be checked?   3 pieces of text across 1 step
   The higher that 100% is, the more of the run a check can follow.
 
 CAN BE CHECKED - nothing in the recording is in the way.
-
-exit: 0

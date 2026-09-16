@@ -900,13 +900,51 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _escape_what_cannot_be_printed():
+    """Make stdout and stderr write a character their encoding cannot hold as
+    an escape (`\\ud83d`) instead of raising. Returns a function that puts the
+    streams back.
+
+    A lone surrogate - half of an emoji cut in a UTF-16 log - is valid JSON and
+    reaches the report in a claim's text, an accepted warning's line or a note.
+    print() raised UnicodeEncodeError on it, and the interpreter exited 1, "the
+    books do not balance", on books that balance; with --quiet the same file
+    exited 0 (review 16, 3.1). A file written with such a character is refused
+    instead (`_write_json`): an escape in a file would change the text the next
+    command reads. On a terminal it only changes what a person sees, and shows
+    them where the character was."""
+    restore = []
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        errors = getattr(stream, "errors", None)
+        if reconfigure is None or errors is None:
+            continue                  # a StringIO, or a stream this cannot change
+        try:
+            reconfigure(errors="backslashreplace")
+        except (ValueError, OSError):
+            continue
+        restore.append((reconfigure, errors))
+
+    def put_back():
+        for reconfigure, errors in restore:
+            try:
+                reconfigure(errors=errors)
+            except (ValueError, OSError):
+                pass
+    return put_back
+
+
 def main(argv: list[str] | None = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     # `tallystick run.json` means `tallystick audit run.json`.
     if argv and argv[0] not in SUBCOMMANDS and argv[0] not in ("-h", "--help"):
         argv.insert(0, "audit")
-    args = build_parser().parse_args(argv)
-    return args.func(args)
+    put_back = _escape_what_cannot_be_printed()
+    try:
+        args = build_parser().parse_args(argv)
+        return args.func(args)
+    finally:
+        put_back()
 
 
 if __name__ == "__main__":

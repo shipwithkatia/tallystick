@@ -206,7 +206,11 @@ tools is not a broken run, it is a run whose clean audit means less.
 On all 443 labelled AgentHallu trajectories, traces at or above 80% held 24 of
 their 84 labelled hallucinations beyond the audit's reach (29%) and traces below
 it 212 of 359 (59%) — `bench/results/auditability-agenthallu.txt`, reproducible
-with `python bench/auditability_agenthallu.py --data <AgentHallu>`.
+with `python bench/auditability_agenthallu.py --data <AgentHallu>`. The corpus is
+not in this repository: `git clone https://github.com/liuxuannan/AgentHallu`, and
+`<AgentHallu>` is the folder inside the clone, `AgentHallu/AgentHallu`, which holds
+one folder per framework. Given any other folder the script finds nothing, says so
+and exits 2.
 
 Three caveats, and they matter more than the number. The line is read off that
 corpus rather than held out. Most of the gap is arithmetic rather than

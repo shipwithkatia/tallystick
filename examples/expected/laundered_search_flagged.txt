@@ -1,5 +1,3 @@
-$ tallystick check-trace examples/logs/laundered_search.json --tool-returns-model-text save_note
-
 Read as openai: 7 artifact(s) from examples/logs/laundered_search.json. The report below judges that reading.
   tools read as the model's own text: save_note
   undeclared tools: 1 result(s) from 1 tool name(s) nobody declared (web_search) - counted, not blocked
@@ -27,5 +25,3 @@ CAN BE CHECKED - nothing in the recording is in the way.
   1 step recorded only a tool's reply and nothing the model wrote,
   so there is nothing to ask at that step. It is:
     a2.tools
-
-exit: 0

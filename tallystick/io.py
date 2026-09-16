@@ -193,6 +193,12 @@ def read_json_file(path: str | Path):
         return json.loads(text)
     except json.JSONDecodeError as exc:
         raise TraceError(f"{path} is not valid JSON: {exc}") from None
+    except ValueError as exc:
+        # Valid JSON that Python refuses to turn into a value: an integer longer
+        # than its 4,300-digit limit. Not a JSONDecodeError, so it used to leave
+        # `audit()` as a bare ValueError, which `except TraceError`, the
+        # documented contract, does not catch (review 16, 3.2).
+        raise TraceError(f"{path} holds a value that cannot be read: {exc}") from None
     except RecursionError:
         # Valid JSON grammar, nested deeper than the parser's stack. Not a
         # verdict about anything: uncaught, it left the interpreter with exit 1,

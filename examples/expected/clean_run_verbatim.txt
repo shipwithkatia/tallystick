@@ -1,5 +1,3 @@
-$ tallystick check-trace examples/logs/clean_run.json --tool-returns-verbatim read_file
-
 Read as openai: 5 artifact(s) from examples/logs/clean_run.json. The report below judges that reading.
   tools read as external text, verbatim: read_file
 
@@ -23,5 +21,3 @@ Can this run be checked?   5 pieces of text across 3 steps
   The higher that 100% is, the more of the run a check can follow.
 
 CAN BE CHECKED - nothing in the recording is in the way.
-
-exit: 0
