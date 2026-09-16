@@ -14,7 +14,8 @@ trajectories for each and classified them by hand (see the round's report):
 
 and the acceptance test named before the measurement was "more than half of
 the warnings are real echoes, at no more than 20% of the corpus". Only
-coverage >= 50% passes it, at 106 of 693 trajectories (15.3%). So:
+coverage >= 50% passes it, at 106 of 693 trajectories (15.3%) then; the same
+setting costs 123 of 693 (17.7%) after round 15, `bench/echo_coverage.py`. So:
 
 - the exact-value-inside trigger is gone. It cost 300 of 693 trajectories
   (43.3%) and, in the sample, flagged a search repeating its query, an invoice

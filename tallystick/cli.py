@@ -611,7 +611,7 @@ def _check_trace(args: argparse.Namespace) -> int:
     notes = _reading_notes(meta if isinstance(meta, dict) else {}, undeclared)
     # A converted chat can come out many times the size of the log. Said, not
     # blocked: it is how the format records a whole history sent every turn.
-    size = _trace_size(source, seen.get("raw"), raw, None, args.trace)
+    size = _trace_size(source, seen.get("raw"), raw, None, _file_bytes(args.trace))
     size_lines = _wrapped(trace_size_line(size)) if size else []
     # A tool result ending in a line the model wrote in an earlier call is kept
     # as evidence, because the log cannot tell a value handed back from a value
@@ -699,15 +699,19 @@ def _file_bytes(path) -> int | None:
         return None
 
 
-def _trace_size(source: str, log, trace, trace_bytes=None, log_path=None):
+def _trace_size(source: str, log, trace, trace_bytes=None, log_bytes=None):
     """`trace_size` for what was read. A file read as a trace needs no guard:
     the "log" and the trace are then the same object, the ratio is 1, and
     nothing is said - a mutation test showed a separate check here changed
-    nothing, so there is none."""
+    nothing, so there is none.
+
+    `log_bytes` is the log's size on disk, taken by the caller BEFORE anything
+    is written: `convert log.json -o log.json` replaces the log with the trace,
+    and a size taken afterwards by the same path named a log of 2.9 MB that was
+    119 KB (review 13, 6.1)."""
     if log is None or not isinstance(trace, dict):
         return None
-    return trace_size(log, trace, trace_bytes,
-                      _file_bytes(log_path) if log_path is not None else None)
+    return trace_size(log, trace, trace_bytes, log_bytes)
 
 
 def _wrapped(text: str) -> list[str]:
@@ -729,6 +733,8 @@ def _convert(args: argparse.Namespace) -> int:
               file=sys.stderr)
         return 2
 
+    # Before the write: the output may be the log itself.
+    log_bytes = _file_bytes(args.trace)
     try:
         _write_json(args.out, raw)
     except CannotWrite as exc:
@@ -753,7 +759,7 @@ def _convert(args: argparse.Namespace) -> int:
     # not serialised a second time to be measured. `os` is kept out of the
     # verdict path by tests/test_no_model_imports.py; pathlib is already here.
     size = _trace_size(source, seen.get("raw"), raw, Path(args.out).stat().st_size,
-                       args.trace)
+                       log_bytes)
     for line in _wrapped(trace_size_line(size)) if size else []:
         print(f"  {line}")
     if not args.quiet:

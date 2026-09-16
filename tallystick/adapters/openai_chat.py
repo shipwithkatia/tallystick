@@ -79,7 +79,11 @@ The threshold was chosen by drawing 20 random warnings from AgentHallu at 30%
 and at 50% and reading them, against a test named before the measurement: more
 than half must be real echoes, at no more than 20% of the corpus. At 30%, nine
 of twenty were real and it cost 27.3% of trajectories; at 50%, twelve of twenty
-were real and it costs 15.3%. That sample does not separate the two settings:
+were real and it cost 15.3% then (106 of 693). The same setting costs 17.7%
+today - 123 of 693, `bench/echo_coverage.py`, after the reply began to be
+weighed with its escapes undone. The drawn samples were not kept, so the
+counts of real echoes cannot be recomputed. That sample does not separate the
+two settings:
 both exact 95% intervals (23-68%, 36-81%) contain the 50% bar, and the choice
 rests on reading one family - browser status lines like `Navigated to <url>` -
 as echoes. See `WARN_SHARE`. A second trigger that shipped in the seventh
@@ -513,7 +517,9 @@ _WARNING_KINDS = {
 #: classifying them by hand against a test named before the measurement ("more
 #: than half of the warnings are real echoes, at no more than 20% of the
 #: corpus"): at 30% nine of twenty were real echoes and it cost 27.3% of
-#: trajectories; at 50% twelve of twenty were real and it costs 15.3%.
+#: trajectories; at 50% twelve of twenty were real and it cost 15.3% (106 of
+#: 693). Today it costs 17.7%, 123 of 693 (`bench/echo_coverage.py`, with the
+#: corpus's four echo tools declared). The samples were not kept.
 #:
 #: That sample does NOT tell 50% from 30%. The exact 95% intervals are 23-68%
 #: and 36-81%, both contain the 50% bar, and a Fisher test on the two gives
@@ -726,8 +732,55 @@ RECHECK_WORK = 2_000_000
 RECHECK_WORK_TOTAL = 20_000_000
 
 #: Written between two texts in an index so that no run is matched across the
-#: join. It cannot occur in a reply: `split()` never produces it.
+#: join. It cannot occur in a reply: `_words_of` never produces it.
 _JOIN = "\x00"
+
+
+#: Scripts written without spaces between words: Thai, Lao, Myanmar, Khmer,
+#: Japanese kana, Han, halfwidth katakana. Korean is written with spaces and is
+#: not here.
+_NO_SPACES = re.compile("[\u0e00-\u0eff\u1000-\u109f\u1780-\u17ff"
+                        "\u3040-\u30ff\u31f0-\u31ff\u3400-\u4dbf"
+                        "\u4e00-\u9fff\uf900-\ufaff\uff66-\uff9f]")
+
+
+def _words_of(text: str) -> List[str]:
+    """`text` as the words the share is counted in: split at whitespace, and a
+    word in a script written without spaces split again at every mark that is
+    not a letter or a digit.
+
+    In Chinese and Japanese a whole note is one whitespace word, so the quote of
+    a JSON value, a fullwidth `：` after a label or 「」 around it made that one
+    word match nothing and the share fell to 0: check-trace exited 0 on the
+    model's own note (proverka13, 3.2).
+
+    Why only there. This is a second way of cutting words, beside whitespace,
+    and the two wider ways were tried first and priced on AgentHallu against a
+    limit named before the measurement (round 15):
+      * cutting at marks in EVERY script also changed English: a JSON key
+        `current_time` became the words `current time`, a file name in a `mv`
+        status line matched the call that named it, and the warnings it added
+        went past the limit, fewer than half of those read by hand real echoes
+        (tests/test_round15.py keeps both shapes quiet);
+      * one character per word in these scripts: on a long Chinese chat with
+        no echo in it, the index holds every character thousands of times, the
+        exact pass runs out of RECHECK_WORK and replies come back `unchecked`,
+        exit 1 (tests/test_round15.py, 100 turns).
+    AgentHallu has no note written in these scripts, so the corpus priced this
+    and did not test it; tests/test_proverka13_echo.py and test_round15.py do.
+
+    What it still cannot see, and nothing here reports: a note glued to other
+    letters with no mark between them - `已保存` written straight onto it - a
+    note set inside a longer clause of the reply, and a clause read back with
+    one character changed. Each is a word that matches nothing, where in
+    English only the changed word would."""
+    words: List[str] = []
+    for word in _clean(text).split():
+        if _NO_SPACES.search(word):
+            words.extend(_WORD.findall(word))
+        else:
+            words.append(word)
+    return words
 
 
 class _Words:
@@ -745,7 +798,7 @@ class _Words:
 
     def add(self, text: str) -> None:
         base = len(self.words)
-        parts = _clean(text).split()
+        parts = _words_of(text)
         for i, word in enumerate(parts):
             self.where.setdefault(word, []).append(base + i)
         self.words.extend(parts)
@@ -884,8 +937,30 @@ def _share_in(result: str, index: _Words,
     at all can be covered, so where those words cannot reach WARN_SHARE the
     answer stands. Otherwise the reply is tiled again with no limit, within
     RECHECK_WORK and what is left of `budget`; if that runs out, the third
-    value is True and the caller reports the reply `unchecked`."""
-    reply = _clean(result).split()
+    value is True and the caller reports the reply `unchecked`.
+
+    The reply is weighed in each spelling the demotion reads it in -
+    `_reply_texts`: as written, and with its escapes undone - and the larger
+    share stands. One measure on both paths: a note read back as
+    `json.dumps` writes it by default arrives as `\\uXXXX`, the demotion
+    decoded it and this path did not, so the same Russian note that warned
+    when written plainly passed with exit 0 (proverka13, 3.1)."""
+    best: Tuple[float, str, bool] = (0.0, "", False)
+    unsure = False
+    for text in _reply_texts(result):
+        share, run, unchecked = _share_of_spelling(text, index, budget)
+        if share >= WARN_SHARE:
+            return share, run, False
+        unsure = unsure or unchecked
+        if share > best[0] or not best[1]:
+            best = (share, run, False)
+    return best[0], best[1], unsure
+
+
+def _share_of_spelling(result: str, index: _Words,
+                       budget: Optional[_Budget]) -> Tuple[float, str, bool]:
+    """`_share_in` for one spelling of the reply."""
+    reply = _words_of(result)
     total = _alnum("".join(reply))
     if not total or not index:
         return 0.0, "", False

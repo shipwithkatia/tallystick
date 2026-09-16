@@ -18,10 +18,16 @@ not have to justify. If what you stored in its place is a model's summary of it,
 the chain ends on trust and the audit is theatre.
 
 This is not hypothetical. On 225 real trajectories from six agent frameworks,
-61 of the 115 human-labelled hallucinations — 53% — sat inside a tool result
-that was a model-written digest of a page the trace never held. No post-hoc
-reading of those files can reach them. (Measured; see the AgentHallu section of
-the [README](../README.md).)
+61 of the 115 human-labelled hallucinations — 53% — were labelled at a step that
+recorded only a tool's reply and nothing the model wrote. Not all of those
+replies are the same kind of text. Many are a model's digest of a page the
+trace never held: OpenDeepSearch's `web_search`, OpenManus's `browser_use`
+extracting content, Magentic-One's `answer_question`. Others are not a digest:
+a list of search results with their snippets, the text visible in a browser
+window after typing or scrolling, a page as fetched (`visit_webpage`), one
+interpreter's printed output. Whatever the reply was, the trace keeps no record
+of how the tool made it, and an audit of the file stops there. (Measured; see the
+AgentHallu section of the [README](../README.md).)
 
 ## What to record
 
@@ -71,13 +77,21 @@ input, and that is the honest record.
 
 That record has a cost for a long chat, and it is better known than met. Every
 step lists every artifact before it, so the trace grows with the square of the
-turns. The text is stored once; the ids repeat. Measured with the OpenAI reader
-on a chat of one tool call per turn: with tool replies of 40 characters the
-trace reaches ten times the size of the log at 116 turns, and 2,000 turns turn a
-0.8 MB log into a 127 MB trace; with replies of 2,000 characters the crossing is
-at 667 turns, and 2,000 turns give 4.5 MB of log and 131 MB of trace. None of
-AgentHallu's 693 trajectories comes near it: the largest trace there is 2.3
-times its log. The list stays explicit anyway. A shorthand for "everything the
+turns. The text is stored once; the ids repeat. How fast depends on how many
+artifacts a turn records, so `python bench/trace_growth.py` measures two chats
+with the OpenAI reader, both sides as `tallystick convert` writes JSON. When
+each turn carries a line of the assistant's text, one tool call and the reply:
+with replies of 40 characters the trace reaches ten times the log at 127 turns,
+and 2,000 turns turn a 0.9 MB log into a 127 MB trace; with replies of 2,000
+characters the crossing is at 677 turns, and 2,000 turns give 4.6 MB of log and
+131 MB of trace. When a turn carries the tool call and no text, the growth is
+slower: ten times at 516 turns with 40-character replies (0.8 MB of log and
+32 MB of trace at 2,000 turns), and not within 2,000 turns with 2,000-character
+replies (8 times, 4.6 MB and 36 MB). None of AgentHallu's 693 trajectories
+comes near it: the largest trace there is 2.3 times its log
+(`python bench/trace_growth.py --corpus <AgentHallu>`; the corpus is not in
+this repository — `git clone https://github.com/liuxuannan/AgentHallu`). The
+list stays explicit anyway. A shorthand for "everything the
 step before had" would be read by an older version of the core without an
 error, and give a wrong verdict in silence. So `tallystick convert` and
 `check-trace` say it instead - how big, how many steps, and why - once a trace
@@ -97,7 +111,7 @@ user saw.
 ### 4. Know where the same text appears twice
 
 If the final answer repeats the last step word for word — which real agents do
-constantly, in 210 of 223 trajectories in one run here — a quote can no longer
+constantly — a quote can no longer
 be attributed to one rather than the other, and any tooling matching artifacts
 *by their text* will confuse them. That is not theory: it is how one of this
 project's own runs was withdrawn (see `bench/HISTORY.md`, v0.7.1).
@@ -128,7 +142,7 @@ audit should say "not recorded", not "not supported".
 | `AUDITABLE` | 0 | nothing in the recording stands in the audit's way; a clean audit of this trace means something |
 | `PARTIAL` | 1 | the audit will run, but read its silence as "nothing found here", not "nothing there" |
 | `UNAUDITABLE` | 1 | no answer to work back from, or nothing the model wrote: there is no question to ask |
-| — | 2 | the file could not be read at all. Never confuse this with a verdict |
+| — | 2 | the file could not be read at all — including a `_meta` block that is not an object, or holds a field of the wrong type. Never confuse this with a verdict |
 
 The JSON report (`--json`) has these fields. `verdict` is the word above and
 `min_reachable` the line you asked for, or `null`. `reachable_share` is the

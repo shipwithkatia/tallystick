@@ -3,7 +3,6 @@
 Provenance accounting for LLM agent runs: every claim in the final answer is traced back, hop by hop, to something outside the model — or named, together with the step that invented it.
 
 **In short.** An agent that summarises its sources and then answers from the summary can invent a fact in the middle and quote it faithfully at the end; every one-hop check then says "grounded". tallystick walks the chain back to the documents with plain code — no model in the verdict — and names the step where it breaks. On 290 answer sentences built from RAGTruth, that audit is level with an LLM judge shown the full history on F1 (0.59 vs 0.58; the paired difference spans zero) and puts a false flag on fewer than half as many clean sentences (FPR 0.07 vs 0.16). The benchmark is constructed, not natural; its limits are stated under [Benchmark](#benchmark). On 225 real agent trajectories from [AgentHallu](https://arxiv.org/abs/2601.06818), the same audit names the labelled step in 15% of the runs it can reach and reports a break in 57% — and measures its own boundary: 53% of the human-labelled hallucinations are inside tool results the trace never kept, where no post-hoc audit can follow.
-**In short.** An agent that summarises its sources and then answers from the summary can invent a fact in the middle and quote it faithfully at the end. Every one-hop check then says "grounded". tallystick walks the chain back to the documents with plain code — no model in the verdict — and names the step where it breaks.
 
 - **About half of the labelled mistakes in real agent runs happen at steps this audit cannot check.** On [AgentHallu](https://arxiv.org/abs/2601.06818), 236 of the 443 human labels point at a step where the agent wrote no prose — only a tool call and the result it came back with. tallystick checks what a model wrote, so those steps are beyond its reach. That boundary is measured, not argued, and so is the one way to argue with it: if a tool call's own text counts as something to check, the share is 32% rather than 53% ([`bench/results/boundary-sensitivity.txt`](bench/results/boundary-sensitivity.txt)).
 - **Plain code is level with an LLM judge on F1: fewer false flags, fewer finds.** On 290 answer sentences built from RAGTruth: F1 0.59 against 0.58, a paired difference that spans zero; a false flag on 7% of clean sentences against 16%, and 61% of the invented sentences found against 81%. The benchmark is constructed, not natural; its limits are under [Benchmark](#benchmark).
@@ -77,7 +76,7 @@ git clone https://github.com/shipwithkatia/tallystick && cd tallystick
 pip install -e .
 ```
 
-Python 3.9 or newer. Run the commands below in a terminal — **Terminal** on
+Python 3.10 or newer. Run the commands below in a terminal — **Terminal** on
 macOS, **PowerShell** on Windows, or the built-in terminal in your editor
 (in Cursor and VS Code: Terminal → New Terminal).
 
@@ -88,7 +87,7 @@ audited, however much you spend on the audit. No model is called.
 ```bash
 # six test logs are included - deliberately different shapes, not your data
 tallystick check-trace examples/logs/clean_run.json        # a tidy run
-tallystick check-trace examples/logs/ambiguous_tools.json  # PARTLY, and why
+tallystick check-trace examples/logs/ambiguous_tools.json  # CANNOT BE CHECKED, and why
 tallystick check-trace examples/logs/not_an_agent_log.json # refused, exit 2
 ```
 
@@ -108,9 +107,11 @@ tallystick convert     my_log.json -o trace.json                # keep the readi
 
 A long chat makes a big trace. Every step lists every artifact recorded before
 it, because a chat sends its whole history each turn, so the trace grows with
-the square of the turns: 2,000 short turns turn a 0.8 MB log into a 127 MB
-trace. `convert` and `check-trace` say so, with the sizes, once the trace is ten
-times the log; the exit code does not change. Why the format keeps it that way
+the square of the turns: 2,000 turns, each a line of text, one tool call and a
+40-character reply, turn a 0.9 MB log into a 127 MB trace
+(`python bench/trace_growth.py`, no data needed). `convert` and `check-trace`
+say so, with the sizes, once the trace is ten times the log; the exit code does
+not change. Why the format keeps it that way
 is in [docs/auditable-traces.md](docs/auditable-traces.md).
 
 Two things the file cannot tell it, and you can. A tool that hands the model's
@@ -149,7 +150,9 @@ turns that count into a gate: exit 1 with `undeclared_tools` until every tool
 in the log is declared one of the three ways. `audit` and `propose` take the same
 flag and use the declarations recorded when the log was read. It is off by
 default because it would fail almost every real run: on the AgentHallu corpus,
-95.5% of trajectories, even with their four echo-returning tools declared.
+662 of 693 trajectories (95.5%), even with their four echo-returning tools
+declared (`python bench/strict_mode.py <AgentHallu>`; the corpus is not in this
+repository — `git clone https://github.com/liuxuannan/AgentHallu`).
 
 ```bash
 tallystick check-trace my_log.json --require-declared-tools \
@@ -169,28 +172,30 @@ covered by the text of some call, or when the whole reply is plainly one of
 that call's values. Half is one number, used the same way against the call a
 result answered and against the calls of earlier turns.
 
-How half was chosen, and how little that choice rests on. Twenty warnings were
-drawn at 30% and twenty at 50% and read by hand: nine of twenty were real echoes
-at 30%, twelve of twenty at 50%. That sample cannot tell the two settings apart.
-The exact 95% intervals are 23–68% and 36–81%; both contain the 50% bar the
-choice was tested against, and a Fisher test on the two gives p = 0.53. A second
-draw, by a later review, found ten of fifteen real at 30%. The decision rests on how one
-family of replies is read: browser status lines such as `Navigated to <url>`,
-which carry no fact the model did not supply. Read as echoes, 50% passes the
-bar; read as honest work, it does not. Treat half as a setting its neighbour did
-not beat, not as a measured optimum. It costs 17.5% of the AgentHallu corpus
-(121 of 693 trajectories, with the corpus's four echo tools declared) — one run
-in six asks a person to look.
+The reply is weighed as written and with its escapes undone, the same two
+spellings the demotion reads. A note stored with Python's `json.dumps` comes
+back with every non-Latin letter written as `\uXXXX`; weighed only as written,
+a Russian or Chinese note read back that way was not reported at all. Replies
+longer than 2,000 characters are not decoded, on either path, so a long note
+read back escaped is still not seen.
 
-The trigger it replaced — "a value of the call stands anywhere inside a longer
-reply" — was dropped because it cost 300 of 693 trajectories and almost all of
-it was noise: of ten drawn warnings, one was a real echo (a tweet the model
-wrote, handed back with an id and a username), one borderline, eight a tool
-doing its job. It was first reported as none of ten; one is the measured figure.
-The switch lost five of the 80 results the previous rule caught on undeclared
-tools: one undisputed echo (the same tweet shape), three borderline (a search
-reply that repeats the query over "No results found"), and one honest (computed
-equation roots).
+Words are what the text is cut into, and in Chinese, Japanese, Thai and the
+other scripts written without spaces a whole note is one word. There a word is
+cut again at every mark that is not a letter or digit, so a JSON quote, a
+fullwidth `：` after a label or 「」 around a note no longer hides it. Three
+things still do, and nothing reports them: a note glued to other letters with
+no mark between them (`已保存` written straight onto it), a note set inside a
+longer clause of the reply, and a clause read back with one character changed —
+in English only the changed word would stop matching, here the whole clause
+does.
+
+How half was chosen, and how little that choice rests on. Warnings were drawn
+at 30% and at 50% and read by hand, and the sample could not tell the two
+settings apart. The drawn trajectories were not kept, so that reading cannot be
+checked from this repository; treat half as a setting, not as a measured
+optimum. What it costs can be checked: 123 of 693 AgentHallu trajectories
+(17.7%) ask a person to look, with the corpus's four echo tools declared
+(`python bench/echo_coverage.py <AgentHallu>`).
 
 **What this check is for, and what it is not.** It catches an agent quoting
 itself by accident: a note it saved and read back, a value it wrote into code
@@ -202,16 +207,15 @@ single character of the model's words. Measured on this version: a line of junk
 0.55 to 0.86 times the length of the echo silences it, for echoes of 58 to 369
 characters, on the call a reply answers and on a note read back in a later
 turn. Padding every tool result of AgentHallu the same way takes the warnings
-from 152 to 0 and the demotions from 177 to 125 (`bench/dilution.py`). The 152
-and 177 on the unaltered corpus come from runs where nobody was evading
-anything — the case the check is built for. For the same reason a value read
-back in another case — `canberra` after the model saved `Canberra` — is not
-reported. Folding case was tried and measured: on AgentHallu it added 6
-warnings on 2 trajectories, and none of the six, read by hand, was a real echo.
-An agent quoting itself by accident keeps the case. If the tools your agent calls can
-be shaped by someone who has read this page, the warning count is not a safety
-property: declare the tools instead, with `--tool-returns-model-text`,
-`--tool-returns-verbatim` or `--tool-returns-external`.
+from 154 to 0 and the demotions from 177 to 125 (`python bench/dilution.py`;
+the corpus part needs AgentHallu). The 154 and 177 on the unaltered corpus come
+from runs where nobody was evading anything — the case the check is built for.
+For the same reason a value read back in another case — `canberra` after the
+model saved `Canberra` — is not reported. An agent quoting itself by accident
+keeps the case. If the tools your agent calls can be shaped by someone who has
+read this page, the warning count is not a safety property: declare the tools
+instead, with `--tool-returns-model-text`, `--tool-returns-verbatim` or
+`--tool-returns-external`.
 
 Neither can a result the reading matched to no call, because a gateway
 renamed the tool or rewrote the id. Such a result stays evidence, and it is
@@ -241,9 +245,24 @@ report names it and the step that introduced it; or the posted trace still
 carries an echo warning from the reading that nobody confirmed
 (`unreviewed_echo_warnings`, cleared with `--accept-echo-warning NAME`).
 `propose` copies those warnings into the file it writes, so auditing the posted
-copy does not walk around the gate `check-trace` applies. **2** — the audit could not
-run at all: a malformed file, a missing key, a trace with no claims posted on
-it yet. A file that cannot be read must never read as "this agent failed".
+copy does not walk around the gate `check-trace` applies. **1** also when more
+than one artifact is marked `final_answer` (`multiple_final_answers`): the trace
+does not say which answer the user saw, so claims that balance on one of them
+do not make a checked run — the same finding `check-trace` reports on that file.
+**2** — the audit could not run at all: a malformed file, a missing key, a
+trace with no claims posted on it yet, or a `_meta` block the command cannot
+read (`_meta` that is not an object, or a field it reads that has the wrong
+type — a list of warnings given as a number). A file that cannot be read must
+never read as "this agent failed". A `_meta` it cannot read is refused rather
+than skipped, because the echo warnings live there.
+
+**2** also when the only claims that did not close are ones the audit could not
+walk to the end: a chain of claims deeper than 256 hops. The report prints
+`BOOKS NOT CHECKED` instead of a balance, those claims get the status
+`unchecked` — "not checked", a third outcome beside `grounded` and the statuses
+that fail — and the reason is `chain_too_deep`. Nothing was found against them,
+so this is not exit 1. A claim that really does not close in the same answer
+still makes it exit 1.
 
 **3. Let a model post the claims.** This is the only step that costs anything,
 and the only one that needs `ANTHROPIC_API_KEY`. It reads a raw trace, writes
@@ -313,9 +332,15 @@ except UnreviewedEchoWarnings as exc:
     balance = audit("posted.json", accept_echo_warnings=["read_note"])
 ```
 
-The other outcomes are unchanged: books that do not balance return normally with
-`books_balance` False (the terminal's exit 1), and a file that cannot be read
-raises `TraceError` (the terminal's exit 2).
+The other outcomes: books that do not balance return normally with
+`books_balance` False (the terminal's exit 1). A claim the audit could not walk
+to the end has the status `ClaimStatus.UNCHECKED`, is listed by
+`balance.unchecked()`, and leaves `books_balance` False — where the terminal
+exits 2 with `chain_too_deep`, Python returns, so check `balance.unchecked()`
+before reading False as "does not balance". A file that cannot be read —
+missing, a directory, not JSON, a `_meta` of the wrong shape — raises
+`TraceError` (the terminal's exit 2). `audit()` does not look at how many
+answers are marked `final_answer`; `tallystick audit` does.
 
 The trace format is plain JSON — artifacts, steps with inputs/outputs, claims by character span, entries — documented in `tallystick/io.py`. `examples/laundered_summary.json` is a complete posted trace; `examples/raw_research_run.json` is the same run before posting; `examples/balanced_run.json` is the same run with an honest summariser, and it balances. A `Run` can also be built in Python from the exported `Artifact`, `Step`, `Claim` and `Entry` types; it gets the same validation as a file.
 
@@ -473,7 +498,7 @@ asking nothing of tallystick.
 Done so far: v0.2 model-side proposers outside the verdict path; v0.3 LangChain recorder; v0.5–v0.5.3 the benchmark, its intervals and the entry-group fix; v0.6 precision from the false-flag diagnosis; v0.7 the AgentHallu adapter and harness. The version-by-version record, with what each one cost, is in [`bench/HISTORY.md`](bench/HISTORY.md).
 
 - [x] v0.7.3 run — 228 AgentHallu trajectories (115 labelled, of which 61 at a tool-result boundary; 113 clean), CodeAct runs excluded and counted. Two runs were withdrawn in review before publication, and three cheap changes were measured on the clean rerun before one was adopted; both stories, with numbers, are in `bench/HISTORY.md`
-- [ ] a second retry when the proposer returns malformed or empty JSON: 7 of 228 runs were lost to it at v0.7.0, 4 at v0.7.2
+- [ ] a second retry when the proposer returns malformed or empty JSON: runs were lost to it at v0.7.0 and v0.7.2, and the run directories that counted them are not in this repository
 - [x] a pre-flight auditability check (`check-trace`): what share of the artifacts a chain passes through hold the model's own words, and which defects a recorder can fix, so a trace is told whether it can be audited before anything is audited. Measured on all 443 labelled AgentHallu trajectories at no cost, since it calls no model: 29% unreachable above the line against 59% below, most of that gap arithmetic rather than prediction — though real labels do sit at tool boundaries more often than the placebo (see Real trajectories)
 - [ ] an adapter for the log shapes practitioners already have — OpenAI Chat Completions message lists first, then OpenTelemetry GenAI spans — so that `check-trace` can be run on a real recording without writing a converter by hand. This is the gap between the tool and its first user
 - [ ] v0.8 — the recall gap is the verifier checking *where*, not *whether*. On real trajectories 5 of 23 reachable misses are a real source misread (a 1946 date taken for a 1937 one), which is exactly this. One deterministic candidate: require the funding span to contain the claim's content words, measured on this benchmark before it is adopted. Separately: let the proposer post a paraphrase together with the verbatim span behind it, and verify the span
@@ -491,7 +516,7 @@ Four things the reader should know before the number (the first two, and the per
 - **The last hop is trivially verifiable.** The answer quotes the summary verbatim, so tallystick's answer-level result is the summary-step detection carried through the chain, not new detection power. What the construction shows is *where a one-hop check breaks*: a judge shown only summary + answer scores ~0 recall by construction. That row is scored anyway, because it is the point.
 - **Prevalence is enriched.** Items with at least one annotated hallucination are oversampled to 60%; within an item, sentence choice is uniform. The report prints the constructed and the natural sentence-level prevalence side by side.
 - **Data2txt is excluded** — a third of the split and the densest in hallucinations — because its sources are structured records, not prose a model could quote.
-- **Dropped traces are dropped by tallystick's side.** A trace is scored only if every run on every side succeeded, and at the v0.5.2 run every failure was the proposer's (7 proposer runs, 0 judge runs), so the scored set is conditioned on tallystick having run. At n=100 the 6 dropped traces were all Summary items, 18 answer sentences between them and 1 laundered (5.6%, against 15.8% kept) — longer than typical (median 1,019 characters against 659 kept), mostly clean summaries on which the model returned malformed JSON, not hard cases. `bench/ci.py` prints the dropped-set prevalence for any run.
+- **Dropped traces are dropped by tallystick's side.** A trace is scored only if every run on every side succeeded, and at the v0.5.2 run every failure was the proposer's (7 proposer runs, 0 judge runs), so the scored set is conditioned on tallystick having run. At n=100 the 6 dropped traces were all Summary items, 18 answer sentences between them and 1 laundered (5.6%, against 15.8% kept) — mostly clean summaries on which the model returned malformed JSON, not hard cases. `bench/ci.py` prints the dropped-set prevalence for any run.
 
 `bench/run.py` compares three things at the sentence level: a **one-hop judge** (summary + answer only, the industry default), a **full-history judge** (same model, shown every document, the summary and the numbered answer — the strongest thing a team can do today without a provenance tool), and **tallystick**. Every side is rerun — judges `--judge-runs` times, the proposer `--proposer-runs` times, all at API-default sampling — so tallystick's end-to-end spread is reported next to the fact that auditing one posted file twice is identical. Failures are counted per side; a trace on which any run on any side failed is dropped from all sides, so every row and every run is scored on exactly the same sentences, and that count is printed. Results are appended per trace, and rerunning the same command resumes; every row carries a fingerprint of the trace it was scored on, and a rows file from a different build of the traces is refused rather than resumed. A fourth number, hallucination detection at the summary step, is the classic task where fine-tuned detectors live; tallystick's known false-positive source there (an abstractive sentence fusing two passages has no single verbatim quote) is stated in the report.
 
@@ -522,7 +547,7 @@ Bootstrap over traces (`bench/ci.py`, 2000 resamples): 95% intervals on F1 — o
 **What changed from v0.5.3, on the same 290 sentences.**
 
 - **False flags fell by more than half; true flags fell by three in one run and none in the other.** Per proposer run, tallystick's false flags went from 43 and 43 to 17 and 20, and its true flags from 27 and 25 of 40 to 24 and 25. Precision 0.38 → 0.57, recall 0.65 → 0.61, FPR 0.17 → 0.07. The judge, on the same sentences, is where it was: 32–33 true and 37–43 false flags per run in both files. The gap to the judge (0.10 in favour of the judge at v0.5.3) is gone: the paired difference is −0.01 with an interval that spans zero either way. "Neither beats the other on F1" is the reading the data supports. So is "tallystick puts a false flag on fewer than half as many clean sentences (FPR 0.07 against 0.16)", and so is "the judge finds eight laundered sentences in ten to tallystick's six". Which of the last two matters depends on whether the gate blocks or annotates.
-- **The gain came from bookkeeping, and the diagnosis says so.** `bench/diagnose.py` on the v0.5.3 posted files found 86 false flags across the two runs; on the v0.6 files, 37 on the scored sentences (38 over all 199 posted files, which include the one surviving run of the dropped trace). Its output for the v0.6 run is committed as `bench/results/diagnose-v0.6.txt`; for v0.5.3, the bucket counts are transcribed from the run's output into `bench/results/diagnose-v0.5.3.txt`, since the posted files it read are gone; posted files are not committed. The three causes v0.6 targeted — no credit offered, a quote that straddled the summary's claim boundaries, a quote dropped for punctuation — accounted for 45 + 26 + 15 of the 86 and for 33 + 1 + 0 of the 37. The punctuation drops are gone, one straddle remains, and 41 of the 44 flags that broke at the answer's own hop are gone. Of the 37, 31 are a summary claim the proposer offered no credit for — a paraphrase of a passage, or a hedge or abstention ("this passage does not address…"), that the annotators do not mark; the self-evident credit cannot help because the text is not in the passage word for word — and the other six are scattered. That is a paraphrase problem, not a locate problem, and nothing deterministic in this design addresses it.
+- **The gain came from bookkeeping.** `bench/diagnose.py` sorts a run's false flags by the reason the chain broke, reading the posted files the proposer wrote. Those files are not in this repository, and a new proposer run would not write the same ones, so its counts cannot be recomputed from here and are not quoted. What it showed, in words: the three causes v0.6 targeted — no credit offered, a quote that straddled the summary's claim boundaries, a quote dropped for punctuation — were most of the v0.5.3 false flags; after v0.6 the punctuation drops were gone, and most of what remained was a summary claim the proposer offered no credit for — a paraphrase of a passage, or a hedge or abstention ("this passage does not address…"), that the annotators do not mark. That is a paraphrase problem, not a locate problem, and nothing deterministic in this design addresses it.
 - **Recall slipped by a net three sentences in one run and none in the other** — six flags lost on four sentences, three gained on two. The likeliest reason, from reading the lost ones: at v0.5.3 a quote the pipeline could not locate happened to sit on a laundered sentence, so the flag was right by accident; those quotes locate now and the flag depends on the summary hop like every other. That is a reading of four cases, not a measurement. The misses (31 across two runs, 28 at v0.5.3) are the same shape as before: 28 close as grounded at depth 2, the verifier accepting a real document span that does not support the claim it funds — the *where*-not-*whether* limit stated under Tradeoffs and, first, in the v0.5.2 discussion in `bench/HISTORY.md`.
 - **The summary-step number got worse, and that is a cost of v0.6.** Claim-level precision on the summary fell 0.49 → 0.39 over 759 claims in the first run (590 at v0.5.3). Two things added claims: 70 coverage claims per run over sentences the segmenter skipped — closing lines, hedges, list tails — which the proposer can rarely fund and which, on inspection of the posted files, the annotators mostly left unmarked; and roughly 80–100 more model claims per run, most plausibly ones the word-level locate now keeps instead of dropping (`tolerant_locates` counts claims and quotes together, and the two v0.5.3 runs already differ by 14 claims from segmenter variance, so this is an inference). The rows do not mark which is which, so the split of the 45 extra false flags between them is not measured. Coverage claims exist so that an answer quote always has an account to land on; together with the self-evident credit and the locate they are what cut the false flags on the chain, and at the summary step they are noise. Both numbers are reported because they pull in opposite directions.
 - **Two proposer runs now agree on F1 to two decimals** (spread 0.004, was 0.03), and 5% of sentences flip between runs (was 8%). Less of the posting is the model's: coverage, self-evident credits and the word-level locate are searches, and searches do not vary. The judge's flip rate at identical settings is also 5% this run (7% at v0.5.3).
@@ -562,7 +587,7 @@ Read the first row as: where the hallucination was stated in the agent's own pro
 
   The 53% rests on one definition — a labelled step whose only recorded artifacts are tool results — and that definition is worth arguing with, so the argument is measured rather than left open ([`bench/boundary_sensitivity.py`](bench/boundary_sensitivity.py), output in [`bench/results/boundary-sensitivity.txt`](bench/results/boundary-sensitivity.txt)). The objection that moves it: the model wrote the tool call at that step, so a reader can say there *is* model text there. Every one of the 236 labelled steps beyond the boundary carries a call, and 96 of them carry more than 200 characters of it; counting each of those as reachable takes the share from 53% to 32% on the whole corpus, and from 53% to 43% on the 115 scored here. Read next to what the calls say, the objection is weak — `{"query": "which two ASEAN capitals are furthest apart"}` asserts nothing that could be checked against a source — but weak is not unmeasured, so treat the finding as **32–53%**, not as one number. The other two objections move it the other way: reading `final_answer`, note stores and `terminate` as model text costs 12 traces out of the boundary set, and including the CodeAct runs gives 53.3% where excluding them gives 57.3%, so the published figure is already the lower of the two. Nothing here checks AgentHallu's labels themselves.
 - **23 reachable misses, and they are not one failure.** 16 of the 23 are labelled at step 1 — the plan. The agent read the question wrong or chose the wrong rule before doing anything, and everything after it, the answer included, is faithfully derived from that choice. The chain to a root is intact and the audit is right to close it; the error is in the reasoning, which a provenance audit does not judge. Five more are misreadings of a real source (1946 taken for 1937; the wrong actor from a cast list): the words are in the source, the meaning is not, and those need a check of *whether* a span supports a claim — the v0.8 question. The last two had no claim to check. The three groups do not overlap.
-- **35% false alarms, with one cause dominating.** `bench/diagnose_agenthallu.py` sorts them: a paraphrase of a source, most of its words or some of them, is 20 of 38; a quote the proposer offered that is not verbatim in the source, 7; a computation or formula the agent derived, 6; something the agent stated from its own knowledge, 5. Only the last is the audit working as designed on a claim with no external support — and AgentHallu calls those runs clean because the answer was *true*, which is the other question. The rest is the cost of verbatim verification against agents that paraphrase what they read and compute what they report.
+- **35% false alarms, and paraphrase is most of them.** `bench/diagnose_agenthallu.py` sorts them by why the chain broke: a paraphrase of a source, a quote the proposer offered that is not verbatim in the source, a computation or formula the agent derived, something the agent stated from its own knowledge. It reads the posted files of the run, which are not in this repository, so the counts per cause are not quoted here. Only the last cause is the audit working as designed on a claim with no external support — and AgentHallu calls those runs clean because the answer was *true*, which is the other question. The rest is the cost of verbatim verification against agents that paraphrase what they read and compute what they report.
 
 **Two changes were measured on the previous run's files and refused** rather than shipped, with the numbers in [`bench/HISTORY.md`](bench/HISTORY.md): skipping the model's narration of itself in coverage, and requiring the claim's numbers to appear in the funding span. One was adopted: a bare-value answer the segmenter returns nothing locatable for is posted whole, which closed a silent pass on 15 answers that carried no claim at all and so could not be flagged whatever they said.
 

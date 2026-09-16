@@ -171,9 +171,17 @@ def read_json_file(path: str | Path):
     Any other encoding is refused rather than guessed. Guessing would decode
     someone's text into different characters, and a tool whose whole claim is
     "this quote is verbatim in that source" cannot afford to silently change
-    the letters it is comparing."""
+    the letters it is comparing.
+
+    A path that cannot be opened at all - missing, a directory, no permission -
+    is a TraceError too. The terminal already exited 2 on it; `audit()` let
+    FileNotFoundError out, which `except TraceError`, the documented contract,
+    does not catch (review 13, 4.3). One place decides "this file cannot be
+    read", for the command and the function alike."""
     try:
         text = Path(path).read_text(encoding="utf-8-sig")
+    except OSError as exc:
+        raise TraceError(f"{path} cannot be read: {exc.strerror or exc}") from None
     except UnicodeDecodeError:
         raise TraceError(
             f"{path} is not saved as UTF-8, so its text cannot be read without "
@@ -235,5 +243,5 @@ def read_meta(raw: Any) -> Dict[str, Any] | None:
 
 
 def load_run_file(path: str | Path) -> Run:
-    """Read a JSON trace file and build a Run. Raises TraceError or OSError."""
+    """Read a JSON trace file and build a Run. Raises TraceError."""
     return load_run(read_json_file(path))
