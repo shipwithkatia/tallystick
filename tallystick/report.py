@@ -176,8 +176,14 @@ def summary(run: Run, balance: TrialBalance) -> str:
     if balance.books_balance and cover.mostly_unclaimed:
         # The claims balance, and they cover less than half of what the user
         # saw. Said in the verdict line, because it is the line people read.
-        verdict = (f"BOOKS BALANCE ON {cover.claimed / cover.total:.0%} OF THE ANSWER - "
-                   f"{cover.unclaimed:.0%} IS UNDER NO CLAIM, NOT CHECKED")
+        # Whole percents, the claimed share rounded DOWN and the rest UP, so the
+        # two still add to 100 and the line never reads "50% - 50%" on an
+        # answer that failed for being more than half unclaimed: rounded to
+        # nearest, 125 of 251 letters printed exactly that at exit 1 (review
+        # 20, 2.3). The reason line above keeps one decimal.
+        claimed_pct = 100 * cover.claimed // cover.total
+        verdict = (f"BOOKS BALANCE ON {claimed_pct}% OF THE ANSWER - "
+                   f"{100 - claimed_pct}% IS UNDER NO CLAIM, NOT CHECKED")
     elif balance.books_balance:
         verdict = "BOOKS BALANCE"
     elif unchecked and not breaks:

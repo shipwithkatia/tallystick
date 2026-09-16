@@ -2,8 +2,9 @@
 
 The OpenAI reader records, in `_meta.echo_warning_details`, a tool result it kept
 as evidence although at least half of it stands in the text of a call the model
-wrote - the one it answered, an earlier one, another of the same turn - or a
-result it could not match to any call (see `adapters/openai_chat.py`).
+wrote - the one it answered, an earlier one, another of the same turn - or most
+of it is a whole message the model wrote earlier, or it is a result the reading
+could not match to any call (see `adapters/openai_chat.py`).
 `check-trace` and `audit` list those results under the report and in `--json`.
 
 **A note, not an accusation.** It never moves an exit code, raises nothing, and
@@ -75,6 +76,42 @@ def cleared_echo_warnings(meta) -> List[dict]:
             for w in items if isinstance(w, dict)]
 
 
+#: The `_meta` fields that hold notes. `check-trace --json` copies them under
+#: `reading`, so they are made writable there too (see `writable`).
+NOTE_FIELDS = ("echoes_from_earlier_turns", "echo_warning_details",
+               "echo_warnings_cleared_by_declaration")
+
+
+def writable(value):
+    """`value` with every string UTF-8 cannot hold - a lone surrogate, half of an
+    emoji cut in a UTF-16 log - written as its escape (`\\ud83d`), as the
+    terminal already shows it.
+
+    For the notes in a `--json` REPORT only. A noted result quoting half an
+    emoji made the report unwritable, and `check-trace --quiet --json` - the
+    README's CI line - exited 2 where `--quiet` alone exited 0: the note moved
+    the exit code it promises never to move (review 20, 2.2). A report is read
+    by a person or a CI job, not by the next command, so an escape there changes
+    nothing downstream. A TRACE file keeps refusing such text (`cli._write_json`).
+    A structure nested past what Python recurses is returned as it is: the write
+    then refuses it, as it did before."""
+    try:
+        return _writable(value)
+    except RecursionError:
+        return value
+
+
+def _writable(value):
+    if isinstance(value, str):
+        return value.encode("utf-8", "backslashreplace").decode("utf-8")
+    if isinstance(value, list):
+        return [_writable(v) for v in value]
+    if isinstance(value, dict):
+        return {_writable(k) if isinstance(k, str) else k: _writable(v)
+                for k, v in value.items()}
+    return value
+
+
 def note_json(meta) -> dict:
     """The `--json` block: every noted result, the ones a declaration cleared,
     and what a note is worth. Not part of `gate`: it decides nothing."""
@@ -82,9 +119,9 @@ def note_json(meta) -> dict:
     cleared = cleared_echo_warnings(meta)
     return {
         "count": len(notes),
-        "results": [{k: v for k, v in n.items() if k != "text"} for n in notes],
-        "cleared_by_declaration": [{k: v for k, v in c.items() if k != "text"}
-                                   for c in cleared],
+        "results": writable([{k: v for k, v in n.items() if k != "text"} for n in notes]),
+        "cleared_by_declaration": writable([{k: v for k, v in c.items() if k != "text"}
+                                            for c in cleared]),
         "exit_code_effect": "none",
         "worth": WORTH,
     }
@@ -115,7 +152,8 @@ def note_lines(meta, *, short: bool) -> List[str]:
                          f"(the exit code does not change)")
             lines += textwrap.wrap(
                 "Each was kept as evidence, but at least half of it stands in text the model "
-                "wrote into a call, or the reading matched it to no call or could not weigh "
+                "wrote into a call or in a message of its own, or the reading matched it to no "
+                "call or could not weigh "
                 f"it to the end. That is a reason to look, not a finding: {WORTH}. If a tool "
                 "hands the model's text back, read the log again with "
                 "--tool-returns-model-text NAME; that changes the verdict, this note does not.",

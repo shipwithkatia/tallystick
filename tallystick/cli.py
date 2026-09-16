@@ -31,7 +31,8 @@ later clean audit may mean less than it looks. A tool result that the log shows
 to be a value of the call it answered is read as model text, not as a root, and
 each one is named in the report; nothing about it waits for a confirmation.
 A result the reading kept as evidence although it may be the model's text - at
-least half of it in a call the model wrote, or matched to no call - is listed
+least half of it in a call the model wrote, most of it a whole message the model
+wrote, or matched to no call - is listed
 as a note under the report and in `--json` (`may_be_model_text`). A note never
 changes the exit code: in a hand-read sample, 6 of 20 were the model's text.
 
@@ -53,6 +54,7 @@ from .convert import (FORMATS, describe, detect, hint_for, looks_like_trace, rea
                       trace_size, trace_size_line)
 from .echo_gate import note_json as _echo_note_json
 from .echo_gate import note_lines as _echo_note_lines
+from .echo_gate import NOTE_FIELDS as _NOTE_FIELDS, writable as _writable_note
 from .adapters.openai_chat import DEFAULT_MAX_TOOL_CHARS
 from .io import load_run, read_json_file, read_meta
 from .ledger import TOO_DEEP, close_books
@@ -153,7 +155,7 @@ def _gate_block(code: int, reasons: list[str]) -> dict:
 
 def _say_echo_note(meta, *, quiet: bool) -> None:
     """The results the reading kept as evidence that may be the model's own
-    text, listed under the report - or, with --quiet, one line on stderr. A note,
+    text, listed under the report - or, with --quiet, on stderr. A note,
     not a reason for any exit code: see `echo_gate`."""
     lines = _echo_note_lines(meta, short=quiet)
     if not lines:
@@ -413,8 +415,8 @@ def _audit(args: argparse.Namespace) -> int:
         reasons.append("books_do_not_balance")
     elif not balance.books_balance:
         # Every claim that did not close is one whose chain is too deep to walk.
-        # Nothing was found against the run, so this is not exit 1: the audit
-        # could not finish, which is exit 2 - whatever else is said below.
+        # Nothing was found against those claims, so on its own this is not
+        # exit 1: the audit could not finish, which is exit 2.
         reasons.append(CHAIN_TOO_DEEP)
     # The measure `check-trace` applies, from the same function. With two
     # answers the trace does not say which one the user saw, and claims posted
@@ -428,7 +430,11 @@ def _audit(args: argparse.Namespace) -> int:
         reasons.append(ANSWER_MOSTLY_UNCLAIMED)
     if strict:
         reasons.append(UNDECLARED_TOOLS)
-    code = 2 if CHAIN_TOO_DEEP in reasons else 1 if reasons else 0
+    # 2 only where "could not finish" is the whole story. Anything else found -
+    # most of the answer under no claim, two answers, strict mode - is a verdict,
+    # and exit 2 beside it read as "could not run" in CI and hid it (review 20,
+    # 2.3: 61% of the answer unclaimed, beside a chain of 257 hops, exited 2).
+    code = 1 if any(r != CHAIN_TOO_DEEP for r in reasons) else 2 if reasons else 0
 
     if args.chain:
         if args.chain not in balance.audits:
@@ -454,7 +460,7 @@ def _audit(args: argparse.Namespace) -> int:
         print(said if args.quiet else f"\n{said[len('tallystick: '):]}",
               file=sys.stderr if args.quiet else sys.stdout)
     if CHAIN_TOO_DEEP in reasons and (args.quiet or args.chain):
-        print(f"tallystick: exit 2 - {CHAIN_TOO_DEEP}: {len(balance.unchecked())} claim(s) "
+        print(f"tallystick: exit {code} - {CHAIN_TOO_DEEP}: {len(balance.unchecked())} claim(s) "
               f"in the final answer rest on a {TOO_DEEP}; they were not checked, and "
               f"nothing was found against them", file=sys.stderr)
     _say_echo_note(raw.get("_meta") if isinstance(raw, dict) else None, quiet=args.quiet)
@@ -565,6 +571,11 @@ def _check_trace(args: argparse.Namespace) -> int:
                         "echo_warnings_cleared_by_declaration",
                         "model_text_tools", "verbatim_tools", "external_tools",
                         "notes", "otel") if k in meta}
+            # The notes, copied here, are written as the note block writes them:
+            # half an emoji in one must not make the report unwritable (exit 2).
+            for key in _NOTE_FIELDS:
+                if key in reading:
+                    reading[key] = _writable_note(reading[key])
             if undeclared is not None:
                 reading["undeclared_tool_results"] = {
                     "results": undeclared[0], "tools": undeclared[1]}
@@ -753,8 +764,9 @@ def build_parser() -> argparse.ArgumentParser:
                    help="print the full provenance chain for one claim")
     a.add_argument("--quiet", action="store_true",
                    help="exit code only - a reason other than the books not "
-                        "balancing, and a note about results that may be the model's "
-                        "own text, are still printed on stderr, one line each")
+                        "balancing is still printed on stderr, one line each, and so is "
+                        "a note about results that may be the model's own text: a "
+                        "header line and one line per result")
     _add_strict_args(a)
     a.set_defaults(func=_audit)
 
@@ -772,7 +784,8 @@ def build_parser() -> argparse.ArgumentParser:
                    help="write the machine-readable report here")
     c.add_argument("--quiet", action="store_true",
                    help="exit code only - a note about results that may be the "
-                        "model's own text is still one line on stderr")
+                        "model's own text is still printed on stderr: a header line and "
+                        "one line per result, at most ten")
     _add_strict_args(c)
     _add_source_args(c)
     c.set_defaults(func=_check_trace)

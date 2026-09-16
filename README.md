@@ -176,11 +176,14 @@ back — is the model's text, not a root (the demotion above).
 evidence although they may be the model's own text: at least half of the reply
 stands in text the model wrote into a call (the one it answered, an earlier
 one, another of the same turn), a short reply is a value an earlier call
-carried, the reading matched the result to no call, or it could not weigh the
-reply to the end. `check-trace` and `audit` print them under the report as
-`NOTE`, `--json` lists them in `may_be_model_text`, and `--quiet` says it in one
-line on stderr. **A note never changes the exit code** and asks you to confirm
-nothing.
+carried, most of the reply is a whole message the model wrote earlier (a memory
+or history tool handing back what the assistant said), the reading matched the
+result to no call, or it could not weigh the reply to the end. `check-trace` and
+`audit` print them under the report as `NOTE`, `--json` lists them in
+`may_be_model_text`, and `--quiet` prints them on stderr: a header line, then one
+line per result, at most ten and a `+N more` line after them. **A note never
+changes the exit code** and asks you to confirm nothing, with or without
+`--json`.
 
 What a note is worth, measured: an external review drew 20 notes at random on
 AgentHallu and read them by hand — **6 of 20 were the model's own text**; 7 were
@@ -200,25 +203,8 @@ until you confirmed each tool with `--accept-echo-warning`, and one version
 removed them altogether. The flag is gone and does not come back: a signal
 wrong two times in three may not fail a build, but what it noticed is shown.
 
-**What still passes without a word** — no demotion, no note:
-
-- a note read back inside a store's record (a mem0 search result, a LangGraph
-  Store item) when the note is short: the record's id, hash and dates make up
-  more than half of the reply. On a 20-word English note nothing is said; from
-  about 165 characters (29 words) the note is listed;
-- text added to a reply until the model's words are less than half of it — an
-  echo inside a longer page, or junk appended on purpose;
-- a note written straight onto other letters with no mark between, in Chinese,
-  Japanese, Thai, Lao, Khmer, Myanmar or Tibetan; a value read back in another
-  case;
-- the model's draft pasted back into the conversation as a `user` message
-  ("here is your previous draft"), or a subagent's answer handed over as one:
-  every `user` message is a root, and nothing compares it with the model's text.
-
-Two rules to close the first and the last of these were built, measured and not
-shipped: read by hand, more than a third of what each one demoted was honest
-material — a web page carrying a title the model had quoted, a person's own
-traceback that shared one line with code the model wrote earlier.
+What still passes without a word — no demotion, no note — is listed with its
+numbers under [Known limitations](#known-limitations).
 
 **2. Audit a run whose claims are already posted.** Deterministic, offline, no
 SDK needed:
@@ -241,9 +227,11 @@ is the line `claims closed`. Post claims on the rest of the answer to clear it �
 there is no flag that does. The line is at half, and it stays there by the
 owner's decision of 16 September 2026, taken knowing its price: on the 1,489
 posted traces of this project's benchmark runs (RAGTruth and AgentHallu, the
-current runs and earlier ones, and `examples/`; the benchmark files are not in
-this repository), it moved 130 from exit 0 to exit 1 — about 9 in 100, and more
-than the 60 named before the measurement. If half of an answer is unchecked, "the books
+current runs and earlier ones, and `examples/`), it moved 130 from exit 0 to
+exit 1 — about 9 in 100, more than was named before the measurement
+(`python bench/half_line.py`; the benchmark's posted traces are written by
+`bench/run.py` and `bench/agenthallu.py` with a model and are not in this
+repository, so without them the script counts `examples/` only). If half of an answer is unchecked, "the books
 balance" is the silent assurance this tool exists to refuse. Moving the line to
 two thirds after seeing the number was considered and refused. **1** also when more
 than one artifact is marked `final_answer` (`multiple_final_answers`): the trace
@@ -261,8 +249,9 @@ walk to the end: a chain of claims deeper than 256 hops. The report prints
 `BOOKS NOT CHECKED` instead of a balance, those claims get the status
 `unchecked` — "not checked", a third outcome beside `grounded` and the statuses
 that fail — and the reason is `chain_too_deep`. Nothing was found against them,
-so this is not exit 1. A claim that really does not close in the same answer
-still makes it exit 1.
+so this is not exit 1. Anything else found in the same run — a claim that really
+does not close, most of the answer under no claim, two answers — still makes it
+exit 1, with `chain_too_deep` listed beside it.
 
 **3. Let a model post the claims.** This is the only step that costs anything,
 and the only one that needs `ANTHROPIC_API_KEY`. It reads a raw trace, writes
@@ -473,6 +462,82 @@ asking nothing of tallystick.
 - **An empty trace does not balance.** `all([])` is `True` in Python, so a truncated trace originally exited 0. A gate that passes on missing input is not a gate.
 - **Exit 2 is a hard boundary.** Seven ordinary malformed-JSON shapes originally escaped the loader as `KeyError`/`TypeError` and reached the shell as exit 1 — "your agent is unfaithful" — when the truth was "I could not read your file". The loader now validates every shape and raises one typed error, and the same validation runs on a `Run` built by hand.
 
+
+## Known limitations
+
+Found by external review and not closed. Each is measured; where a command
+recomputes the number, it is given. The tool's promise these do not break: a
+tool result the log shows to be the model's own value is never evidence, and a
+note never moves an exit code. What they do mean is that some of the model's
+text still passes as evidence **without a word**, and that the reading is
+stricter than it needs to be in places.
+
+**The model's text that still passes as evidence, with no demotion and no note**
+
+- **A note read back inside a store's record** (a mem0 search result, a
+  LangGraph Store item) when the note is short: the record's id, hash and dates
+  make up more than half of the reply. The limit is in characters, not words:
+  on a mem0 record a note is listed from about 165 characters — 163 of long
+  words, 182 of numbers, 189 of short words — so 20 long words (278 characters)
+  are listed and 20 short ones (69) are not
+  (`python bench/store_record_threshold.py`, no data needed).
+- **Text added to a reply until the model's words are less than half of it** —
+  an echo inside a longer page, or junk appended on purpose.
+- **A message the model wrote, handed back as less than most of the reply**, or
+  reformatted. Only a reply whose main piece IS a whole earlier message is
+  noted. Two readings by share were built and measured on AgentHallu and not
+  shipped: against every message the model wrote, 19 new notes and not one was
+  the model's text handed back (a tool returning a file the model had quoted, a
+  search repeating the question); with text the model had copied from outside
+  set aside, 4 notes, none of them either (a search answering in the words of
+  the model's plan). Read by hand; the labels are not in this repository. The
+  note that shipped fires on none of the 693 AgentHallu trajectories, so what
+  it is worth on real logs is not measured.
+- **A note written straight onto other letters with no mark between**, in
+  Chinese, Japanese, Thai, Lao, Khmer, Myanmar or Tibetan; **a value read back in
+  another case**; **a bidirectional mark (RLM, LRM) after every word**, in any
+  language.
+- **A note in a script written without spaces that is not in the reader's
+  list, read back inside anything** — JSON, `Note: "..."`, brackets. Javanese,
+  Balinese, Sundanese, Buginese, New Tai Lue, Tai Le, Tai Tham, Tai Viet, Cham,
+  Yi, Phags-pa, Han outside the basic blocks (extension B and later), Hangul
+  written without spaces, Ethiopic with its word mark `፡`. A reply that is the
+  bare note is still found. `tests/test_proverka20_unlisted_scripts.py` shows
+  the missed shapes (it fails on them). No noise was found in their honest
+  chats, but nothing was measured on real logs in these scripts.
+- **The model's draft pasted back as a `user` message** ("here is your previous
+  draft"), or a subagent's answer handed over as one: every `user` message is a
+  root, and nothing compares it with the model's text. A rule to close it was
+  built, measured and not shipped: read by hand, more than a third of what it
+  demoted was honest material.
+
+**Where the reading is stricter than it needs to be**
+
+- **A page is demoted when one of its lines is one word the call carried.**
+  The demotion reads every line of a reply as a value, and a word of the call's
+  arguments is a value: a browser page with a line `Awards` after a `click`
+  whose reasoning said "Awards" is recorded as the model's text. That costs a
+  claim a source it had; it never makes the model's text evidence. Round 21 read
+  30 demotions on AgentHallu by hand (the ones call ids numbered per turn used to
+  hide): 16 the model's own text, 6 disputable (`cd` answering with the
+  directory it was given), 8 a tool's own page. The labels are not in this
+  repository.
+
+**What the commands say, and where**
+
+- `convert` does not list notes; the trace it writes keeps them in `_meta`, and
+  `check-trace` on that trace prints them.
+- `tallystick.audit()` in Python returns the balance without the notes; read
+  `_meta.echo_warning_details` or run `check-trace`.
+- A log nested more deeply than Python recurses (about a thousand levels) is
+  refused with exit 2, not read.
+- Inside one assistant turn, a call id given to two calls places no result by
+  id; the reading falls back to names and order, and says so.
+- Coverage counts letters and digits with `str.isalnum()`: the vowel signs of
+  Devanagari, Thai and similar scripts are not counted, on either side of the
+  half line.
+- The wheel carries the package only. The commands in this README that name
+  `examples/` need a clone of the repository.
 
 ## What I Learned
 

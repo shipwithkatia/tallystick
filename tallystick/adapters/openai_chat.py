@@ -126,6 +126,13 @@ each with the message's position in the FILE, counted from 0, and the call id
 where the log has one. If the tool is one that hands text back, say so with
 `model_text_tools`: that demotes its results, which a note never does.
 
+**A tool that hands back a whole MESSAGE the model wrote is noted too.** A
+memory or history tool returning what the assistant said a turn ago: where the
+piece that holds most of the reply - the reply, a line, a `label: ` value, a
+JSON value - IS an earlier assistant message, the kind is `model_message`. Only
+whole messages: two readings by share were measured on AgentHallu and noted
+honest work every time (see `message_values` in `to_trace`).
+
 **A tool result longer than `max_tool_chars` is cut**, and the cut is recorded
 in `_meta.truncated` so the audit can say "not recorded" rather than "not
 supported". Nothing else is altered.
@@ -139,9 +146,11 @@ not the one that happened.
 
 from __future__ import annotations
 
+import bisect
 import functools
 import json
 import re
+import unicodedata
 from typing import Any, Dict, Iterable, Iterator, List, Optional, Set, Tuple
 
 DEFAULT_MAX_TOOL_CHARS = 20_000
@@ -315,9 +324,16 @@ _CLEAN = {**dict.fromkeys(map(ord, "​‌‍⁠﻿­")),
 
 
 def _clean(text: str) -> str:
-    """`text` with invisible marks dropped and every space a plain one. For
-    COMPARISON ONLY: a recorded artifact is never touched by this."""
-    return text.translate(_CLEAN)
+    """`text` with invisible marks dropped, every space a plain one, and in NFC.
+    For COMPARISON ONLY: a recorded artifact is never touched by this.
+
+    NFC because the verifier compares in NFC (normalize.py) and this reader
+    compared code points: a Vietnamese or Korean note handed back decomposed -
+    as macOS keeps file names, as some stores keep text - shared no word with
+    the call that wrote it. It was neither demoted nor noted, and a claim
+    quoting it balanced, because to the audit it was the same text (review 20,
+    2.4b). A string already in NFC comes back unchanged."""
+    return unicodedata.normalize("NFC", text.translate(_CLEAN))
 
 
 #: Case is NOT folded, on either path, and that leaves a gap on purpose: a value
@@ -394,7 +410,7 @@ def _pieces(args: str) -> frozenset:
                     found.add(literal)
                     found.add(_norm(literal))
                     if "\\" in literal:
-                        found.add(_norm(_unescape(literal)))
+                        found.add(_norm(_clean(_unescape(literal))))
         found.update(_WORD.findall(text))
     return frozenset(found)
 
@@ -437,7 +453,9 @@ def _echo_candidates(result: str) -> Tuple[str, ...]:
         def add(piece: str, total: int = total) -> None:
             if 2 * len(piece) <= total:
                 return              # too short to be most of the result
-            piece = _norm(piece)
+            # Cleaned again: a JSON value is decoded from the text, and an
+            # escape can decode to a decomposed letter.
+            piece = _norm(_clean(piece))
             if piece and piece not in seen and 2 * _alnum(piece) > total:
                 seen.add(piece)
                 found.append(piece)
@@ -495,6 +513,7 @@ _WARNING_KINDS = {
     "answering_call": "text from the call it answered, short of the whole reply",
     "unchecked": "a reply the reading could not finish weighing against the model's "
                  "calls, so it may be the model's own text",
+    "model_message": "a whole message the model wrote earlier",
 }
 
 
@@ -1351,6 +1370,9 @@ def to_trace(data: Any, *, name: str = "",
     doubt_covers_cand = False
     reused_ids: Set[str] = set()
     batch_ids: Set[str] = set()
+    # Ids this turn declared more than once. Only these are ambiguous inside the
+    # turn; an id reused from an EARLIER turn is not (see the result branch).
+    batch_dup_ids: Set[str] = set()
     guessed: List[str] = []
     unmatched: List[str] = []
     unresolved: List[str] = []
@@ -1381,6 +1403,26 @@ def to_trace(data: Any, *, name: str = "",
     # once, when it is declared, and each result is a set lookup - so reading a
     # long run stays linear, not quadratic.
     earlier_text = _Words()
+    # Every message the model wrote - not its calls - as whole values, in the
+    # forms a value is compared in. A memory or history tool that hands back
+    # what the assistant SAID a turn ago was weighed against calls only and
+    # passed with no note: a tool_result root, BOOKS BALANCE, not a word
+    # (review 20, 2.1). Whole messages only, with no share in it. Two readings
+    # by share were tried first and measured on AgentHallu: against every
+    # message, 19 notes and no echo among them (a tool returning a file the
+    # model had quoted, a search repeating the question); with runs the model
+    # had copied from outside set aside, 4 notes and still none (a search
+    # repeating the model's plan). Text does not say which way a shared
+    # sentence went, so this asks only whether a piece holding most of the
+    # reply - the reply, a line, a `label: ` value, a JSON value
+    # (`_echo_candidates`) - IS a whole message the model wrote.
+    message_values: Set[str] = set()
+    # Their lengths in letters and digits, sorted. A piece `_echo_candidates`
+    # returns holds more than half of the reply's letters, so it can only equal
+    # a message whose length is in (half the reply, the reply]; a reply with no
+    # such message is not taken apart at all. Without this the reading of
+    # AgentHallu took 14% longer; with it, the question costs a count.
+    message_lengths: List[int] = []
     # Artifacts demoted against more than one call the log could not tell apart.
     # They are the model's text, but not known to be the one the user saw.
     unconfident_ids: Set[str] = set()
@@ -1453,6 +1495,18 @@ def to_trace(data: Any, *, name: str = "",
                 aid = f"a{k}"
                 artifacts.append({"artifact_id": aid, "kind": "intermediate",
                                   "title": "assistant", "content": content})
+                # As written only, cleaned, trailing marks trimmed one at a time:
+                # a reply's escapes are undone on the reply's side
+                # (`_echo_candidates`), and decoding every long message of a
+                # CodeAct run here cost more than the rest of the reading.
+                said = _norm(_clean(content))
+                while _alnum(said) >= ECHO_MIN_CHARS:
+                    if said not in message_values:
+                        message_values.add(said)
+                        bisect.insort(message_lengths, _alnum(said))
+                    if said[-1] not in _TRAILING:
+                        break
+                    said = said[:-1]
                 steps.append({"step_id": aid, "kind": "generate",
                               "inputs": list(seen), "outputs": [aid]})
                 seen.append(aid)
@@ -1483,6 +1537,7 @@ def to_trace(data: Any, *, name: str = "",
                 doubt_covers_cand = False
                 cand_view = cand_pieces = None
                 batch_ids = set()
+                batch_dup_ids = set()
                 # The turn before this one is closed: its arguments become what
                 # a later result is checked against for an echo from earlier.
                 earlier_text.absorb(batch_text)
@@ -1526,6 +1581,8 @@ def to_trace(data: Any, *, name: str = "",
                     calls_by_id[cid] = entry
                     if tool_names.get(cid, named) != named or cid in batch_ids:
                         reused_ids.add(cid)
+                    if cid in batch_ids:
+                        batch_dup_ids.add(cid)
                     batch_ids.add(cid)
                     tool_names[cid] = named
             continue
@@ -1571,13 +1628,22 @@ def to_trace(data: Any, *, name: str = "",
             consumed: Optional[Tuple[str, bool]] = None
             tool, expected, matched = named_itself, "", False
 
-            if cid and cid in tool_names and cid not in reused_ids:
+            if cid and ((cid in by_id and cid not in batch_dup_ids)
+                        or (cid in tool_names and cid not in reused_ids)):
                 # An id we have seen names its call outright, whichever turn
                 # declared it - unless the same id was declared for two
                 # different tools, in which case it names nothing and must not
                 # be allowed to claim it does.  If that call is still open here
                 # it is answered; if it is not, this result belongs to an
                 # earlier turn and must take no slot from this one.
+                #
+                # Except where THIS turn declared the id, once. Agents that
+                # number calls turn by turn write `call_0` in every turn; the
+                # id then names two tools across the log, and the rule above
+                # sent `final_answer(X)` answering X to "matched nothing open",
+                # a tool_result root with the demotion gone (review 20, 2.1).
+                # Inside its own turn such an id is open and unambiguous, and a
+                # result answers the turn it follows.
                 tool = tool or tool_names[cid]
                 own = calls_by_id.get(cid)
                 sent = own.args if own is not None else ""
@@ -1749,9 +1815,20 @@ def to_trace(data: Any, *, name: str = "",
                                 warning = ("same_turn", run)
                             elif any(f in batch_values for f in forms):
                                 warning = ("same_turn", shown)
-                            elif unsure or unsure_earlier or unsure_batch:
-                                # Not "no echo here": "not weighed to the end".
-                                warning = ("unchecked", shown)
+                            else:
+                                said = ""
+                                letters = _alnum(content) if message_values else 0
+                                if letters and (
+                                        ("\\" in content and len(content) <= UNESCAPE_RESULT_CHARS)
+                                        or bisect.bisect_right(message_lengths, letters)
+                                        > bisect.bisect_right(message_lengths, letters // 2)):
+                                    said = next((c for c in _echo_candidates(content)
+                                                 if c in message_values), "")
+                                if said:
+                                    warning = ("model_message", said)
+                                elif unsure or unsure_earlier or unsure_batch:
+                                    # Not "no echo here": "not weighed to the end".
+                                    warning = ("unchecked", shown)
             if len(content) > max_tool_chars:
                 content = content[:max_tool_chars]
                 cut = True

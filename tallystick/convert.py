@@ -220,13 +220,9 @@ def read_any(data: Any, *, source: str = "auto", name: str = "",
         return data, "tallystick"
 
     if source != "auto":
-        try:
-            return _READERS[source](data, name=name, max_tool_chars=max_tool_chars,
-                                    model_text_tools=model_text_tools,
-                                    verbatim_tools=verbatim_tools,
-                                    external_tools=external_tools), source
-        except ValueError as exc:
-            raise TraceError(f"cannot read this as {_NAMES[source]}: {exc}") from None
+        return _read_as(source, data, name=name, max_tool_chars=max_tool_chars,
+                        model_text_tools=model_text_tools, verbatim_tools=verbatim_tools,
+                        external_tools=external_tools), source
 
     found = detect(data)
     if not found:
@@ -244,10 +240,25 @@ def read_any(data: Any, *, source: str = "auto", name: str = "",
     only = found[0]
     if only == "tallystick":
         return data, "tallystick"
+    return _read_as(only, data, name=name, max_tool_chars=max_tool_chars,
+                    model_text_tools=model_text_tools, verbatim_tools=verbatim_tools,
+                    external_tools=external_tools), only
+
+
+def _read_as(source: str, data: Any, **options: Any) -> Dict[str, Any]:
+    """One reader on one file, with every way it can fail to read turned into
+    TraceError - exit 2 at the command line.
+
+    Including RecursionError. A reader walks nested JSON, and a log can nest
+    deeper than Python recurses: tool-call arguments nested 1,500 deep left
+    `check-trace` and `convert` on a traceback, exit 1 - "not auditable" from
+    one and a code the other never returns (review 20, 2.5). Guarding each walk
+    one by one found six such places in six rounds; this is the door every
+    reader goes through."""
     try:
-        return _READERS[only](data, name=name, max_tool_chars=max_tool_chars,
-                              model_text_tools=model_text_tools,
-                              verbatim_tools=verbatim_tools,
-                              external_tools=external_tools), only
+        return _READERS[source](data, **options)
     except ValueError as exc:
-        raise TraceError(f"cannot read this as {_NAMES[only]}: {exc}") from None
+        raise TraceError(f"cannot read this as {_NAMES[source]}: {exc}") from None
+    except RecursionError:
+        raise TraceError(f"cannot read this as {_NAMES[source]}: it is nested more deeply "
+                         f"than this reader can follow") from None
