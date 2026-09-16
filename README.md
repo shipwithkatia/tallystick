@@ -531,8 +531,10 @@ stricter than it needs to be in places.
   `_meta.echo_warning_details` or run `check-trace`.
 - A log nested more deeply than Python recurses (about a thousand levels) is
   refused with exit 2, not read.
-- Inside one assistant turn, a call id given to two calls places no result by
-  id; the reading falls back to names and order, and says so.
+- Inside one assistant turn, a call id given to two calls names neither: each
+  result with that id is filed as matching no call, stays evidence and gets an
+  `unmatched` note - so a value handed back by its own call is not demoted
+  there. An id reused across turns is not affected.
 - Coverage counts letters and digits with `str.isalnum()`: the vowel signs of
   Devanagari, Thai and similar scripts are not counted, on either side of the
   half line.

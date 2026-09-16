@@ -184,8 +184,15 @@ def test_an_id_declared_twice_in_one_turn_still_names_no_call():
            {"role": "tool", "tool_call_id": "dup", "content": "Canberra is the capital city."},
            {"role": "tool", "tool_call_id": "dup", "content": ANSWER},
            {"role": "assistant", "content": ANSWER}]
-    meta = to_trace(log)["_meta"]
-    assert meta["unmatched_tool_results"], meta
+    trace = to_trace(log)
+    meta = trace["_meta"]
+    # As README, Known limitations, says: both filed as matching nothing, both
+    # noted, neither demoted - not placed by name or order.
+    assert meta["unmatched_tool_results"] == ["tool[2] (id dup)", "tool[3] (id dup)"]
+    assert meta["guessed_tool_names"] == []
+    assert [(w["result"], w["kind"]) for w in echo_warnings(meta)] == [
+        ("tool[2]", "unmatched"), ("tool[3]", "unmatched")]
+    assert _kind(trace, "t3") == "tool_result"
 
 
 # --------------------------------------------------------------------------- #
