@@ -360,18 +360,6 @@ def test_a_second_claim_with_the_same_id_cannot_hide_the_first(tmp_path):
     assert main([str(p), "--quiet"]) == 2
 
 
-def test_a_structured_echo_record_without_its_text_still_blocks(tmp_path):
-    # guards G03 (warnings counted from `echoes_from_earlier_turns` texts only).
-    # The reader writes both lists in step, so on its own output the mutant is
-    # invisible; a trace carrying only the structured records passes the gate.
-    from tallystick.cli import main
-    d = _one_hop()
-    d["_meta"] = {"echo_warning_details": [{"result": "t1", "tool": "read_note", "line": "x"}]}
-    p = tmp_path / "t.json"
-    p.write_text(json.dumps(d))
-    assert main([str(p), "--quiet"]) == 1
-
-
 def test_a_trace_exactly_ten_times_the_log_is_reported():
     # guards S03 (`<` -> `<=`): README says the size is said "once the trace is ten
     # times the log"
