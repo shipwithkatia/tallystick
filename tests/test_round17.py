@@ -149,3 +149,40 @@ def test_strict_mode_script_without_the_corpus_says_so_instead_of_crashing(tmp_p
     assert result.returncode == 2, result.stderr[-300:]
     assert "Traceback" not in result.stderr
     assert "git clone https://github.com/liuxuannan/AgentHallu" in result.stderr
+
+# ---------------------------------------------------------------------------
+# Round 19: the echo detection is back as a note that moves no exit code.
+# Put back from e69a6bc, where round 18 removed them with the detection.
+# Tests of the confirmation gate stay out; an exit of 1 became 0.
+# ---------------------------------------------------------------------------
+
+import random
+from tallystick.adapters.openai_chat import to_trace  # noqa: E402
+
+
+def test_a_long_tibetan_chat_with_no_echo_is_weighed_to_the_end():
+    """100 turns: the model writes 1,000 Tibetan characters into each call, the
+    tool answers with 2,000 others; no reply is a note read back. Cut at the
+    tsheg and the vowel signs, every note is a string of single consonants, the
+    exact pass runs out of work and 39 replies come back `unchecked` - exit 1 on
+    a run with no echo in it."""
+    cons = [chr(c) for c in range(0x0F40, 0x0F6A) if c != 0x0F48]
+    vowels = ["", "ི", "ུ", "ེ", "ོ"]
+
+    def text(rng, syllables, limit):
+        return "་".join(rng.choice(cons) + rng.choice(vowels)
+                             + (rng.choice(cons) if rng.random() < .4 else "")
+                             for _ in range(syllables))[:limit]
+
+    model, tool = random.Random(17), random.Random(1017)
+    chat = [{"role": "user", "content": text(random.Random(1), 8, 100)}]
+    for i in range(100):
+        chat.append({"role": "assistant", "content": None, "tool_calls": [
+            {"id": f"c{i}", "type": "function", "function": {
+                "name": "web_search",
+                "arguments": json.dumps({"query": text(model, 400, 1000)}, ensure_ascii=False)}}]})
+        chat.append({"role": "tool", "tool_call_id": f"c{i}", "name": "web_search",
+                     "content": text(tool, 800, 2000)})
+    chat.append({"role": "assistant", "content": text(random.Random(2), 4, 100)})
+    kinds = [w["kind"] for w in to_trace(chat)["_meta"]["echo_warning_details"]]
+    assert kinds == []

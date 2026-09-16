@@ -372,19 +372,6 @@ def test_a_structured_echo_record_without_its_text_still_blocks(tmp_path):
     assert main([str(p), "--quiet"]) == 1
 
 
-def test_confirming_one_tool_does_not_confirm_a_tool_whose_name_it_contains(tmp_path):
-    # guards G05 (confirmation matched by substring): --accept-echo-warning read_note
-    # must not clear a warning about `note`.
-    from tallystick.cli import main
-    d = _one_hop()
-    d["_meta"] = {"echoes_from_earlier_turns": ["t1 (note): x"],
-                  "echo_warning_details": [{"result": "t1", "tool": "note", "line": "x"}]}
-    p = tmp_path / "t.json"
-    p.write_text(json.dumps(d))
-    assert main([str(p), "--quiet", "--accept-echo-warning", "read_note"]) == 1
-    assert main([str(p), "--quiet", "--accept-echo-warning", "note"]) == 0
-
-
 def test_a_trace_exactly_ten_times_the_log_is_reported():
     # guards S03 (`<` -> `<=`): README says the size is said "once the trace is ten
     # times the log"

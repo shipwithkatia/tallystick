@@ -204,3 +204,25 @@ def test_propose_passes_strict_mode_to_its_own_audit(tmp_path, capsys):
     code = _run(capsys, "propose", _write(tmp_path, LOG), "-o", tmp_path / "p.json",
                 "--proposer", "fake", "--script", script, "--require-declared-tools")[0]
     assert code == 1
+
+# ---------------------------------------------------------------------------
+# Round 19: the echo detection is back as a note that moves no exit code.
+# Put back from e69a6bc, where round 18 removed them with the detection.
+# Tests of the confirmation gate stay out; an exit of 1 became 0.
+# ---------------------------------------------------------------------------
+
+
+def test_declaring_a_tool_external_clears_its_echo_warning(tmp_path, capsys):
+    notes = [QUESTION,
+             *_turn("save_note", {"key": "capital", "text": ECHO}, "c1", "saved"),
+             *_turn("read_note", {"key": "capital"}, "c2", ECHO),
+             {"role": "assistant", "content": ECHO}]
+    log = _write(tmp_path, notes)
+    code, payload = _gate(tmp_path, capsys, "check-trace", log)
+    # Round 19: noted, not gated.
+    assert (code, payload["gate"]["reasons"]) == (0, [])
+    assert payload["may_be_model_text"]["count"] == 1
+    code, payload = _gate(tmp_path, capsys, "check-trace", log,
+                          "--tool-returns-external", "read_note")
+    assert (code, payload["gate"]["reasons"]) == (0, [])
+    assert payload["reading"]["echo_warning_details"] == []

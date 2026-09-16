@@ -261,3 +261,60 @@ def test_a_literal_written_with_a_python_escape_is_model_text(code, printed):
     assert art["kind"] not in ROOTS, (
         f"{art['artifact_id']} is the model's literal, typed with a Python escape, and is "
         f"read as {art['kind']!r}")
+
+# ---------------------------------------------------------------------------
+# Round 19: the echo detection is back as a note that moves no exit code.
+# Put back from e69a6bc, where round 18 removed them with the detection.
+# Tests of the confirmation gate stay out; an exit of 1 became 0.
+# ---------------------------------------------------------------------------
+
+
+GROUP_B = [
+    pytest.param(
+        [QUESTION, _assistant(None, _python('answer = "B"\nprint("stored")', "c1")),
+         _tool("stored", "python", "c1"),
+         _assistant(None, _python("print(answer)", "c2")), _tool("B", "python", "c2"),
+         _assistant("B")],
+        "B", id="B1-stateful-interpreter-short"),
+    pytest.param(
+        [QUESTION, _assistant(None, _python(f'summary = "{ECHO}"\nprint("ok")', "c1")),
+         _tool("ok", "python", "c1"),
+         _assistant(None, _python("print(summary)", "c2")), _tool(ECHO, "python", "c2"),
+         _assistant(ECHO)],
+        ECHO, id="B2-stateful-interpreter-long"),
+    pytest.param(
+        [QUESTION,
+         _assistant(None, _call("write_file", {"path": "answer.txt", "content": ECHO}, "c1")),
+         _tool("written", "write_file", "c1"),
+         _assistant(None, _call("bash", {"cmd": "cat answer.txt"}, "c2")), _tool(ECHO, "bash", "c2"),
+         _assistant(ECHO)],
+        ECHO, id="B3-file-written-then-read-back"),
+    pytest.param(
+        [QUESTION,
+         _assistant(None, _call("save_note", {"key": "capital", "text": ECHO}, "c1")),
+         _tool("saved", "save_note", "c1"),
+         _assistant(None, _call("read_note", {"key": "capital"}, "c2")), _tool(ECHO, "read_note", "c2"),
+         _assistant(ECHO)],
+        ECHO, id="B4-key-value-notes-store"),
+    pytest.param(
+        [QUESTION,
+         _assistant(None, _call("save_note", {"text": ECHO}, "c1")), _tool("saved", "save_note", "c1"),
+         _assistant(None, _call("read_note", {}, "c2"),
+                    _call("web_search", {"q": "capital of australia"}, "c3")),
+         _tool(ECHO, "read_note", "c2"),
+         _tool("Canberra is the capital city of Australia.", "web_search", "c3"),
+         _assistant(ECHO)],
+        ECHO, id="B5-no-argument-read-in-a-turn-with-an-argument-call"),
+]
+
+
+@pytest.mark.parametrize("messages, result", GROUP_B)
+def test_an_echo_from_an_earlier_turn_is_not_silently_evidence(messages, result):
+    trace = oc.to_trace(messages)
+    art = _artifact(trace, result)
+    label = f"tool[{art['artifact_id'][1:]}]"
+    named = [entry for value in trace["_meta"].values() if isinstance(value, list)
+             for entry in value if isinstance(entry, str) and label in entry]
+    assert art["kind"] not in ROOTS or named, (
+        f"{label} hands back text the model wrote in an earlier turn; it is read as "
+        f"{art['kind']!r} and nothing in _meta names it")

@@ -76,7 +76,8 @@ def test_the_confirmation_flag_is_gone(tmp_path):
 
 def test_a_note_read_back_in_a_later_turn_exits_0_and_is_evidence(tmp_path):
     # The price of decision 1, pinned so it cannot change unseen: this used to
-    # exit 1 with unreviewed_echo_warnings. README states that it passes.
+    # exit 1 with unreviewed_echo_warnings. README states that it passes. Round
+    # 19 lists it again as a note (tests/test_round19.py); the exit stays 0.
     log = [{"role": "user", "content": "What is the capital of Australia?"},
            {"role": "assistant", "content": None, "tool_calls": [
                {"id": "c1", "type": "function", "function": {
@@ -88,7 +89,7 @@ def test_a_note_read_back_in_a_later_turn_exits_0_and_is_evidence(tmp_path):
            {"role": "assistant", "content": ANSWER}]
     trace = to_trace(log)
     assert _kinds(trace)["t4"] == "tool_result"
-    assert "echo_warning_details" not in trace["_meta"]
+    assert trace["_meta"]["echo_warning_details"]
     assert _run(["check-trace", _write(tmp_path, "log.json", log), "--quiet"])[0] == 0
 
 
@@ -104,9 +105,9 @@ def test_a_trace_with_old_warnings_says_so_and_keeps_its_exit(tmp_path):
     path = _legacy_posted(tmp_path)
     code, out, _err = _run(["audit", path])
     assert code == 0
-    assert "1 echo warning(s) written by a reader before round 18" in " ".join(out.split())
+    assert "NOTE - 1 tool result(s) may be the model's own text" in " ".join(out.split())
     code, out, err = _run(["audit", path, "--quiet"])
-    assert (code, out) == (0, "") and "before round 18" in err
+    assert (code, out) == (0, "") and "1 tool result(s) may be the model's own text" in err
 
 
 # --- decision 3: coverage of the whole answer --------------------------------

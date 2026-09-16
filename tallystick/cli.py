@@ -30,6 +30,10 @@ the rest. No model, no claims, no cost - and a `partial` verdict there is why a
 later clean audit may mean less than it looks. A tool result that the log shows
 to be a value of the call it answered is read as model text, not as a root, and
 each one is named in the report; nothing about it waits for a confirmation.
+A result the reading kept as evidence although it may be the model's text - at
+least half of it in a call the model wrote, or matched to no call - is listed
+as a note under the report and in `--json` (`may_be_model_text`). A note never
+changes the exit code: in a hand-read sample, 6 of 20 were the model's text.
 
 `propose` is the only place the verdict path touches the model side, and it does so
 lazily, inside the subcommand, so `tallystick audit` never imports an SDK.
@@ -47,7 +51,8 @@ from .auditability import (DEFAULT_MIN_REACHABLE, MULTIPLE_FINAL_ANSWERS, check_
                            multiple_final_answers, report)
 from .convert import (FORMATS, describe, detect, hint_for, looks_like_trace, read_any,
                       trace_size, trace_size_line)
-from .echo_gate import legacy_note as _legacy_echo_note
+from .echo_gate import note_json as _echo_note_json
+from .echo_gate import note_lines as _echo_note_lines
 from .adapters.openai_chat import DEFAULT_MAX_TOOL_CHARS
 from .io import load_run, read_json_file, read_meta
 from .ledger import TOO_DEEP, close_books
@@ -146,17 +151,19 @@ def _gate_block(code: int, reasons: list[str]) -> dict:
     return {"exit_code": code, "reasons": reasons}
 
 
-def _say_legacy_echo(meta, *, quiet: bool) -> None:
-    """One note for a trace an earlier reader wrote echo warnings into. Not a
-    reason for any exit code: see `echo_gate`."""
-    note = _legacy_echo_note(meta)
-    if not note:
+def _say_echo_note(meta, *, quiet: bool) -> None:
+    """The results the reading kept as evidence that may be the model's own
+    text, listed under the report - or, with --quiet, one line on stderr. A note,
+    not a reason for any exit code: see `echo_gate`."""
+    lines = _echo_note_lines(meta, short=quiet)
+    if not lines:
         return
     if quiet:
-        print(f"tallystick: note: {note}", file=sys.stderr)
+        for line in lines:
+            print(line, file=sys.stderr)
     else:
         print()
-        for line in _wrapped(f"note: {note}"):
+        for line in lines:
             print(line)
 
 
@@ -450,7 +457,7 @@ def _audit(args: argparse.Namespace) -> int:
         print(f"tallystick: exit 2 - {CHAIN_TOO_DEEP}: {len(balance.unchecked())} claim(s) "
               f"in the final answer rest on a {TOO_DEEP}; they were not checked, and "
               f"nothing was found against them", file=sys.stderr)
-    _say_legacy_echo(raw.get("_meta") if isinstance(raw, dict) else None, quiet=args.quiet)
+    _say_echo_note(raw.get("_meta") if isinstance(raw, dict) else None, quiet=args.quiet)
     _say_strict(args, undeclared, strict)
 
     if args.json_out:
@@ -479,6 +486,9 @@ def _audit(args: argparse.Namespace) -> int:
                 for a in balance.audits.values()
             ],
         }
+        # Listed beside the gate, never inside it: a note decides nothing.
+        payload["may_be_model_text"] = _echo_note_json(
+            raw.get("_meta") if isinstance(raw, dict) else None)
         payload["gate"] = _gate_block(code, reasons)
         try:
             _write_json(args.json_out, payload)
@@ -552,6 +562,7 @@ def _check_trace(args: argparse.Namespace) -> int:
                         "unmatched_tool_results", "unresolved_tool_results",
                         "echoed_back_tool_results",
                         "echoes_from_earlier_turns", "echo_warning_details",
+                        "echo_warnings_cleared_by_declaration",
                         "model_text_tools", "verbatim_tools", "external_tools",
                         "notes", "otel") if k in meta}
             if undeclared is not None:
@@ -561,6 +572,8 @@ def _check_trace(args: argparse.Namespace) -> int:
                 reading["trace_size"] = size
             if reading:
                 payload["reading"] = reading
+        # Listed beside the gate, never inside it: a note decides nothing.
+        payload["may_be_model_text"] = _echo_note_json(meta)
         payload["gate"] = _gate_block(code, reasons)
         try:
             _write_json(args.json_out, payload)
@@ -569,7 +582,7 @@ def _check_trace(args: argparse.Namespace) -> int:
             return 2
     if not args.quiet:
         print(report(result))
-    _say_legacy_echo(meta, quiet=args.quiet)
+    _say_echo_note(meta, quiet=args.quiet)
     _say_strict(args, undeclared, strict)
     if args.quiet and size:
         # Not a verdict and not in the exit code, but a CI job that runs
@@ -740,7 +753,8 @@ def build_parser() -> argparse.ArgumentParser:
                    help="print the full provenance chain for one claim")
     a.add_argument("--quiet", action="store_true",
                    help="exit code only - a reason other than the books not "
-                        "balancing is still printed on stderr, one line each")
+                        "balancing, and a note about results that may be the model's "
+                        "own text, are still printed on stderr, one line each")
     _add_strict_args(a)
     a.set_defaults(func=_audit)
 
@@ -757,7 +771,8 @@ def build_parser() -> argparse.ArgumentParser:
     c.add_argument("--json", dest="json_out", metavar="PATH",
                    help="write the machine-readable report here")
     c.add_argument("--quiet", action="store_true",
-                   help="exit code only")
+                   help="exit code only - a note about results that may be the "
+                        "model's own text is still one line on stderr")
     _add_strict_args(c)
     _add_source_args(c)
     c.set_defaults(func=_check_trace)

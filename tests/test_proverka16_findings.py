@@ -205,31 +205,6 @@ def test_chain_view_of_a_balancing_trace_with_half_an_emoji_does_not_exit_1(tmp_
     assert chain.returncode == 0, chain.stderr[-400:]
 
 
-def test_an_accepted_echo_warning_with_half_an_emoji_does_not_exit_1(tmp_path):
-    """The note the model saved ends in a cut emoji. `check-trace
-    --accept-echo-warning read_note` exits 0 with --quiet, and 1 without it: the
-    accepted warning's line is printed to stdout and print() raises. The same
-    log, the same flags, and the exit code depends on --quiet."""
-    note = "The bridge was opened to traffic in 1932 by the governor \ud83d"
-    log = [
-        {"role": "user", "content": "When was the bridge opened?"},
-        {"role": "assistant", "content": "I will note what I believe.", "tool_calls": [
-            {"id": "c1", "type": "function",
-             "function": {"name": "save_note", "arguments": json.dumps({"text": note})}}]},
-        {"role": "tool", "tool_call_id": "c1", "name": "save_note", "content": "ok"},
-        {"role": "assistant", "content": "Reading it back.", "tool_calls": [
-            {"id": "c2", "type": "function", "function": {"name": "read_note", "arguments": "{}"}}]},
-        {"role": "tool", "tool_call_id": "c2", "name": "read_note", "content": note},
-        {"role": "assistant", "content": note},
-    ]
-    path = tmp_path / "log.json"
-    path.write_text(json.dumps(log), encoding="utf-8")
-    quiet = _cli(["check-trace", "--quiet", "--accept-echo-warning", "read_note", str(path)], tmp_path)
-    loud = _cli(["check-trace", "--accept-echo-warning", "read_note", str(path)], tmp_path)
-    assert quiet.returncode == 0, quiet.stderr[-400:]
-    assert loud.returncode == quiet.returncode, loud.stderr[-400:]
-
-
 def test_a_readable_trace_with_half_an_emoji_in_a_meta_note_does_not_exit_1(tmp_path):
     """examples/balanced_run.json with `_meta: {"notes": ["a note \\ud83d"]}`:
     `audit` exits 0, `check-trace` prints the note and exits 1 with a traceback."""

@@ -27,7 +27,9 @@ never confuse this with a verdict about your agent.
 
 Nothing in these six logs waits for a confirmation. Earlier versions also
 exited `1` on a warning that a tool result might hand back the model's own text,
-until you confirmed the tool by name; those warnings, and the flag, are gone.
+until you confirmed the tool by name; the flag is gone, and such a result is
+now listed as a `NOTE` under the report that never changes the exit code. None
+of these six logs gets one.
 What the reader still decides by itself is named above the report: a tool
 result that is a value of the call it answered is read as the model's text.
 

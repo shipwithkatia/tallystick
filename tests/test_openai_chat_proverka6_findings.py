@@ -66,6 +66,7 @@ def _read(args, result, **kw):
     meta = trace["_meta"]
     return {"kind": art["kind"],
             "demoted": bool(meta["echoed_back_tool_results"]),
+            "warnings": meta["echo_warning_details"],
             "meta": meta}
 
 
@@ -347,3 +348,99 @@ def test_a_reply_stored_escaped_is_decoded_before_its_lines_are_read():
     assert read["demoted"], (
         f"the escaped reply was not decoded before its lines were read "
         f"(kind={read['kind']})")
+
+# ---------------------------------------------------------------------------
+# Round 19: the echo detection is back as a note that moves no exit code.
+# Put back from e69a6bc, where round 18 removed them with the detection.
+# Tests of the confirmation gate stay out; an exit of 1 became 0.
+# ---------------------------------------------------------------------------
+
+
+def test_the_placeholder_name_cannot_be_declared_model_text():
+    trace = oc.to_trace(_unnamed_log(), model_text_tools={"tool"})
+    assert trace["_meta"]["echo_warning_details"], (
+        "declaring the placeholder silenced the warning about an unnamed tool")
+
+
+def test_the_placeholder_name_cannot_vouch_as_external():
+    # The protection commit 7760068 states in words: an external declaration
+    # clears a warning "only for a tool known by its own name".
+    trace = oc.to_trace(_unnamed_log(), external_tools={"tool"})
+    assert trace["_meta"]["echo_warning_details"], (
+        "an external declaration vouched for a tool the log never named")
+
+
+def test_the_warning_quotes_what_it_matched_not_the_last_line():
+    # The bypass ends in a one-character line. Quoting the last line would show
+    # the reader's own answer as `0` and tell the person reading it nothing.
+    result = CLAIM[:HALF] + "\n" + CLAIM[HALF:] + "\n0"
+    read = _read({"query": CLAIM}, result)
+    assert read["warnings"], "the bypass produced no warning"
+    line = read["warnings"][0]["line"]
+    assert line.strip() != "0", "the warning quoted the character the tool added"
+    assert CLAIM.split()[0] in line, line
+
+
+def test_the_bypass_is_noted_end_to_end_and_moves_no_exit_code(tmp_path, capsys):
+    from tallystick.cli import main
+    result = CLAIM[:HALF] + "\n" + CLAIM[HALF:] + "\n0"
+    path = tmp_path / "log.json"
+    path.write_text(json.dumps({"messages": _log({"query": CLAIM}, result, name="stats_api")}),
+                    encoding="utf-8")
+    # Round 19: this held exit 1 until the tool was confirmed by name. It is
+    # a note now: said on stderr, exit 0, and no flag to pass.
+    assert main(["check-trace", "--from", "openai", str(path), "--quiet"]) == 0
+    err = capsys.readouterr().err
+    assert "1 tool result(s) may be the model's own text" in err and "stats_api" in err, err
+
+
+def test_an_external_declaration_does_not_vouch_where_the_placement_is_a_guess():
+    # `--tool-returns-external NAME` clears warnings about that tool. Where the
+    # reader had to place the result by position among several calls, it does
+    # not know that this result is that tool's - so the declaration must not
+    # reach it. The name is in the log; what is missing is which call answered.
+    note = "The plant recorded four point six million tonnes of output last year"
+    log = [QUESTION,
+           {"role": "assistant", "content": "save", "tool_calls": [
+               _call("save_note", {"note": note}, "c0")]},
+           {"role": "tool", "tool_call_id": "c0", "name": "save_note", "content": "ok"},
+           {"role": "assistant", "content": "two calls, no ids on the results",
+            "tool_calls": [
+                {"type": "function",
+                 "function": {"name": "read_note", "arguments": json.dumps({"key": "n1"})}},
+                {"type": "function",
+                 "function": {"name": "web_search", "arguments": json.dumps({"q": "output"})}}]},
+           {"role": "tool", "content": note},
+           {"role": "tool", "content": "An unrelated page about shipping."},
+           {"role": "assistant", "content": "done"}]
+    plain = oc.to_trace(json.loads(json.dumps(log)))
+    assert plain["_meta"]["echo_warning_details"], "no warning to clear in the first place"
+    vouched = oc.to_trace(json.loads(json.dumps(log)), external_tools={"read_note"})
+    assert vouched["_meta"]["echo_warning_details"], (
+        "an external declaration vouched for a result the reader only guessed "
+        "belonged to that tool")
+
+
+def _noticed_or_noted(read) -> bool:
+    """Demoted, or listed as a note (e69a6bc's `_noticed`). `_noticed` above stays
+    demotion only, as round 18 made it."""
+    return read["demoted"] or bool(read["warnings"])
+
+
+@pytest.mark.parametrize("result, why", [
+    pytest.param(CLAIM[:HALF] + "\n" + CLAIM[HALF:] + "\n0",
+                 "a newline in the middle and a one-character line after it",
+                 id="P1-the-three-character-bypass"),
+    pytest.param(CLAIM[:HALF] + "\n" + CLAIM[HALF:] + "\n[ok]",
+                 "a newline in the middle and a short status line after it",
+                 id="P2-newline-and-a-status-line"),
+    pytest.param(CLAIM[:40] + "\n" + CLAIM[40:90] + "\n" + CLAIM[90:] + "\n0",
+                 "the echo broken across three lines", id="P3-three-way-split"),
+])
+def test_an_echo_broken_up_is_not_silent(result, why):
+    # e69a6bc's P1-P3 of `test_an_echo_broken_up_or_diluted_is_not_silent`, which
+    # round 18 removed (P4 stayed there, on the demotion). Only the note sees them.
+    read = _read({"text": CLAIM}, result)
+    assert _noticed_or_noted(read), (
+        f"{why}: the reply is the model's own sentence and the reading passed it "
+        f"as evidence with no note (kind={read['kind']})")

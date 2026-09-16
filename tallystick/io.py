@@ -217,8 +217,8 @@ _META_LISTS = (
     "skipped_empty", "dropped_messages", "truncated", "guessed_tool_names",
     "unmatched_tool_results", "unresolved_tool_results", "echoed_back_tool_results",
     "notes",
-    # Written by readers before round 18, which warned about echoes; still read,
-    # so a trace that carries them is said to carry them (echo_gate.legacy_note).
+    # The results that may be the model's own text, listed as a note that moves
+    # no exit code (echo_gate). Named when they were warnings, before round 18.
     "echoes_from_earlier_turns", "echo_warning_details",
     "echo_warnings_cleared_by_declaration",
 )

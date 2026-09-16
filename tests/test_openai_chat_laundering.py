@@ -174,3 +174,37 @@ def test_run_ending_in_a_tool_result_does_not_elect_an_earlier_thought():
         "the log ends with a tool result, and the reader elected the thought before "
         "it as what the user saw; the text the user actually saw is recorded as "
         f"{_tool_artifact(trace, ECHO)['kind']!r}")
+
+# ---------------------------------------------------------------------------
+# Round 19: the echo detection is back as a note that moves no exit code.
+# Put back from e69a6bc, where round 18 removed them with the detection.
+# Tests of the confirmation gate stay out; an exit of 1 became 0.
+# ---------------------------------------------------------------------------
+
+
+def test_note_read_back_in_a_later_turn():
+    # The module docstring names a notes store as a tool that hands the model's
+    # words back; read_note's own arguments are empty, so the rule never looks.
+    #
+    # Relaxed after the proverka3 review, by the scheme agreed there: an echo
+    # from an earlier turn is not demoted blindly, because the same match is
+    # also a tool confirming what the model guessed. Either outcome passes -
+    # read as model text, or named in _meta - exactly as in
+    # test_openai_chat_turn_width.py group B. What fails is silence.
+    trace = oc.to_trace([
+        QUESTION,
+        {"role": "assistant", "content": None,
+         "tool_calls": [_call("save_note", json.dumps({"text": ECHO}), "c1")]},
+        _tool("saved", "save_note", "c1"),
+        {"role": "assistant", "content": None,
+         "tool_calls": [_call("read_note", "{}", "c2")]},
+        _tool(ECHO, "read_note", "c2"),
+        {"role": "assistant", "content": ECHO},
+    ])
+    art = _tool_artifact(trace, ECHO)
+    label = f"tool[{art['artifact_id'][1:]}]"
+    named = [entry for value in trace["_meta"].values() if isinstance(value, list)
+             for entry in value if isinstance(entry, str) and label in entry]
+    assert art["kind"] not in ROOTS or named, (
+        f"{label} hands back a note the model saved in an earlier turn; it is read "
+        f"as {art['kind']!r} and nothing in _meta names it")

@@ -167,45 +167,58 @@ Neither is guessed from the log. By default every tool result is treated as a
 wall the audit cannot see past, which counts against your recording rather
 than quietly in its favour.
 
-**What the reading decides on its own, and what it no longer says.** One thing
-is read from the file without being told, because the file shows it: a tool
+**What the reading decides on its own, and what it only notes.** One thing is
+read from the file without being told, because the file shows it: a tool
 result that IS a value of the call it answered — the model's own text handed
 back — is the model's text, not a root (the demotion above).
 
-Until this version the reader also **warned** about results that might hand
-back the model's text — a note read back in a later turn, a variable an
-interpreter kept, a reply half made of a call's text, a result it could not
-match to a call — and `check-trace` and `audit` exited 1 until you confirmed
-each tool with `--accept-echo-warning`. The warnings are gone, and the flag with
-them. A hand-read sample of those warnings found fewer than half of them were
-real echoes, and a signal that is mostly wrong teaches the person reading it to
-wave it through. **What that removal lets through without a word:**
+**A note, not a verdict.** The reader also lists tool results it kept as
+evidence although they may be the model's own text: at least half of the reply
+stands in text the model wrote into a call (the one it answered, an earlier
+one, another of the same turn), a short reply is a value an earlier call
+carried, the reading matched the result to no call, or it could not weigh the
+reply to the end. `check-trace` and `audit` print them under the report as
+`NOTE`, `--json` lists them in `may_be_model_text`, and `--quiet` says it in one
+line on stderr. **A note never changes the exit code** and asks you to confirm
+nothing.
 
-- a note saved in one turn and read back in a later one, as plain text or
-  inside a store's record (mem0, LangGraph Store): the read-back is a root;
-- a tweet, a ticket, a task list returned by the very call that created it,
-  as a record with an id: the record is not that one value, so it is a root;
-- an interpreter printing prose the model wrote into its own code, mixed with
-  other output; a file written and then read back with a header or line numbers;
-- the sixth review's trick against the demotion — a newline in the middle of
-  the value and one character after it;
-- a result the reading could not match to any call;
+What a note is worth, measured: an external review drew 20 notes at random on
+AgentHallu and read them by hand — **6 of 20 were the model's own text**; 7 were
+a tool doing honest work (an interpreter printing a number it computed under a
+label the model wrote), 7 disputable (a browser's `Navigated to <url>`, a record
+of an order the model placed). So a note is a reason to look, not a finding.
+The hand labels are not in this repository. How often notes appear is: 123 of
+693 AgentHallu trajectories get at least one, 154 notes in all
+(`python bench/echo_notes.py <AgentHallu>`).
+
+If a noted tool does hand the model's text back, say so and read the log again:
+`--tool-returns-model-text NAME`. That demotes its results and can change the
+verdict; the note cannot.
+
+Before this version the same results were **warnings** that held the exit at 1
+until you confirmed each tool with `--accept-echo-warning`, and one version
+removed them altogether. The flag is gone and does not come back: a signal
+wrong two times in three may not fail a build, but what it noticed is shown.
+
+**What still passes without a word** — no demotion, no note:
+
+- a note read back inside a store's record (a mem0 search result, a LangGraph
+  Store item) when the note is short: the record's id, hash and dates make up
+  more than half of the reply. On a 20-word English note nothing is said; from
+  about 165 characters (29 words) the note is listed;
+- text added to a reply until the model's words are less than half of it — an
+  echo inside a longer page, or junk appended on purpose;
+- a note written straight onto other letters with no mark between, in Chinese,
+  Japanese, Thai, Lao, Khmer, Myanmar or Tibetan; a value read back in another
+  case;
 - the model's draft pasted back into the conversation as a `user` message
   ("here is your previous draft"), or a subagent's answer handed over as one:
-  every `user` message is a root.
+  every `user` message is a root, and nothing compares it with the model's text.
 
-Two rules to close the first and the last of these were built and measured in
-this version, and neither shipped: read by hand, more than a third of what
-each one demoted was honest material — a web page carrying a title the model
-had quoted, a person's own traceback that shared one line with code the model
-wrote earlier.
-
-If a tool in your run can do any of this, say so: `--tool-returns-model-text
-NAME`. That is the only protection left for these cases, and it was always the
-reliable one.
-
-A trace written by an earlier version may still carry warnings in its `_meta`.
-`check-trace` and `audit` say so in a note and do not change the exit code for it.
+Two rules to close the first and the last of these were built, measured and not
+shipped: read by hand, more than a third of what each one demoted was honest
+material — a web page carrying a title the model had quoted, a person's own
+traceback that shared one line with code the model wrote earlier.
 
 **2. Audit a run whose claims are already posted.** Deterministic, offline, no
 SDK needed:
@@ -225,7 +238,14 @@ may all balance, but they speak for less than half of what the user saw. The
 report prints `coverage` as the share of the WHOLE answer under claims that
 close, and `under no claim` beside it, always; the share of claims that close
 is the line `claims closed`. Post claims on the rest of the answer to clear it —
-there is no flag that does. **1** also when more
+there is no flag that does. The line is at half, and it stays there by the
+owner's decision of 16 September 2026, taken knowing its price: on the 1,489
+posted traces of this project's benchmark runs (RAGTruth and AgentHallu, the
+current runs and earlier ones, and `examples/`; the benchmark files are not in
+this repository), it moved 130 from exit 0 to exit 1 — about 9 in 100, and more
+than the 60 named before the measurement. If half of an answer is unchecked, "the books
+balance" is the silent assurance this tool exists to refuse. Moving the line to
+two thirds after seeing the number was considered and refused. **1** also when more
 than one artifact is marked `final_answer` (`multiple_final_answers`): the trace
 does not say which answer the user saw, so claims that balance on one of them
 do not make a checked run — the same finding `check-trace` reports on that file.

@@ -43,7 +43,7 @@ def _read(messages, **kw):
     art = next(a for a in trace["artifacts"] if a["artifact_id"].startswith("t")
                and a["content"].strip() not in ("ok",))
     meta = trace["_meta"]
-    return {"kind": art["kind"],
+    return {"kind": art["kind"], "warnings": meta["echo_warning_details"],
             "demoted": bool(meta["echoed_back_tool_results"]), "meta": meta}
 
 
@@ -91,3 +91,98 @@ def test_a_repeated_word_does_not_make_the_reading_quadratic():
     oc.to_trace(_same_turn_log(args, reply))
     seconds = time.perf_counter() - start
     assert seconds < 5.0, f"reading one turn of repeated words took {seconds:.1f}s"
+
+# ---------------------------------------------------------------------------
+# Round 19: the echo detection is back as a note that moves no exit code.
+# Put back from e69a6bc, where round 18 removed them with the detection.
+# Tests of the confirmation gate stay out; an exit of 1 became 0.
+# ---------------------------------------------------------------------------
+
+
+HALF = len(NOTE) // 2
+
+
+#: The sixth review's bypass: a newline in the middle, a one-character line after.
+BROKEN = NOTE[:HALF] + "\n" + NOTE[HALF:] + "\n0"
+
+
+def _cross_turn_log(readback):
+    """A note saved in one turn and read back in the next - two different tools,
+    so nothing the answering-call rule can see."""
+    return [QUESTION,
+            {"role": "assistant", "content": "save",
+             "tool_calls": [_call("save_note", {"note": NOTE}, "c0")]},
+            {"role": "tool", "tool_call_id": "c0", "name": "save_note", "content": "ok"},
+            {"role": "assistant", "content": "read it back",
+             "tool_calls": [_call("read_note", {"key": "n1"}, "c1")]},
+            {"role": "tool", "tool_call_id": "c1", "name": "read_note", "content": readback},
+            {"role": "assistant", "content": "done"}]
+
+
+def _noticed(read):
+    return read["demoted"] or bool(read["warnings"])
+
+
+@pytest.mark.parametrize("readback, why", [
+    pytest.param(BROKEN, "a newline in the middle and a one-character line after it",
+                 id="X1-the-three-character-bypass"),
+    pytest.param(NOTE[:HALF] + "\n" + NOTE[HALF:] + "\n[ok]",
+                 "a newline in the middle and a short status line after it",
+                 id="X2-newline-and-a-status-line"),
+    pytest.param("=" * 220 + "\n" + NOTE, "diluted below half by a banner",
+                 id="X3-diluted-below-half"),
+])
+def test_a_note_read_back_broken_up_is_not_silent(readback, why):
+    read = _read(_cross_turn_log(readback))
+    assert _noticed(read), (
+        f"{why}: a note the model wrote in an earlier turn came back and the "
+        f"reading passed it as evidence with no warning (kind={read['kind']})")
+
+
+def test_control_a_note_read_back_whole_is_still_warned():
+    read = _read(_cross_turn_log(NOTE))
+    assert _noticed(read)
+
+
+def _padded(share):
+    """A reply that is `share` of the note by letters and digits, with the note
+    never the last line, so only coverage can see it."""
+    want = oc._alnum(NOTE)
+    pad = max(1, round(want / share) - want)
+    return NOTE[:HALF] + "\n" + NOTE[HALF:] + "\n" + "x" * pad
+
+
+@pytest.mark.parametrize("log_of", [_same_turn_log, None], ids=["answering-call", "cross-turn"])
+def test_the_same_share_decides_on_both_paths(log_of):
+    def read(share):
+        body = _padded(share)
+        if log_of is None:
+            return _read(_cross_turn_log(body))
+        return _read(_same_turn_log({"note": NOTE}, body))
+    assert _noticed(read(0.70)), "70% of the reply is the model's text and nothing was said"
+    assert not _noticed(read(0.20)), "20% of the reply is the model's text and it was flagged"
+
+
+def test_the_threshold_is_one_named_constant():
+    assert oc.WARN_SHARE == 0.50, (
+        "the share was chosen by sampling 20 warnings at 30% and at 50%; "
+        "changing it without repeating that sampling is guessing")
+
+
+def test_a_bare_word_of_an_earlier_call_is_not_a_value_across_turns():
+    # Across calls nothing ties a reply to a call, so the values weighed there
+    # are the ones a call plainly carried - its JSON values, its literals, its
+    # lines. Not its bare word atoms: in the round's sample, every atom match
+    # across calls was the tool doing its job (a reply holding the word
+    # `False`, a query term, a file name).
+    log = [QUESTION,
+           {"role": "assistant", "content": "compute",
+            "tool_calls": [_call("python", {"code": "results = compute(dataset)\nprint(len(results))"}, "c0")]},
+           {"role": "tool", "tool_call_id": "c0", "name": "python", "content": "412"},
+           {"role": "assistant", "content": "now name it",
+            "tool_calls": [_call("lookup", {"id": 7}, "c1")]},
+           {"role": "tool", "tool_call_id": "c1", "name": "lookup", "content": "dataset"},
+           {"role": "assistant", "content": "done"}]
+    trace = oc.to_trace(log)
+    kinds = {w["kind"] for w in trace["_meta"]["echo_warning_details"]}
+    assert "earlier_turn" not in kinds, trace["_meta"]["echo_warning_details"]
