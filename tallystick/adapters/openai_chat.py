@@ -164,17 +164,64 @@ _KNOWN_ROLES = _ROOT_ROLES | {"assistant", "tool", "function"}
 
 
 
+#: Tool-call arguments nested deeper than this are refused: `to_trace` raises
+#: ValueError, and the commands exit 2. The reader's own rule, so that the answer
+#: does not depend on the Python it runs on. Before it, where the interpreter gave
+#: up decided: arguments nested 1,500 deep were read on 3.10 (its JSON parser
+#: fails first, and the reader took them as text) and refused on 3.12 (its parser
+#: goes deeper, and the recursive walk after it failed) - round 22. Well under the
+#: ~1,000 levels where any supported Python fails, with room left for the stack
+#: of whatever calls `to_trace`.
+MAX_ARGUMENT_NESTING = 256
+
+
+def _nesting(text: str) -> int:
+    """How deep `[` and `{` nest in `text`, outside double-quoted strings.
+
+    One pass and no recursion, so it answers for any depth on any Python. Not a
+    parser: it does not ask whether the text is JSON. Code arguments are counted
+    the same way; their single-quoted strings are not recognised, so brackets
+    inside those count."""
+    depth = deepest = 0
+    in_string = escaped = False
+    for ch in text:
+        if in_string:
+            if escaped:
+                escaped = False
+            elif ch == "\\":
+                escaped = True
+            elif ch == '"':
+                in_string = False
+        elif ch == '"':
+            in_string = True
+        elif ch in "[{":
+            depth += 1
+            if depth > deepest:
+                deepest = depth
+        elif ch in "]}" and depth:
+            depth -= 1
+    return deepest
+
+
 def _args_text(raw) -> str:
     """The arguments a tool call carried, as text. OpenAI sends them as a JSON
-    string, the Anthropic shape as an object; both are compared as text."""
+    string, the Anthropic shape as an object; both are compared as text.
+
+    Raises ValueError where they nest deeper than MAX_ARGUMENT_NESTING - before
+    anything parses or walks them."""
     if raw is None:
         return ""
     if isinstance(raw, str):
-        return raw
-    try:
-        return json.dumps(raw, ensure_ascii=False)
-    except (TypeError, ValueError):
-        return str(raw)
+        text = raw
+    else:
+        try:
+            text = json.dumps(raw, ensure_ascii=False)
+        except (TypeError, ValueError):
+            text = str(raw)
+    if _nesting(text) > MAX_ARGUMENT_NESTING:
+        raise ValueError(f"a tool call's arguments are nested more deeply than this reader "
+                         f"can follow (more than {MAX_ARGUMENT_NESTING} levels)")
+    return text
 
 
 
