@@ -12,6 +12,8 @@ import sys
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 
+import pytest
+
 from tallystick.adapters.openai_chat import to_trace
 from tallystick.cli import main
 from tallystick.ledger import MAX_DEPTH
