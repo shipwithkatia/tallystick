@@ -61,6 +61,11 @@ def _cross_turn(note, reply):
 # --------------------------------------------------------------------------- #
 
 
+@pytest.mark.xfail(strict=True, reason=(
+    "not done: `convert` does not list notes. The trace it writes keeps them in "
+    "`_meta`, and `check-trace` on that trace prints them - README.md, Known "
+    "limitations, What the commands say, and where. Documented, not fixed, by the "
+    "owner's decision of 16 September 2026 after review 20; round 22 marked it"))
 def test_convert_still_says_a_result_may_be_the_models_own_text(tmp_path):
     """Round 17 (e69a6bc) `convert` listed such a result under the reading:
     "left out - result(s) kept as evidence that may hand back the model's own

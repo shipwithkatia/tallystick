@@ -503,7 +503,7 @@ stricter than it needs to be in places.
   Yi, Phags-pa, Han outside the basic blocks (extension B and later), Hangul
   written without spaces, Ethiopic with its word mark `፡`. A reply that is the
   bare note is still found. `tests/test_proverka20_unlisted_scripts.py` shows
-  the missed shapes (it fails on them). No noise was found in their honest
+  the missed shapes (marked as expected failures). No noise was found in their honest
   chats, but nothing was measured on real logs in these scripts.
 - **The model's draft pasted back as a `user` message** ("here is your previous
   draft"), or a subagent's answer handed over as one: every `user` message is a
@@ -529,8 +529,13 @@ stricter than it needs to be in places.
   `check-trace` on that trace prints them.
 - `tallystick.audit()` in Python returns the balance without the notes; read
   `_meta.echo_warning_details` or run `check-trace`.
-- A log nested more deeply than Python recurses (about a thousand levels) is
-  refused with exit 2, not read.
+- A tool call's arguments nested more than 256 levels deep
+  (`MAX_ARGUMENT_NESTING` in `tallystick/adapters/openai_chat.py`) are refused
+  with exit 2, not read - the same on every Python (`tests/test_round22.py`).
+  The log file itself is held to no limit of ours, and what a file nested past
+  what Python recurses gets depends on the Python: exit 2 on 3.10, a traceback
+  and exit 1 on 3.12, read on 3.14. Measured by hand in round 22; no test
+  covers it.
 - Inside one assistant turn, a call id given to two calls names neither: each
   result with that id is filed as matching no call, stays evidence and gets an
   `unmatched` note - so a value handed back by its own call is not demoted

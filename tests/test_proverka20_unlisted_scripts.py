@@ -33,8 +33,19 @@ SHAPES = {"label_quotes": lambda n: f'Note: "{n}"',
           "brackets": lambda n: f"[{n}]"}
 
 
+#: Marked on the two unlisted scripts only: Chinese is the control and passes.
+UNLISTED = pytest.mark.xfail(strict=True, reason=(
+    "not done: a note in a script written without spaces that is not in the "
+    "reader's list, read back inside JSON, `Note: \"...\"` or brackets, gets no "
+    "note - README.md, Known limitations, the item on a script written without "
+    "spaces that is not in the reader's list. Documented, not fixed, by the "
+    "owner's decision of 16 September 2026 after review 20; round 22 marked it"))
+
+
 @pytest.mark.parametrize("shape", list(SHAPES))
-@pytest.mark.parametrize("note", [ZH, JV, YI], ids=["zh_control", "javanese", "yi"])
+@pytest.mark.parametrize("note", [ZH, pytest.param(JV, marks=UNLISTED),
+                                  pytest.param(YI, marks=UNLISTED)],
+                         ids=["zh_control", "javanese", "yi"])
 def test_a_note_in_an_unlisted_script_without_spaces_is_noted_like_chinese(note, shape):
     meta = to_trace(_log(note, SHAPES[shape](note)))["_meta"]
     assert echo_warnings(meta), f"the model's own note in {shape} came back with no note"

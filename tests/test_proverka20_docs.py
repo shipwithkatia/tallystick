@@ -9,6 +9,8 @@ import re
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 
+import pytest
+
 from tallystick.cli import build_parser, main
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -38,6 +40,13 @@ def _run(argv):
     return code, out.getvalue(), err.getvalue()
 
 
+@pytest.mark.xfail(strict=True, reason=(
+    "README no longer promises one line; the promise was corrected, not the "
+    "behaviour. `--quiet` prints a header line, then one line per noted result, "
+    "at most ten and a `+N more` line - README.md, the paragraph on notes above "
+    "Known limitations, and `check-trace --help`. The test asks for the old "
+    "sentence word for word and can never pass. Documented, not fixed, by the "
+    "owner's decision of 16 September 2026 after review 20; round 22 marked it"))
 def test_quiet_says_the_note_in_one_line_on_stderr_as_the_readme_and_help_say(tmp_path):
     """README ("`--quiet` says it in one line on stderr") and `check-trace --help`
     ("is still one line on stderr") promise one line. With one noted result the
@@ -54,6 +63,14 @@ def test_quiet_says_the_note_in_one_line_on_stderr_as_the_readme_and_help_say(tm
     assert len(err.strip().splitlines()) == 1, err
 
 
+@pytest.mark.xfail(strict=True, reason=(
+    "README no longer says a 20-word English note is silent; the promise was "
+    "corrected, not the behaviour. The limit is in characters: 20 long words (278 "
+    "characters) are listed, as the test's own note is - README.md, Known "
+    "limitations, the item on a note read back inside a store's record "
+    "(python bench/store_record_threshold.py). The test asks for the old sentence "
+    "and for no note, and can never pass. Documented, not fixed, by the owner's "
+    "decision of 16 September 2026 after review 20; round 22 marked it"))
 def test_the_store_record_sentence_holds_for_a_20_word_english_note(tmp_path):
     """README: "On a 20-word English note nothing is said; from about 165
     characters (29 words) the note is listed". The limit is in characters, not
