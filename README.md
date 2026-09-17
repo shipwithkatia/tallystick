@@ -486,13 +486,11 @@ stricter than it needs to be in places.
 - **A message the model wrote, handed back as less than most of the reply**, or
   reformatted. Only a reply whose main piece IS a whole earlier message is
   noted. Two readings by share were built and measured on AgentHallu and not
-  shipped: against every message the model wrote, 19 new notes and not one was
-  the model's text handed back (a tool returning a file the model had quoted, a
-  search repeating the question); with text the model had copied from outside
-  set aside, 4 notes, none of them either (a search answering in the words of
-  the model's plan). Read by hand; the labels are not in this repository. The
-  note that shipped fires on none of the 693 AgentHallu trajectories, so what
-  it is worth on real logs is not measured.
+  shipped: read by hand, none of the notes either added was the model's text
+  handed back (a tool returning a file the model had quoted, a search repeating
+  the question, a search answering in the words of the model's plan). The labels
+  are not in this repository. The note that shipped fires on no AgentHallu
+  trajectory, so what it is worth on real logs is not measured.
 - **A note written straight onto other letters with no mark between**, in
   Chinese, Japanese, Thai, Lao, Khmer, Myanmar or Tibetan; **a value read back in
   another case**; **a bidirectional mark (RLM, LRM) after every word**, in any
@@ -508,8 +506,8 @@ stricter than it needs to be in places.
 - **The model's draft pasted back as a `user` message** ("here is your previous
   draft"), or a subagent's answer handed over as one: every `user` message is a
   root, and nothing compares it with the model's text. A rule to close it was
-  built, measured and not shipped: read by hand, more than a third of what it
-  demoted was honest material.
+  built, measured and not shipped: read by hand, too much of what it demoted
+  was honest material. The labels are not in this repository.
 
 **Where the reading is stricter than it needs to be**
 
@@ -518,10 +516,10 @@ stricter than it needs to be in places.
   arguments is a value: a browser page with a line `Awards` after a `click`
   whose reasoning said "Awards" is recorded as the model's text. That costs a
   claim a source it had; it never makes the model's text evidence. Round 21 read
-  30 demotions on AgentHallu by hand (the ones call ids numbered per turn used to
-  hide): 16 the model's own text, 6 disputable (`cd` answering with the
-  directory it was given), 8 a tool's own page. The labels are not in this
-  repository.
+  such demotions on AgentHallu by hand (the ones call ids numbered per turn used
+  to hide): some were the model's own text, some disputable (`cd` answering with
+  the directory it was given), some a tool's own page. The labels are not in
+  this repository.
 
 **What the commands say, and where**
 
