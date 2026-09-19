@@ -1,7 +1,11 @@
-"""Coverage-gap tests for mutation survivors (proverka 13, section 7).
+"""Tests for places where a deliberate mistake in the code (a mutant) went
+unnoticed by every other test: a lowered depth limit, claims walked in file
+order, a slice that truncates a quote, a dropped self-citation gate, and more.
 
-Each test PASSES on 23908ba and FAILS on the named mutant. They are not defect tests: they pass here by design. Run against a mutated copy:
-    PYTHONPATH=<copy> python -m pytest -p no:cacheprovider test_s7_gaps.py
+Each test PASSES on 23908ba and FAILS on the named mutant. They are not defect
+tests: they pass here by design. Run against a mutated copy, from outside the
+repository so the copy is what gets imported:
+    PYTHONPATH=<copy> python -m pytest -p no:cacheprovider <copy>/tests/test_mutation_coverage.py
 """
 import json
 import subprocess

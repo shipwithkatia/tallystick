@@ -1,4 +1,4 @@
-"""proverka13, section 6: the trace-size line.
+"""The trace-size line when `convert` writes over the log it read.
 
 `convert log.json -o log.json` overwrites the log with the trace, and only then
 measures "the log on disk" - by the same path. The line then names a log the

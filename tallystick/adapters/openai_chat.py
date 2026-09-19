@@ -805,7 +805,7 @@ _NO_SPACES = re.compile("[\u0e00-\u0eff\u0f00-\u0fff\u1000-\u109f\u1780-\u17ff"
 #:
 #: Tibetan first (round 17): on a chat of 100 turns with no echo in it, 1,000
 #: Tibetan characters a call, the index ran out of RECHECK_WORK and 39 replies
-#: came back `unchecked`; with this, none (tests/test_round17.py). The other
+#: came back `unchecked`; with this, none (tests/test_core_claim_cycles.py). The other
 #: four in round 19, measured on a generated chat of 1,000 turns with no echo
 #: in it: before, 175 (light) and 863 (heavy) false `unchecked` notes in Thai,
 #: 573 and 910 in Lao, 357 and 879 in Khmer, 376 and 882 in Myanmar; after, 0
@@ -833,13 +833,14 @@ def _words_of(text: str) -> List[str]:
         `current_time` became the words `current time`, a file name in a `mv`
         status line matched the call that named it, and the warnings it added
         went past the limit, fewer than half of those read by hand real echoes
-        (tests/test_round15.py keeps both shapes quiet);
+        (tests/test_exit_codes_paths_and_overwrite.py keeps both shapes quiet);
       * one character per word in these scripts: on a long Chinese chat with
         no echo in it, the index holds every character thousands of times, the
         exact pass runs out of RECHECK_WORK and replies come back `unchecked`,
-        exit 1 (tests/test_round15.py, 100 turns).
+        exit 1 (tests/test_exit_codes_paths_and_overwrite.py, 100 turns).
     AgentHallu has no note written in these scripts, so the corpus priced this
-    and did not test it; tests/test_proverka13_echo.py and test_round15.py do.
+    and did not test it; tests/test_model_text_is_never_silent.py and
+    test_exit_codes_paths_and_overwrite.py do.
 
     What it still cannot see, and nothing here reports: a note glued to other
     letters with no mark between them - `已保存` written straight onto it - a

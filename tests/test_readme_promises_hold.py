@@ -1,5 +1,5 @@
-"""proverka13, section 4: what a first-time reader of README.md is told, checked
-against what the code does. Each test fails on 23908ba."""
+"""What a first-time reader of README.md is told, checked against what the code
+does. Each test fails on 23908ba."""
 
 from __future__ import annotations
 

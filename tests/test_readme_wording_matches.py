@@ -1,5 +1,5 @@
-"""proverka20, 2.6 / 2.7: what the README says against what the tool does, and
-numbers the README gives with no command to recompute them. Measured on 64ff136."""
+"""What the README says against what the tool does, and numbers the README gives
+with no command to recompute them. Measured on 64ff136."""
 
 from __future__ import annotations
 
@@ -45,8 +45,7 @@ def _run(argv):
     "behaviour. `--quiet` prints a header line, then one line per noted result, "
     "at most ten and a `+N more` line - README.md, the paragraph on notes above "
     "Known limitations, and `check-trace --help`. The test asks for the old "
-    "sentence word for word and can never pass. Documented, not fixed, by the "
-    "owner's decision of 16 September 2026 after review 20; round 22 marked it"))
+    "sentence word for word and can never pass. Documented, not fixed."))
 def test_quiet_says_the_note_in_one_line_on_stderr_as_the_readme_and_help_say(tmp_path):
     """README ("`--quiet` says it in one line on stderr") and `check-trace --help`
     ("is still one line on stderr") promise one line. With one noted result the
@@ -69,8 +68,7 @@ def test_quiet_says_the_note_in_one_line_on_stderr_as_the_readme_and_help_say(tm
     "characters) are listed, as the test's own note is - README.md, Known "
     "limitations, the item on a note read back inside a store's record "
     "(python bench/store_record_threshold.py). The test asks for the old sentence "
-    "and for no note, and can never pass. Documented, not fixed, by the owner's "
-    "decision of 16 September 2026 after review 20; round 22 marked it"))
+    "and for no note, and can never pass. Documented, not fixed."))
 def test_the_store_record_sentence_holds_for_a_20_word_english_note(tmp_path):
     """README: "On a 20-word English note nothing is said; from about 165
     characters (29 words) the note is listed". The limit is in characters, not
@@ -93,7 +91,8 @@ def test_the_store_record_sentence_holds_for_a_20_word_english_note(tmp_path):
 
 
 def test_the_price_of_the_half_line_names_a_command_that_recomputes_it():
-    """Rule 5: README gives 1,489 posted traces, 130 moved 0 -> 1, and 60 named
+    """A published number comes with a command that recomputes it. README gives
+    1,489 posted traces, 130 moved 0 -> 1, and 60 named
     before, with no command and no address: the traces are this project's own
     benchmark output (bench/work*/posted, .gitignore) and no script in bench/
     counts them. Recounted outside the repo on 64ff136: 1489 files, 130 whose

@@ -1,19 +1,22 @@
-"""Round 17: the edges of the review-16 fixes that the review's tests do not reach.
+"""Loops of claims settle in time proportional to the loop, a group of entries
+from one quote closes on its worst member, and a bench script with nothing to
+count says so.
 
-The review's tests (test_proverka16_findings.py) say the claim walk must not be
-exponential on a clique, an assumption must not hide under "grounded", a Tibetan
-note in quotes must warn, and an empty corpus must not print zeros with exit 0.
-Each of those passes on a fix that is wrong in a way they do not look at:
+test_core_and_coverage_edges.py says the claim walk must not be exponential on a
+clique, an assumption must not hide under "grounded", a Tibetan note in quotes
+must be noted, and an empty corpus must not print zeros with exit 0. Each of those passes on a fix that is wrong in a
+way those tests do not look at:
 
 * settling a loop by sweeping it until nothing changes is not exponential, and
   still costs the square of the loop when the one document sits at the far end;
   recomputing every claim that cites a closed one costs the square on a clique;
 * taking the worst closing member for a wide quote, and the best one for a group
-  of entries from one quote, passes the review's example and leaves the group;
-* (a long Tibetan chat cut at its own syllables came back `unchecked`; that
-  test went with the echo warnings in round 18);
+  of entries from one quote, passes the single-quote example and leaves the
+  group;
 * a folder with trajectories and no label prints a table of 0/0 as well, and
   strict_mode.py divides by zero like echo_coverage.py did.
+
+The last test: a long Tibetan chat with no echo in it is weighed to the end.
 """
 
 from __future__ import annotations
@@ -30,7 +33,7 @@ from tallystick import load_run
 ROOT = Path(__file__).resolve().parents[1]
 
 
-# --- 1.1: settling a loop costs what the loop is, whatever the names ------------
+# --- settling a loop costs what the loop is, whatever the names -----------------
 
 
 def _loop(shape: str, n: int, reverse: bool):
@@ -67,13 +70,13 @@ def _loop(shape: str, n: int, reverse: bool):
 
 
 def test_settling_a_loop_recomputes_only_what_can_improve(monkeypatch):
-    """Calls to `_resolve`, for a loop that closes through one document. This
-    round's code: 2n on both shapes, both name orders. A sweep until nothing
+    """Calls to `_resolve`, for a loop that closes through one document. The
+    code under test: 2n on both shapes, both name orders. A sweep until nothing
     changes: n*n on the ring when the document sits at the far end (62,502 for
     250 claims, 7 s with 2,000-character texts). Recomputing every claim that
     cites a closed one: n*n on the clique (26 s for 80 claims of 2,000
-    characters). The review's clique has no document, so it closes nothing and
-    sees neither."""
+    characters). The clique in test_core_and_coverage_edges.py has no document,
+    so it closes nothing and sees neither."""
     calls = [0]
     real = ledger._resolve
 
@@ -90,15 +93,15 @@ def test_settling_a_loop_recomputes_only_what_can_improve(monkeypatch):
             assert calls[0] <= 3 * n, f"{shape} of {n}, reverse={reverse}: {calls[0]} calls"
 
 
-# --- 1.2: a group from one quote closes on its worst member too ------------------
+# --- a group from one quote closes on its worst member too -----------------------
 
 
 def test_a_group_over_a_grounded_and_an_assumed_sentence_is_assumed():
-    """The review's example with the answer's one quote snapped to the two claim
-    boundaries, as the proposer posts it: two entries in one group. The all-of
-    over a group used to close on the best closing member; the fuzzer of review
-    16 still found 2 renamings in 20,000 that swapped grounded and assumed with
-    only the wide-quote place fixed."""
+    """The single-quote example of test_core_and_coverage_edges.py with the
+    answer's one quote snapped to the two claim boundaries, as the proposer posts
+    it: two entries in one group. The all-of over a group used to close on the
+    best closing member; a fuzzer still found 2 renamings in 20,000 that swapped
+    grounded and assumed with only the wide-quote place fixed."""
     t = {
         "artifacts": [
             {"artifact_id": "doc", "kind": "document", "content": "Revenue rose 14%."},
@@ -126,7 +129,7 @@ def test_a_group_over_a_grounded_and_an_assumed_sentence_is_assumed():
     assert balance.books_balance
 
 
-# --- 4.1, 5.2: nothing found is said, not counted --------------------------------
+# --- nothing found is said, not counted ------------------------------------------
 
 
 def test_auditability_script_on_trajectories_with_no_label_does_not_print_zeros(tmp_path):
@@ -151,9 +154,9 @@ def test_strict_mode_script_without_the_corpus_says_so_instead_of_crashing(tmp_p
     assert "git clone https://github.com/liuxuannan/AgentHallu" in result.stderr
 
 # ---------------------------------------------------------------------------
-# Round 19: the echo detection is back as a note that moves no exit code.
-# Put back from f84f278, where round 18 removed them with the detection.
-# Tests of the confirmation gate stay out; an exit of 1 became 0.
+# The echo detection is a note that moves no exit code. These tests come from
+# f84f278, where the detection was a gate; its tests of the confirmation gate
+# are not here, and where it expected exit 1 they expect 0.
 # ---------------------------------------------------------------------------
 
 import random

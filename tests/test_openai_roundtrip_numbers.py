@@ -135,7 +135,7 @@ def test_docstring_173_fires_are_not_the_whole_reply(rule_calls):
     # the fires where the WHOLE reply was not itself that value - the ones the
     # narrower "the whole reply and nothing else" reading would have left to the
     # warning path. The escaping this file used to check here has its own tests
-    # now, in tests/test_openai_chat_proverka6_findings.py, which need no corpus:
+    # now, in tests/test_openai_chat_call_matching.py, which need no corpus:
     # a corpus test cannot guard a boundary for anyone who clones the repository.
     not_whole = sum(oc._norm(r) not in oc._arg_values(a) for _t, r, a in _fires(rule_calls))
     assert not_whole == 173

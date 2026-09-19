@@ -1,4 +1,4 @@
-"""Round 11: the trace may grow with the square of the turns, but not in silence.
+"""The trace may grow with the square of the turns, but not in silence.
 
 The format keeps `inputs` as an explicit list, and a chat sends its whole
 history every turn, so every step of a converted chat lists every artifact

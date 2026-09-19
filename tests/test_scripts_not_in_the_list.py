@@ -1,5 +1,5 @@
-"""proverka20, 2.4a: a note in a script written without spaces that is not on
-the reader's list (_NO_SPACES) is one whitespace word, so a quote, a label or a
+"""A note in a script written without spaces that is not on the reader's list
+(_NO_SPACES) is one whitespace word, so a quote, a label or a
 bracket glued to it makes it match nothing. The same shape in English, Chinese
 and Thai is noted; here nothing is said. Old: f84f278 behaves the same."""
 import json
@@ -38,8 +38,7 @@ UNLISTED = pytest.mark.xfail(strict=True, reason=(
     "not done: a note in a script written without spaces that is not in the "
     "reader's list, read back inside JSON, `Note: \"...\"` or brackets, gets no "
     "note - README.md, Known limitations, the item on a script written without "
-    "spaces that is not in the reader's list. Documented, not fixed, by the "
-    "owner's decision of 16 September 2026 after review 20; round 22 marked it"))
+    "spaces that is not in the reader's list. Documented, not fixed."))
 
 
 @pytest.mark.parametrize("shape", list(SHAPES))

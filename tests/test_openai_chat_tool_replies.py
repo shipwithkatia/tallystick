@@ -1,22 +1,19 @@
-"""Failing tests for the proverka4 review. The code is not touched.
+"""A tool reply that carries the model's own text must not reach the audit as
+silent evidence - neither demoted nor reported - on ordinary logs.
 
-The review found the model's own text reaching the audit as silent evidence -
-neither demoted nor reported - on ordinary logs, and a confirmation by name
-landing on the wrong tool. Every test in groups N to P fails on the proverka4
-code (48c8b8a) and passes under any fix that closes the hole, however it is
-made. Group K runs the same harness on inputs proverka4 already handles, so a
-red N-T test is known to be red for its finding and not for its scaffolding.
+Every test in groups R and T fails on 48c8b8a and passes under any fix that
+closes the hole, however it is made. Group K runs the same harness on inputs
+48c8b8a already handles, so a red R or T test is known to be red for its case
+and not for its scaffolding.
 
 Groups:
   R  the answering call's own text comes back in a shape the rule misses (6)
   T  reading one wide turn without ids grows with the square of the turn (2)
-  K  controls, passing on proverka4 (3)
+  K  controls, passing on 48c8b8a (3)
 
-Groups N, S, M, F, E, W and P were removed in round 18 with the echo warnings
-they accepted or guarded (a notes store read back in a later turn, a note saved
-and read in one message, results the reader could not match to a call,
-confirmation by name, where a warning points, `audit()` raising). Each of those
-logs is now read without a word, and README says so.
+Below them, the note: a notes store read back in a later turn, a note saved and
+read in one message, results the reader could not match to a call, and where a
+note points in the person's file. Each is listed, and none moves the exit code.
 
 Group R accepts ONLY demotion. The text stands in the answering call's own
 arguments, so the answer can be decided from the call itself.
@@ -86,8 +83,8 @@ def _result(trace, content):
 
 
 def _assert_not_silent(messages, content):
-    """The result is not a root. Only demotion counts: round 18 removed the
-    warnings that groups N, S, M, F, E, W and P used to accept."""
+    """The result is not a root. Only demotion counts here; the note is tested
+    by `_assert_not_silent_or_noted` below."""
     trace = oc.to_trace(messages)
     art = _result(trace, content)
     label = f"tool[{art['artifact_id'][1:]}]"
@@ -159,16 +156,16 @@ def _read_wide_turn(mode):
 
 
 @pytest.mark.parametrize("mode", [
-    # proverka4: about 7.9 s; with ids 0.15 s.
+    # 48c8b8a: about 7.9 s; with ids 0.15 s.
     pytest.param("name", id="T1-results-carry-a-name-but-no-id"),
-    # proverka4: about 15.6 s.
+    # 48c8b8a: about 15.6 s.
     pytest.param("none", id="T2-results-carry-neither"),
 ])
 def test_a_wide_turn_without_ids_reads_in_linear_time(mode):
     _read_wide_turn(mode)
 
 
-# --- K: controls, passing on proverka4 --------------------------------------
+# --- K: controls, passing on 48c8b8a ----------------------------------------
 
 def test_control_the_answering_calls_verbatim_text_is_demoted():
     _assert_not_silent([QUESTION, *_turn("python", {"code": f'print("{ECHO}")'}, "c1", ECHO), ANSWER],
@@ -183,15 +180,15 @@ def test_control_python_audit_passes_a_balanced_trace_without_warnings():
     assert audit(str(ROOT / "examples" / "balanced_run.json")).books_balance
 
 # ---------------------------------------------------------------------------
-# Round 19: the echo detection is back as a note that moves no exit code.
-# Put back from f84f278, where round 18 removed them with the detection.
-# Tests of the confirmation gate stay out; an exit of 1 became 0.
+# The echo detection is a note that moves no exit code. These tests come from
+# f84f278, where the detection was a gate; its tests of the confirmation gate
+# are not here, and where it expected exit 1 they expect 0.
 # ---------------------------------------------------------------------------
 
 def _assert_not_silent_or_noted(messages, content):
     """The result is not a root, or it has its own record in echo_warning_details
     (f84f278's `_assert_not_silent` with a_warning_counts=True). `_assert_not_silent`
-    above stays demotion only, as round 18 made it."""
+    above stays demotion only."""
     trace = oc.to_trace(messages)
     art = _result(trace, content)
     label = f"tool[{art['artifact_id'][1:]}]"
@@ -297,7 +294,7 @@ def _warning_lines(tmp_path, messages):
             main(["check-trace", str(log), *flags])
         runs[mode] = (out.getvalue(), err.getvalue())
     quiet = [ln for ln in runs["quiet"][1].splitlines() if ECHO in ln]
-    block = runs["terminal"][0].split("NOTE - ", 1)       # round 19: the note
+    block = runs["terminal"][0].split("NOTE - ", 1)       # the note block
     terminal = [ln for ln in block[1].splitlines() if ECHO in ln] if len(block) == 2 else []
     return {"--quiet stderr": quiet, "terminal": terminal}
 
@@ -308,7 +305,7 @@ def _names_position(line, k):
 
 
 def test_a_warning_names_the_message_in_the_file_and_the_call_id(tmp_path):
-    # DECIDED (2026-09-14): a warning's number is there so a person can find the
+    # A warning's number is there so a person can find the
     # place in THEIR file, so it addresses the file - counted from 0, like the
     # existing tool[k] labels and a JSON array - not the list after parsing.
     # And it gives the call id when the log has one: an id can be searched for
@@ -348,7 +345,7 @@ def test_control_a_plain_note_read_back_is_warned():
 
 def test_control_the_cli_audit_notes_the_posted_notes_trace_and_keeps_its_exit(tmp_path):
     posted, _data = _posted_notes_trace(tmp_path)
-    # Round 19: this exited 1 while the warning was a gate. The books balance
+    # This exited 1 while the warning was a gate. The books balance
     # on the note, so the exit is 0 - and the note says so under the report.
     out = io.StringIO()
     with redirect_stdout(out), redirect_stderr(io.StringIO()):
@@ -358,7 +355,7 @@ def test_control_the_cli_audit_notes_the_posted_notes_trace_and_keeps_its_exit(t
 
 def test_control_an_openai_warning_names_its_file_message(tmp_path):
     # With one tool message per result, the reader's index and the file's agree:
-    # the same position check passes on proverka4.
+    # the same position check passes on 48c8b8a.
     lines = _warning_lines(tmp_path, _notes(ECHO))
     assert all(lines.values())
     assert all(_names_position(ln, 4) for found in lines.values() for ln in found)

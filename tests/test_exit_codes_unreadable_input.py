@@ -1,6 +1,9 @@
-"""proverka13, section 2: exit codes.
+"""Input the reader cannot read is exit 2, never the exit 1 of a verdict.
 
-0 - balances, 1 - verdict against, 2 - could not check. Each test fails on
+0 - balances, 1 - verdict against, 2 - could not check. The cases: two final
+answers of which one has no claims, JSON nested too deep for the parser, a lone
+surrogate in a tool result or in the answer, and a `_meta` field of the wrong
+type. Each test fails on
 23908ba. An uncaught exception leaves the interpreter with exit 1, which is the
 "verdict against" code; in-process, the same defect shows as `main` raising.
 """

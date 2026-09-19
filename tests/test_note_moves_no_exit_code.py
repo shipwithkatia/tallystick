@@ -1,10 +1,12 @@
-"""Round 18: the owner's three decisions and the Thai finding.
+"""A note about an echo moves no exit code, two known holes stay pinned open,
+coverage is taken over the whole answer, and a long Thai chat is weighed to the
+end.
 
-1. Echo warnings are gone; the demotion stays. Nothing about an echo waits for
-   a confirmation, `--accept-echo-warning` no longer exists, and a trace an
+1. No echo warnings; the demotion stays. Nothing about an echo waits for a
+   confirmation, `--accept-echo-warning` no longer exists, and a trace an
    earlier reader wrote warnings into says so in a note without moving the exit.
-2. Not shipped: both rules built to close the two silent holes were stopped at
-   the hand-read sample (see tallystick/adapters/openai_chat.py). The tests
+2. Two silent holes are not closed: both rules built to close them were stopped
+   at the hand-read sample (see tallystick/adapters/openai_chat.py). The tests
    here pin that both holes are still open, so nobody reads them as closed.
 3. `coverage` is the share of the WHOLE answer under claims that close, the
    share under no claim is printed without a flag, and more than half of the
@@ -50,10 +52,10 @@ def _kinds(trace):
     return {a["artifact_id"]: a["kind"] for a in trace["artifacts"]}
 
 
-# --- decision 2: not shipped, and pinned so it cannot change unseen ------------
+# --- 2: the holes are open, and pinned so that cannot change unseen ------------
 
 def test_a_draft_pasted_back_as_a_user_message_is_still_a_root():
-    # Both rules built for decision 2 were stopped at the hand-read sample
+    # Both rules built to close this hole were stopped at the hand-read sample
     # (tallystick/adapters/openai_chat.py). The hole stays open; README says so.
     log = [{"role": "user", "content": "What is the capital of Australia?"},
            {"role": "assistant", "content": "Draft: " + ANSWER},
@@ -64,7 +66,7 @@ def test_a_draft_pasted_back_as_a_user_message_is_still_a_root():
     assert "root_messages_repeating_the_model" not in trace["_meta"]
 
 
-# --- decision 1: no warnings, no confirmation -------------------------------
+# --- 1: no warnings, no confirmation --------------------------------------
 
 def test_the_confirmation_flag_is_gone(tmp_path):
     log = _write(tmp_path, "log.json", [{"role": "user", "content": "hi"},
@@ -75,9 +77,10 @@ def test_the_confirmation_flag_is_gone(tmp_path):
 
 
 def test_a_note_read_back_in_a_later_turn_exits_0_and_is_evidence(tmp_path):
-    # The price of decision 1, pinned so it cannot change unseen: this used to
-    # exit 1 with unreviewed_echo_warnings. README states that it passes. Round
-    # 19 lists it again as a note (tests/test_round19.py); the exit stays 0.
+    # The price of having no warnings, pinned so it cannot change unseen: this
+    # used to exit 1 with unreviewed_echo_warnings. README states that it passes.
+    # It is listed as a note (tests/test_note_detection_and_scripts.py); the exit
+    # stays 0.
     log = [{"role": "user", "content": "What is the capital of Australia?"},
            {"role": "assistant", "content": None, "tool_calls": [
                {"id": "c1", "type": "function", "function": {
@@ -110,7 +113,7 @@ def test_a_trace_with_old_warnings_says_so_and_keeps_its_exit(tmp_path):
     assert (code, out) == (0, "") and "1 tool result(s) may be the model's own text" in err
 
 
-# --- decision 3: coverage of the whole answer --------------------------------
+# --- 3: coverage of the whole answer ---------------------------------------
 
 def _posted(answer, spans, *, fund=True):
     """One document holding the whole answer; a claim per span, each credited

@@ -1,11 +1,12 @@
-"""Round 10: nothing the reading caught may leave as a silent "it balances".
+"""Nothing the reading caught may leave as a silent "it balances".
 
-The ninth review found four ways a result the reader had already caught - or
-could not finish weighing - went out with exit 0. Three of them were about the
-echo warnings (MAX_STARTS, the threshold-free cross-turn value, what an
-external declaration cleared), and their tests were removed with the warnings
-in round 18. What stays: the demotion keeps case, a non-breaking space does not
-stop it, the timing bench clears every cache, and the trace-growth xfail.
+A result the reader has already caught - or could not finish weighing - must
+not go out with exit 0 without a word. Here: the demotion keeps case, a
+non-breaking space does not stop it, the timing bench clears every cache the
+reader has, the trace grows with the square of the turns (a strict xfail), and
+the note on a reply that may be the model's own text is listed - including
+where the reader ran out of work (MAX_STARTS), a value carried across turns,
+and what an external declaration cleared - and moves no exit code.
 """
 
 from __future__ import annotations
@@ -35,7 +36,7 @@ def _meta(messages, **kw):
     return oc.to_trace(messages, **kw)["_meta"]
 
 
-# --- point 4.2: case and invisible characters, on the demotion ---------------
+# --- case and invisible characters, on the demotion ------------------------
 
 def test_the_demotion_keeps_case():
     # Folding case in the demotion demoted 61 more results on AgentHallu, and
@@ -67,7 +68,7 @@ def test_a_non_breaking_space_does_not_stop_the_demotion(reply):
     assert meta["echoed_back_tool_results"], "the reply IS the value it was given"
 
 
-# --- point 6: the timing bench clears every cache the reader has -------------
+# --- the timing bench clears every cache the reader has ---------------------
 
 def _cached_functions():
     """Every function in the package decorated with a functools cache, found
@@ -99,7 +100,7 @@ def test_the_timing_bench_clears_every_cache():
         f"clear it: every time it prints is then a warm-cache time")
 
 
-# --- point 1: the trace grows with the square of the turns -------------------
+# --- the trace grows with the square of the turns ---------------------------
 
 def _long(turns):
     messages = [QUESTION]
@@ -113,7 +114,7 @@ def _long(turns):
 
 
 @pytest.mark.xfail(strict=True, reason=(
-    "not fixed in round 10: every step lists every artifact before it, because "
+    "not fixed: every step lists every artifact before it, because "
     "the format's `inputs` is an explicit list and the verifier checks a citation "
     "against it. Linear output needs a format change; see docs/auditable-traces.md"))
 def test_the_trace_grows_linearly_with_the_number_of_turns():
@@ -124,9 +125,9 @@ def test_the_trace_grows_linearly_with_the_number_of_turns():
     assert large < 2.3 * small, f"200 turns: {small} B, 400 turns: {large} B"
 
 # ---------------------------------------------------------------------------
-# Round 19: the echo detection is back as a note that moves no exit code.
-# Put back from f84f278, where round 18 removed them with the detection.
-# Tests of the confirmation gate stay out; an exit of 1 became 0.
+# The echo detection is a note that moves no exit code. These tests come from
+# f84f278, where the detection was a gate; its tests of the confirmation gate
+# are not here, and where it expected exit 1 they expect 0.
 # ---------------------------------------------------------------------------
 
 from tallystick.cli import main  # noqa: E402
@@ -135,7 +136,7 @@ from tallystick.cli import main  # noqa: E402
 HALF = len(PAYLOAD) // 2
 
 
-#: The sixth review's shape: only coverage can see it, no line is the value.
+#: A shape only coverage can see: no line of the reply is the value.
 BROKEN = PAYLOAD[:HALF] + "\n" + PAYLOAD[HALF:] + "\n0"
 
 
@@ -165,7 +166,7 @@ def test_a_repeated_word_limit_never_passes_an_echo_in_silence(tmp_path, reps):
     assert _noticed(_meta(messages)), (
         f"each word of the echo repeated {reps}x in the arguments: the reply is "
         f"90% the model's sentence and the reading said nothing")
-    assert _exit_code(tmp_path, messages) == 0   # round 19: a note, not a gate
+    assert _exit_code(tmp_path, messages) == 0   # a note, not a gate
 
 
 def test_a_reply_it_could_not_finish_weighing_says_so():
@@ -212,7 +213,7 @@ def test_working_with_its_own_note_does_not_blind_the_cross_path(tmp_path, times
     meta = _meta(messages)
     read = [w for w in meta["echo_warning_details"] if w["tool"] == "read_note"]
     assert read, f"the note re-fed {times} times came back and nothing was said"
-    assert _exit_code(tmp_path, messages) == 0   # round 19: a note, not a gate
+    assert _exit_code(tmp_path, messages) == 0   # a note, not a gate
 
 
 def _kept_in_code(code, reply):
@@ -306,7 +307,7 @@ def test_a_note_saved_and_read_back_in_one_turn_is_warned(tmp_path):
     messages = _one_turn(BROKEN)
     kinds = [w["kind"] for w in _meta(messages)["echo_warning_details"]]
     assert kinds == ["same_turn"], kinds
-    assert _exit_code(tmp_path, messages) == 0   # round 19: a note, not a gate
+    assert _exit_code(tmp_path, messages) == 0   # a note, not a gate
 
 
 def test_a_short_value_saved_and_read_back_in_one_turn_is_warned():
@@ -335,7 +336,7 @@ def test_cleared_warnings_reach_the_json_a_ci_job_keeps(tmp_path):
                  "--tool-returns-external", "read_note", "--json", str(out)])
     assert code == 0
     payload = json.loads(out.read_text(encoding="utf-8"))
-    assert "echo_warnings" not in payload["gate"]      # round 19: beside the gate
+    assert "echo_warnings" not in payload["gate"]      # beside the gate, not in it
     cleared = payload["may_be_model_text"]["cleared_by_declaration"]
     assert [w["tool"] for w in cleared] == ["read_note"]
 

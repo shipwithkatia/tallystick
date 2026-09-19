@@ -1,9 +1,10 @@
-"""Round 15: exit codes for unreadable paths, and convert in place.
+"""Exit codes for unreadable paths, `convert` to another path, and the edges of
+the echo note.
 
-The rest of this file guarded the edges of the round-15 echo warning fix -
-scripts without spaces, what the word cut must not reach, a long Chinese chat,
-the decoding limit, the share of two spellings - and was removed with the
-warnings in round 18.
+A path that cannot be read is exit 2 from the command and TraceError from the
+function alike. `convert` names the log's size as it lies on disk wherever it
+writes. The echo note: scripts written without spaces, what the word cut must
+not reach, a long Chinese chat, the decoding limit, the share of two spellings.
 """
 
 from __future__ import annotations
@@ -55,9 +56,9 @@ def test_convert_to_another_path_still_names_the_logs_size(tmp_path, capsys):
     assert f"from a log of {size / 1024:,.0f} KB on disk" in out, out
 
 # ---------------------------------------------------------------------------
-# Round 19: the echo detection is back as a note that moves no exit code.
-# Put back from f84f278, where round 18 removed them with the detection.
-# Tests of the confirmation gate stay out; an exit of 1 became 0.
+# The echo detection is a note that moves no exit code. These tests come from
+# f84f278, where the detection was a gate; its tests of the confirmation gate
+# are not here, and where it expected exit 1 they expect 0.
 # ---------------------------------------------------------------------------
 
 import random
@@ -103,7 +104,8 @@ def test_a_json_key_spelling_the_models_words_is_not_an_echo():
 
 def test_a_status_line_naming_the_file_it_moved_is_not_an_echo():
     """`mv` answering `'final_report.pdf' moved to 'temp/final_report.pdf'` -
-    a tool doing its job, read by hand among the warnings that version added."""
+    a tool doing its job, found by hand among the warnings an earlier cut of
+    marks raised."""
     chat = [
         {"role": "user", "content": "Move the report."},
         {"role": "assistant", "content": None, "tool_calls": [

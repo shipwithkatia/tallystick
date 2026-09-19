@@ -1,6 +1,6 @@
-"""Round 12: every size the trace-size line prints is one the reader can check.
+"""Every size the trace-size line prints is one the reader can check.
 
-Round 11 measured both sides the same way - as the JSON `convert` writes - so
+The ratio is measured on both sides the same way - as the JSON `convert` writes - so
 that the ratio says what the READING added and does not move when someone
 pretty-prints their log. That quantity stays. What was wrong is what the line
 said about it: for a 67 KB log on disk it printed "109 KB", the size after
@@ -38,8 +38,8 @@ def _call(cid: int):
 
 
 def _chat(turns: int, *, thoughts: bool):
-    """`thoughts=False` is the shape of the log the twelfth round was reported
-    on: assistant turns that carry only a tool call, and short replies."""
+    """`thoughts=False` is the shape of the log this line was first reported
+    wrong on: assistant turns that carry only a tool call, and short replies."""
     messages = [{"role": "user", "content": "start"}]
     for k in range(turns):
         turn = {"role": "assistant", "tool_calls": [_call(k)]}
@@ -171,7 +171,7 @@ def test_the_log_on_disk_never_moves_the_trigger(tmp_path):
 
 
 def test_a_compact_log_below_the_ratio_still_says_nothing(tmp_path, capsys):
-    # The price of keeping the trigger as it is, named in round 12 before it was
+    # The price of keeping the trigger as it is, named before it was
     # measured: this log grows more than tenfold on disk and gets no word,
     # because the reading itself added less than tenfold.
     log = _log(tmp_path, QUIET_SHAPE, thoughts=False)

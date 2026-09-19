@@ -1,7 +1,13 @@
-"""proverka16: one failing test per finding on 3aa58a8.
+"""Edges of the verdict core, the exit codes, the echo rule and the coverage
+figure: each test failed on 3aa58a8.
 
-Numbers in the docstrings were measured on 3aa58a8; the external review
-that found them gave the command for each.
+The claim walk must not be exponential on a cycle of claims, an assumption must
+not hide under "grounded", and the answer's status must not depend on claim
+names. Half an emoji must not turn into exit 1, and an integer too long to read
+must raise TraceError. The model's text must not pass unnoted, and a declared
+name must not be dropped in silence. An answer checked on one letter must not
+report full coverage, and what README and the bench scripts tell a stranger
+must hold. Numbers in the docstrings were measured on 3aa58a8.
 """
 
 from __future__ import annotations
@@ -44,7 +50,7 @@ def _cli(argv, tmp_path):
 
 
 # --------------------------------------------------------------------------- #
-# 1. The verdict core
+# The verdict core
 # --------------------------------------------------------------------------- #
 
 
@@ -172,7 +178,7 @@ def test_the_answers_status_does_not_depend_on_claim_names():
 
 
 # --------------------------------------------------------------------------- #
-# 3. Exit codes
+# Exit codes
 # --------------------------------------------------------------------------- #
 
 _SURROGATE_TEXT = "Canberra \ud83d is the capital."
@@ -195,7 +201,7 @@ def test_chain_view_of_a_balancing_trace_with_half_an_emoji_does_not_exit_1(tmp_
     """A lone surrogate (\\ud83d, half of an emoji cut in a UTF-16 log) is valid
     JSON. `audit` on this trace exits 0; `audit --chain c1` prints the claim text,
     print() raises UnicodeEncodeError, and the interpreter exits 1 - "the books
-    do not balance" - on books that balance. Round 14 (2.3) handled the same
+    do not balance" - on books that balance. An earlier fix handled the same
     character on the way into a file, not on the way to the terminal."""
     path = tmp_path / "t.json"
     path.write_text(json.dumps(_balanced_with_surrogate()), encoding="utf-8")
@@ -229,7 +235,7 @@ def test_audit_function_raises_trace_error_on_an_integer_too_long_to_read(tmp_pa
 
 
 # --------------------------------------------------------------------------- #
-# 2. The echo rule
+# The echo rule
 # --------------------------------------------------------------------------- #
 
 
@@ -256,8 +262,7 @@ NOTE_20_WORDS = ("Sydney is the capital of Australia and it was chosen in 1901 b
     "store's record (mem0, LangGraph Store) passes with no demotion and no note - "
     "the record's fields are more than half of the reply. Described in README.md, "
     "Known limitations, first item (python bench/store_record_threshold.py). Kept "
-    "red on purpose by the owner's decision of 16 September 2026, after "
-    "review 20; round 21 marked it"))
+    "red on purpose: documented, not fixed."))
 def test_a_note_read_back_from_a_memory_store_record_is_reported():
     """A memory store answers with the note inside its record - an id, a hash, a
     score, timestamps - the shape of a mem0 search result. Nobody is evading
@@ -279,8 +284,7 @@ def test_a_note_read_back_from_a_memory_store_record_is_reported():
     "known hole, right in substance: the model's draft pasted back as a `user` "
     "message is a root and nothing compares it with the model's text. Described in "
     "README.md, Known limitations, the item on a draft pasted back as a `user` "
-    "message. Kept red on purpose by the owner's decision of 16 September 2026 "
-    "after review 20; round 21 marked it"))
+    "message. Kept red on purpose: documented, not fixed."))
 def test_the_models_draft_pasted_back_as_a_user_message_is_not_silent_evidence(tmp_path):
     """A self-refine loop: the model writes a draft, the harness pastes it back
     in a `user` message ("here is your previous draft"), the model answers with
@@ -306,8 +310,8 @@ def test_the_models_draft_pasted_back_as_a_user_message_is_not_silent_evidence(t
 
 
 def test_a_tibetan_note_in_quotes_is_reported_like_a_chinese_one():
-    """Round 15 cuts words at marks in scripts written without spaces, but the
-    list (_NO_SPACES) has no Tibetan (U+0F00-U+0FFF), which is written without
+    """The reader cuts words at marks in scripts written without spaces, but on
+    3aa58a8 the list (_NO_SPACES) has no Tibetan (U+0F00-U+0FFF), which is written without
     spaces between words. `Note: "<note>"` warns for the English and the Chinese
     note and not for the Tibetan one; a bare read-back warns for all three."""
     zh = "悉尼是澳大利亚的首都。"
@@ -340,7 +344,7 @@ def test_declaring_a_tool_named_tool_is_not_dropped_in_silence(tmp_path):
 
 
 # --------------------------------------------------------------------------- #
-# 3b. Exit 0 where little was checked
+# Exit 0 where little was checked
 # --------------------------------------------------------------------------- #
 
 
@@ -367,7 +371,7 @@ def test_an_answer_checked_by_one_letter_is_not_reported_as_full_coverage(tmp_pa
 
 
 # --------------------------------------------------------------------------- #
-# 4-5. What a stranger is told
+# What a stranger is told
 # --------------------------------------------------------------------------- #
 
 

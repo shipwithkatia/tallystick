@@ -500,7 +500,7 @@ stricter than it needs to be in places.
   Balinese, Sundanese, Buginese, New Tai Lue, Tai Le, Tai Tham, Tai Viet, Cham,
   Yi, Phags-pa, Han outside the basic blocks (extension B and later), Hangul
   written without spaces, Ethiopic with its word mark `፡`. A reply that is the
-  bare note is still found. `tests/test_proverka20_unlisted_scripts.py` shows
+  bare note is still found. `tests/test_scripts_not_in_the_list.py` shows
   the missed shapes (marked as expected failures). No noise was found in their honest
   chats, but nothing was measured on real logs in these scripts.
 - **The model's draft pasted back as a `user` message** ("here is your previous
@@ -529,7 +529,7 @@ stricter than it needs to be in places.
   `_meta.echo_warning_details` or run `check-trace`.
 - A tool call's arguments nested more than 256 levels deep
   (`MAX_ARGUMENT_NESTING` in `tallystick/adapters/openai_chat.py`) are refused
-  with exit 2, not read - the same on every Python (`tests/test_round22.py`).
+  with exit 2, not read - the same on every Python (`tests/test_nesting_limit_is_ours.py`).
   The log file itself is held to no limit of ours, and what a file nested past
   what Python recurses gets depends on the Python: exit 2 on 3.10, a traceback
   and exit 1 on 3.12, read on 3.14. Measured by hand in round 22; no test

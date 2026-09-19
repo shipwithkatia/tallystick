@@ -1,6 +1,12 @@
-"""proverka20: one failing test per finding on 64ff136 - the note, the reader,
-the exit codes and the coverage line. The external review that found them gave
-the command and the numbers for each."""
+"""Edges of the note, the reader, the exit codes and the coverage line: each
+test failed on 64ff136.
+
+The note must reach every command that reads the log and must not move the exit
+code; a result the model's own call handed back must be demoted however the
+call ids are numbered; a tool handing back the model's earlier message must not
+be silent evidence; exit 2 must not hide a verdict found beside it; arguments
+nested deeper than Python recurses must be exit 2, not a traceback; the verdict
+line must not round a failing share to half and half."""
 
 from __future__ import annotations
 
@@ -59,22 +65,21 @@ def _cross_turn(note, reply):
 
 
 # --------------------------------------------------------------------------- #
-# 2.2 The note
+# The note
 # --------------------------------------------------------------------------- #
 
 
 @pytest.mark.xfail(strict=True, reason=(
     "not done: `convert` does not list notes. The trace it writes keeps them in "
     "`_meta`, and `check-trace` on that trace prints them - README.md, Known "
-    "limitations, What the commands say, and where. Documented, not fixed, by the "
-    "owner's decision of 16 September 2026 after review 20; round 22 marked it"))
+    "limitations, What the commands say, and where. Documented, not fixed."))
 def test_convert_still_says_a_result_may_be_the_models_own_text(tmp_path):
-    """Round 17 (f84f278) `convert` listed such a result under the reading:
+    """At f84f278 `convert` listed such a result under the reading:
     "left out - result(s) kept as evidence that may hand back the model's own
-    text: tool[4] (read_note) call c2, ...". Round 18 took that line out of
-    `_reading_notes` with the warnings, and round 19 brought the note back to
+    text: tool[4] (read_note) call c2, ...". 0fa3383 took that line out of
+    `_reading_notes` with the warnings, and the note came back later to
     `check-trace` and `audit` only. `convert` - the README's "keep the reading"
-    command - now says nothing about it, on the same log where round 17 did.
+    command - now says nothing about it, on the same log where f84f278 did.
     The detection is the same; the command that writes the trace went quiet."""
     log = tmp_path / "log.json"
     log.write_text(json.dumps(_cross_turn(RU, RU), ensure_ascii=False), encoding="utf-8")
@@ -91,8 +96,8 @@ def test_a_note_holding_half_an_emoji_does_not_move_the_exit_code_under_json(tmp
     `may_be_model_text` - and into `reading` - so `--json` cannot be written:
     exit 2. The README's CI line is exactly `check-trace ... --json report.json
     --quiet`. The same log with the half-emoji in a result that is not noted
-    exits 0 with `--json`; round 18 (0fa3383), which had no note, exits 0 on
-    this one too. The terminal path was fixed in round 19; the file path was not."""
+    exits 0 with `--json`; 0fa3383, which had no note, exits 0 on this one too.
+    The terminal path was fixed; the file path was not."""
     note = "Sydney is the capital of Australia \ud83d and it was chosen in 1901 as a compromise."
     log = [{"role": "user", "content": "What is the capital of Australia?"},
            {"role": "assistant", "content": None, "tool_calls": [{"id": "c1", "type": "function",
@@ -121,7 +126,7 @@ def test_a_note_holding_half_an_emoji_does_not_move_the_exit_code_under_json(tmp
 
 
 # --------------------------------------------------------------------------- #
-# 2.1 The model's own text as a root, through the reader
+# The model's own text as a root, through the reader
 # --------------------------------------------------------------------------- #
 
 
@@ -154,8 +159,8 @@ def test_a_value_handed_back_by_its_own_call_is_demoted_when_ids_repeat_across_t
     call id in both turns - declared once per turn, open and unambiguous in its
     own turn - the reader marks the id "reused", files the result as "matched
     nothing open", keeps it a `tool_result` root, and lists only an `unmatched`
-    note. Posted on it, `audit` prints BOOKS BALANCE and exits 0. Round 17
-    exited 1 on the same trace (the warning gate); rounds 18 and 19 exit 0."""
+    note. Posted on it, `audit` prints BOOKS BALANCE and exits 0. f84f278
+    exited 1 on the same trace (the warning gate); 0fa3383 and 64ff136 exit 0."""
     unique = to_trace(_reused_id_log("call_a", "call_b"))
     assert next(a["kind"] for a in unique["artifacts"] if a["artifact_id"] == "t4") == "intermediate"
     raw = to_trace(_reused_id_log("call_0", "call_0"))
@@ -213,7 +218,7 @@ def test_a_tool_handing_back_the_models_earlier_message_is_not_silent_evidence(t
 
 
 # --------------------------------------------------------------------------- #
-# 2.3 / 2.5 Exit codes
+# Exit codes
 # --------------------------------------------------------------------------- #
 
 

@@ -1,6 +1,7 @@
-"""proverka13, section 5: numbers in README and docs, recounted.
+"""README opens with one "In short" paragraph, not two that repeat each other.
 
-Both tests fail on 23908ba.
+The test fails on 23908ba. The growth numbers README and docs publish are
+recomputed in test_docs_growth_numbers.py.
 """
 
 from __future__ import annotations

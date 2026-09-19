@@ -1,5 +1,5 @@
-"""proverka20, 2.4b: the reader compares text without Unicode normalisation,
-while the verifier (normalize.py) compares in NFC. A Vietnamese or Korean note
+"""The reader compares text without Unicode normalisation, while the verifier
+(normalize.py) compares in NFC. A Vietnamese or Korean note
 read back decomposed (NFD - how macOS file names and some stores keep text)
 shares no word with the call that wrote it: not demoted on the answering call,
 not noted on a later one, and a claim quoting it balances. Letter for letter it

@@ -1,18 +1,18 @@
-"""proverka20, task 1: replacements for thirteen red reviewer tests that guard the
-FORM (exit 1), not the substance (the case is not silent).
+"""A note about a reply that may be the model's own text is never silent: it
+appears in the report, on stderr under --quiet, and in --json, and it never
+moves the exit code.
 
-The originals stay untouched and red, by the owner's decision of 16 September
-2026 (round 18/19): a note never moves an exit code. Each test here takes the
-same input as the original and asserts what the original was written for -
-the model's own note does not pass without a word - in every place a person
-or a CI job reads: the report, stderr under --quiet, and --json. Each also
-asserts the exit code is unchanged, so a return of the gate is caught too.
+Each test takes the input of an older test that asked for exit 1 and asserts
+what that test was written for - the model's own note does not pass without a
+word - in every place a person or a CI job reads. Each also asserts the exit
+code is unchanged, so a return of the gate is caught too. The older tests were
+deleted in 3d8df63:
 
-    test_proverka13_echo.py (12)                 -> the first four tests below
-    test_proverka13_mutation_gaps.py::test_a_structured_echo_record_without_its_text_still_blocks
-                                                 -> test_a_structured_record_alone_is_noted_everywhere
+    a file of 12 echo tests, deleted whole       -> the first four tests below
+    test_a_structured_echo_record_without_its_text_still_blocks,
+    then in test_mutation_coverage.py            -> test_a_structured_record_alone_is_noted_everywhere
 
-Measured: all pass on 64ff136 and fail on 0fa3383 (round 18, no note)."""
+Measured: all pass on 64ff136 and fail on 0fa3383 (a version with no note)."""
 
 from __future__ import annotations
 
@@ -28,7 +28,7 @@ from tallystick.cli import main
 
 ROOT = Path(__file__).resolve().parents[1]
 
-# The inputs of tests/test_proverka13_echo.py, verbatim.
+# The inputs of the 12 echo tests deleted in 3d8df63, verbatim.
 RU = ("Население Канберры в 2021 году составляло 431 тысячу человек, а город "
       "основан в 1913 году как компромисс между Сиднеем и Мельбурном.")
 PL = ("Ludność Canberry w 2021 roku wynosiła 431 tysięcy, a miasto założono w "
@@ -130,8 +130,9 @@ def test_a_cjk_note_read_back_is_noted(chat, result, tmp_path):
 
 # replaces test_the_laundered_chinese_note_audits_clean_end_to_end
 def test_the_laundered_chinese_note_is_noted_by_audit_end_to_end(tmp_path):
-    """The posted trace balances on the note (exit 0, the owner's decision), and
-    `audit` says, in all three places, that its root may be the model's text."""
+    """The posted trace balances on the note (exit 0: a note moves no exit
+    code), and `audit` says, in all three places, that its root may be the
+    model's text."""
     chat = _cross_turn(ZH, json.dumps({"id": 1, "text": ZH}, ensure_ascii=False, indent=2))
     trace = to_trace(chat)
     arts = {a["artifact_id"]: a for a in trace["artifacts"]}
@@ -146,7 +147,7 @@ def test_the_laundered_chinese_note_is_noted_by_audit_end_to_end(tmp_path):
     assert _assert_noted_everywhere("audit", path, "tool[4]", tmp_path) == 0
 
 
-# replaces test_proverka13_mutation_gaps.py::test_a_structured_echo_record_without_its_text_still_blocks
+# replaces test_mutation_coverage.py::test_a_structured_echo_record_without_its_text_still_blocks
 def test_a_structured_record_alone_is_noted_everywhere(tmp_path):
     """G03: a trace carrying only `echo_warning_details`, without the text list
     the reader writes beside it, must not lose the record."""

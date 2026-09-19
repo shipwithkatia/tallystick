@@ -1,6 +1,7 @@
-"""The sixth review's findings, each with a test that fails without its fix.
+"""Which reply counts as the answering call's own value, and which does not.
 
-The headline one: the answering-call echo rule was defeated by three
+Each test fails without the fix it guards. The main case: the answering-call
+echo rule was defeated by three
 characters - a newline in the middle of the echo and a one-character line after
 it. The newline broke the "more than half" threshold, because each half is then
 at most half; the one-character last line emptied the last-line test. On the
@@ -12,14 +13,13 @@ The scheme this file pins:
     its trailing punctuation trimmed one mark at a time, IS a value the
     answering call carried. No threshold, no last line, no requirement that a
     match hold a space - nothing to shift;
-  * any other match with the answering call was a WARNING until round 18,
-    which removed the warnings. The three-character trick (P1-P3) and the
-    tests that pinned warnings went with them: that trick is now a silent pass,
-    and README says so.
+  * any other match with the answering call is not a demotion. The
+    three-character trick (P1-P3) is not demoted either; it is listed as a note
+    that moves no exit code (the tests at the end of this file).
 
 Everything here is built in the file. Nothing needs the AgentHallu corpus.
-That is the point of it: in the sixth review eight mutations of the echo path
-went unnoticed by all 477 tests, and three more were caught only by tests that
+That is the point of it: when the suite had 477 tests, eight mutations of the
+echo path went unnoticed by all of them, and three more were caught only by tests that
 skip for anyone who clones this repository. Every mutation in
 bench/mutations/mutate.py is now noticed with the corpus absent - checked by
 running the suite with TALLYSTICK_AGENTHALLU pointed at an empty directory.
@@ -71,8 +71,8 @@ def _read(args, result, **kw):
 
 
 def _noticed(read) -> bool:
-    """Did the reading refuse to pass this result off as evidence? Since round 18
-    only a demotion does: the warnings this used to accept are gone."""
+    """Did the reading refuse to pass this result off as evidence? Only a
+    demotion does; the note is tested by `_noticed_or_noted` below."""
     return read["demoted"]
 
 
@@ -328,7 +328,7 @@ def test_a_reply_broken_across_lines_is_found_by_the_whole_reply_alone():
                  "Canberra has been the capital since 1913.", id="a-period-added"),
 ])
 def test_trailing_punctuation_is_trimmed_on_both_sides(sent, back):
-    # What fixes the sixth review's second hole is that the SAME trimming runs
+    # What fixes the second hole is that the SAME trimming runs
     # over the arguments and over the reply. The old code trimmed only the
     # reply, so the form the arguments carried - with exactly one mark - was in
     # neither set.
@@ -350,9 +350,9 @@ def test_a_reply_stored_escaped_is_decoded_before_its_lines_are_read():
         f"(kind={read['kind']})")
 
 # ---------------------------------------------------------------------------
-# Round 19: the echo detection is back as a note that moves no exit code.
-# Put back from f84f278, where round 18 removed them with the detection.
-# Tests of the confirmation gate stay out; an exit of 1 became 0.
+# The echo detection is a note that moves no exit code. These tests come from
+# f84f278, where the detection was a gate; its tests of the confirmation gate
+# are not here, and where it expected exit 1 they expect 0.
 # ---------------------------------------------------------------------------
 
 
@@ -387,8 +387,8 @@ def test_the_bypass_is_noted_end_to_end_and_moves_no_exit_code(tmp_path, capsys)
     path = tmp_path / "log.json"
     path.write_text(json.dumps({"messages": _log({"query": CLAIM}, result, name="stats_api")}),
                     encoding="utf-8")
-    # Round 19: this held exit 1 until the tool was confirmed by name. It is
-    # a note now: said on stderr, exit 0, and no flag to pass.
+    # This held exit 1 while a tool had to be confirmed by name. It is a note:
+    # said on stderr, exit 0, and no flag to pass.
     assert main(["check-trace", "--from", "openai", str(path), "--quiet"]) == 0
     err = capsys.readouterr().err
     assert "1 tool result(s) may be the model's own text" in err and "stats_api" in err, err
@@ -423,7 +423,7 @@ def test_an_external_declaration_does_not_vouch_where_the_placement_is_a_guess()
 
 def _noticed_or_noted(read) -> bool:
     """Demoted, or listed as a note (f84f278's `_noticed`). `_noticed` above stays
-    demotion only, as round 18 made it."""
+    demotion only."""
     return read["demoted"] or bool(read["warnings"])
 
 
@@ -439,7 +439,7 @@ def _noticed_or_noted(read) -> bool:
 ])
 def test_an_echo_broken_up_is_not_silent(result, why):
     # f84f278's P1-P3 of `test_an_echo_broken_up_or_diluted_is_not_silent`, which
-    # round 18 removed (P4 stayed there, on the demotion). Only the note sees them.
+    # keeps only P4 above, on the demotion. Only the note sees these three.
     read = _read({"text": CLAIM}, result)
     assert _noticed_or_noted(read), (
         f"{why}: the reply is the model's own sentence and the reading passed it "

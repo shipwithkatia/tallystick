@@ -60,7 +60,8 @@ from tallystick.adapters.openai_chat import to_trace  # noqa: E402
 #: Found by asking the module, not listed by hand. A hand-kept list missed three
 #: caches in round 7 and a sixth one in round 8, added by the same commit that
 #: fixed the list, and every time printed then was a warm reading - up to 111%
-#: too fast. tests/test_round10.py finds the caches a second way, from the source.
+#: too fast. tests/test_nothing_caught_passes_silently.py finds the caches a
+#: second way, from the source.
 CACHES = tuple(obj for obj in vars(openai_chat).values()
                if callable(getattr(obj, "cache_clear", None)))
 

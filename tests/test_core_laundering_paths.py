@@ -1,4 +1,6 @@
-"""proverka13, section 1: the verdict core.
+"""The verdict core must not let the model's words through on a trace that is
+shaped oddly: two steps with one id, claims walked in a different order, a
+cycle that passes through a root, a step that cites what it produced itself.
 
 Each test states what the core should do and fails on 23908ba. None of these
 shapes is produced by the adapters in this repository (checked on the 695

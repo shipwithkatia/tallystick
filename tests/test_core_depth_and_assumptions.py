@@ -1,11 +1,13 @@
-"""Round 14: the verdict core and the exit codes (review 13, sections 1 and 2).
+"""The depth limit of a claim chain, and what the verdict core assumes.
 
-The reviewer's own tests are in test_proverka13_core.py and
-test_proverka13_exit_codes.py. These cover what the fixes added beyond them,
-each at a place no other test watches: the exact depth boundary, a claim cycle
-too long for the stack, exit 2 for an unchecked chain from the command line,
-the `_meta` fields the reviewer's six variants do not name, and a write that
-must not remove a file it never opened.
+A chain too deep to walk is "could not check" (exit 2), never "laundered" or
+"grounded", whatever the claims are called. Each test sits at a place no other
+test watches: the exact depth boundary, a claim cycle too long for the stack,
+exit 2 for an unchecked chain from the command line, verdicts that must not
+change when claims are renamed or arrays shuffled, a root the citing step made
+from its own output, the `_meta` fields beyond the six that
+test_exit_codes_unreadable_input.py tries, and a write that must not remove a
+file it never opened.
 """
 
 from __future__ import annotations
@@ -48,7 +50,7 @@ def _chain(links: int, *, final_id: str = "c_ans", prefix: str = "c"):
 
 
 # --------------------------------------------------------------------------- #
-# 1.2 - depth is a property of the chain
+# Depth is a property of the chain
 # --------------------------------------------------------------------------- #
 
 
@@ -62,7 +64,7 @@ def test_the_depth_boundary_is_exact():
 
 @pytest.mark.parametrize("final_id", ["a_final", "zz_final", "m_final"])
 def test_a_chain_too_deep_is_unchecked_not_laundered_under_any_name(final_id):
-    """Review 13, 1.2, second defect: running out of depth is "could not check".
+    """Running out of depth is "could not check", under any name of the claim.
     23908ba: `a_final` came out LAUNDERED, `zz_final` GROUNDED."""
     b = close_books(load_run(_chain(300, final_id=final_id)))
     a = b.audits[final_id]
@@ -97,7 +99,7 @@ def test_a_chain_too_deep_exits_2_from_the_command_line(tmp_path, capsys):
 
 
 def test_a_claim_cycle_longer_than_the_stack_is_unchecked_not_a_crash():
-    """1,200 claims citing round in a circle. The walk inside a cycle is as
+    """1,200 claims citing each other in a circle. The walk inside a cycle is as
     deep as the cycle, so the cycle counts as that deep: without it, this
     overflowed Python's stack."""
     n = 1200
@@ -181,7 +183,7 @@ def test_verdicts_do_not_depend_on_claim_names_or_array_order(seed, monkeypatch)
 
 
 # --------------------------------------------------------------------------- #
-# 1.3 / 1.4 - a root made from the citing step's own output
+# A root made from the citing step's own output
 # --------------------------------------------------------------------------- #
 
 
@@ -225,7 +227,7 @@ def test_a_root_the_step_did_not_make_still_funds_it():
 
 
 # --------------------------------------------------------------------------- #
-# 2.4 - `_meta` beyond the reviewer's six fields
+# `_meta` fields beyond the six in test_exit_codes_unreadable_input.py
 # --------------------------------------------------------------------------- #
 
 
@@ -260,7 +262,7 @@ def test_a_well_formed_meta_still_reads(tmp_path):
 
 
 # --------------------------------------------------------------------------- #
-# 2.3 - a failed write removes only what it started
+# A failed write removes only what it started
 # --------------------------------------------------------------------------- #
 
 

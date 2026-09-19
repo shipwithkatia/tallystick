@@ -1,18 +1,20 @@
-"""Round 21: what review 20 found against the tool's main promise - the model's
-text must not pass as a source, and what is promised must hold.
+"""The tool's main promise: the model's text must not pass as a source, and
+what the report says must hold.
 
-A1  three ways the OpenAI reader recorded the model's text as a root:
-    a tool handing back a whole message the model wrote; a call id repeated
-    across turns; a reply in decomposed Unicode (NFD).
-A2  a note moved the exit code: half an emoji in it made `--json` exit 2.
-A3  arguments nested deeper than Python recurses: a traceback, exit 1.
-B1  "could not finish" (exit 2) hid a verdict found beside it.
-B2  the verdict line printed 50% / 50% on an answer failed for being more
-    than half unclaimed.
-A4  tests for the six mutants review 20 left alive (N_c2, C_t0, C_f1, C_j1,
-    C_j2, C_l1).
+- Three ways the OpenAI reader recorded the model's text as a root: a tool
+  handing back a whole message the model wrote; a call id repeated across
+  turns; a reply in decomposed Unicode (NFD).
+- A note must not move the exit code: half an emoji in it made `--json` exit 2.
+- Arguments nested deeper than Python recurses: a sentence and exit 2, not a
+  traceback and exit 1.
+- "Could not finish" (exit 2) must not hide a verdict found beside it.
+- The verdict line must not print 50% / 50% on an answer failed for being more
+  than half unclaimed.
+- The share of the answer under claims, at the edges six mutants of the report
+  code slipped past (N_c2, C_t0, C_f1, C_j1, C_j2, C_l1).
 
-Every case here is a small example written in this file (rule 13).
+Every case here is a small example written in this file, so the tests need no
+data from outside the repository.
 """
 import json
 import unicodedata
@@ -51,7 +53,7 @@ def _kind(trace, aid):
 
 
 # --------------------------------------------------------------------------- #
-# A1.1 A tool hands back a whole message the model wrote
+# A tool hands back a whole message the model wrote
 # --------------------------------------------------------------------------- #
 
 DRAFT = ("Sydney is the capital of Australia; it was chosen in 1901 as a compromise "
@@ -99,7 +101,7 @@ def test_the_message_note_moves_no_exit_code_and_names_what_it_is(tmp_path, caps
 
 
 def test_a_search_repeating_the_question_the_model_restated_is_not_noted():
-    """The price the note was held to (round 21): a reply that shares a phrase
+    """The price the note is held to: a reply that shares a phrase
     with the model's message - a search answering in the words of the query the
     model wrote in its plan - is not a message handed back."""
     plan = "I need to find the city where Marina Abramovic performed Rhythm 4 in 1974."
@@ -134,7 +136,7 @@ def test_a_message_read_back_escaped_is_noted():
 
 
 # --------------------------------------------------------------------------- #
-# A1.2 Call ids repeated across turns
+# Call ids repeated across turns
 # --------------------------------------------------------------------------- #
 
 ANSWER = "The capital of Australia is Sydney, chosen in 1901."
@@ -196,7 +198,7 @@ def test_an_id_declared_twice_in_one_turn_still_names_no_call():
 
 
 # --------------------------------------------------------------------------- #
-# A1.3 NFD
+# A reply in decomposed Unicode (NFD)
 # --------------------------------------------------------------------------- #
 
 VI = "Thủ đô của Úc là Sydney, được chọn năm 1901 như một sự thỏa hiệp giữa hai thành phố lớn"
@@ -233,7 +235,7 @@ def test_the_recorded_artifact_keeps_the_form_the_log_had():
 
 
 # --------------------------------------------------------------------------- #
-# A2 A note with half an emoji does not move the exit code under --json
+# A note with half an emoji does not move the exit code under --json
 # --------------------------------------------------------------------------- #
 
 HALF = "Sydney is the capital of Australia \ud83d and it was chosen in 1901 as a compromise."
@@ -291,7 +293,7 @@ def test_a_trace_file_with_half_an_emoji_is_still_refused(tmp_path, capsys):
 
 
 # --------------------------------------------------------------------------- #
-# A3 Nested deeper than Python recurses
+# Nested deeper than Python recurses
 # --------------------------------------------------------------------------- #
 
 
@@ -310,7 +312,7 @@ def test_arguments_nested_1500_deep_are_exit_2_with_a_sentence(tmp_path, capsys,
 
 
 # --------------------------------------------------------------------------- #
-# B1 exit 2 only when "could not finish" is the whole story
+# Exit 2 only when "could not finish" is the whole story
 # --------------------------------------------------------------------------- #
 
 
@@ -357,7 +359,7 @@ def test_exit_2_only_where_nothing_but_the_depth_is_wrong(tmp_path, capsys, case
 
 
 # --------------------------------------------------------------------------- #
-# B2 The verdict line never reads half and half at exit 1
+# The verdict line never reads half and half at exit 1
 # --------------------------------------------------------------------------- #
 
 
@@ -396,7 +398,7 @@ def test_exactly_half_under_a_claim_passes_and_says_plain_balance(tmp_path, caps
 
 
 # --------------------------------------------------------------------------- #
-# A4 The six mutants review 20 left alive
+# The share of the answer under claims: six mutants no other test noticed
 # --------------------------------------------------------------------------- #
 
 
@@ -479,8 +481,8 @@ def test_n_c2_every_note_a_declaration_cleared_is_named(tmp_path, capsys):
 
 
 # --------------------------------------------------------------------------- #
-# Written for the three mutants of this round's code that the first run left
-# alive
+# Three mutants of the reader's id and escape handling that no other test
+# noticed
 # --------------------------------------------------------------------------- #
 
 

@@ -1,10 +1,11 @@
-"""proverka16, item 0: the replacement for
-test_proverka13_docs_numbers.py::test_docs_trace_growth_holds_for_the_chat_it_describes.
+"""Every trace-growth number README and docs publish is what the command they
+name prints.
 
-That test is left in place and still fails. It guarded a sentence that is gone:
-docs/auditable-traces.md at 23908ba said "ten times the size of the log at 116
-turns" and named no command. Round 15 rewrote the paragraph and named
-`python bench/trace_growth.py`. The old test now demands that the CODE reach 10x
+This replaces test_docs_trace_growth_holds_for_the_chat_it_describes, removed
+in f84f278. That test guarded a sentence that is gone: docs/auditable-traces.md
+at 23908ba said "ten times the size of the log at 116 turns" and named no
+command. The paragraph was rewritten to name `python bench/trace_growth.py`.
+The old test then demanded that the CODE reach 10x
 at 116 turns on a tool-call-only chat, which the docs no longer claim (they say
 516 turns for that shape), and which only a change of trace format could give.
 
@@ -108,8 +109,8 @@ def test_the_growth_numbers_in_the_docs_are_what_the_named_command_prints():
 
 
 def test_the_check_would_have_caught_the_f731bdb_text():
-    """The guard is only worth something if it fails on the text the first
-    review found wrong. The 23908ba paragraphs are quoted here verbatim."""
+    """The guard is only worth something if it fails on the text that was
+    wrong. The 23908ba paragraphs are quoted here verbatim."""
     old_docs = (
         "That record has a cost for a long chat, and it is better known than met. Every "
         "step lists every artifact before it, so the trace grows with the square of the "

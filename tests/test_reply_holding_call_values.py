@@ -1,13 +1,13 @@
 """What the reader does with a reply that holds the call's own values.
 
-The eighth round sampled the warning triggers of the seventh by hand, kept one
-(a share of the reply covered by call text) and dropped the other (a value of
-the call standing anywhere inside a longer reply: 1 of 10 real echoes). Round
-18 removed the remaining warnings too, after review 16 drew a sample of them
-and found fewer than half real echoes (see tallystick/echo_gate.py). The tests that guarded the
-warnings went with them; what stays here guards the demotion on both sides:
-a tool doing real work is NOT read as the model's text, and a reply that IS the
-value it was given still is.
+The demotion on both sides: a tool doing real work is NOT read as the model's
+text, and a reply that IS the value it was given still is. A value of the call
+standing somewhere inside a longer reply is not enough to demote it: read by
+hand, 1 such reply in 10 was a real echo.
+
+Below the demotion, the note: a reply in a later turn that holds a share of a
+note the model saved is listed, and never moves the exit code (see
+tallystick/echo_gate.py).
 """
 
 from __future__ import annotations
@@ -75,7 +75,7 @@ def test_a_tool_doing_real_work_is_not_flagged(args, result, why):
 
 
 def test_a_value_handed_straight_back_is_still_demoted():
-    # The demotion is untouched by this round: the reply IS the value.
+    # The demotion: the reply IS the value.
     read = _read(_same_turn_log({"text": NOTE}, json.dumps({"text": NOTE})))
     assert read["demoted"], read["kind"]
 
@@ -93,16 +93,16 @@ def test_a_repeated_word_does_not_make_the_reading_quadratic():
     assert seconds < 5.0, f"reading one turn of repeated words took {seconds:.1f}s"
 
 # ---------------------------------------------------------------------------
-# Round 19: the echo detection is back as a note that moves no exit code.
-# Put back from f84f278, where round 18 removed them with the detection.
-# Tests of the confirmation gate stay out; an exit of 1 became 0.
+# The echo detection is a note that moves no exit code. These tests come from
+# f84f278, where the detection was a gate; its tests of the confirmation gate
+# are not here, and where it expected exit 1 they expect 0.
 # ---------------------------------------------------------------------------
 
 
 HALF = len(NOTE) // 2
 
 
-#: The sixth review's bypass: a newline in the middle, a one-character line after.
+#: A bypass of an earlier rule: a newline in the middle, a one-character line after.
 BROKEN = NOTE[:HALF] + "\n" + NOTE[HALF:] + "\n0"
 
 
@@ -172,7 +172,7 @@ def test_the_threshold_is_one_named_constant():
 def test_a_bare_word_of_an_earlier_call_is_not_a_value_across_turns():
     # Across calls nothing ties a reply to a call, so the values weighed there
     # are the ones a call plainly carried - its JSON values, its literals, its
-    # lines. Not its bare word atoms: in the round's sample, every atom match
+    # lines. Not its bare word atoms: in a hand-read sample, every atom match
     # across calls was the tool doing its job (a reply holding the word
     # `False`, a query term, a file name).
     log = [QUESTION,

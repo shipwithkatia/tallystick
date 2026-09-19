@@ -1,8 +1,8 @@
-"""Round 22: how deep a tool call's arguments may nest is the reader's own rule,
-not the interpreter's.
+"""How deep a tool call's arguments may nest is the reader's own rule, not the
+interpreter's.
 
-Round 21 made arguments nested 1,500 deep exit 2, and the test for it passed on
-Python 3.12 and 3.14 only. On 3.10 the same log was read, exit 0: its JSON
+An earlier version refused arguments nested 1,500 deep with exit 2, and the test
+for it passed on Python 3.12 and 3.14 only. On 3.10 the same log was read, exit 0: its JSON
 parser gives up at about a thousand levels, the reader took that as "not JSON"
 and read the arguments as text. On 3.12 the parser goes deeper, and the
 recursive walk after it is what gave up. The same log, two answers, decided by
@@ -11,7 +11,7 @@ the Python a user happens to run.
 Now the reader counts the nesting itself, in one pass with no recursion, before
 anything parses the arguments: deeper than MAX_ARGUMENT_NESTING (256) is refused
 with exit 2 on every version. Every case here is a small example written in this
-file (rule 13), and the limit is written here as a number, so that a change to
+file, so the tests need no data from outside the repository, and the limit is written here as a number, so that a change to
 it is a change someone has to make on purpose.
 """
 import json

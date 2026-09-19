@@ -1,17 +1,15 @@
-"""Round 19: the echo detection comes back as a note, not an accusation.
+"""The echo detection is a note, not an accusation.
 
-Decision 1 (owner, 16 September 2026). Round 18 removed the echo warnings with
-their gate; measured afterwards, the demotion that stayed caught none of the six
-real echoes in review 16's hand-read sample. What was wrong was not showing
-those results but accusing: exit 1 and a confirmation by name, on a signal that
-was right 6 times in 20. So the same detection is back (adapters/openai_chat.py
-as of f84f278), listed under the report and in `--json`, and it never moves an
-exit code. No `--accept-echo-warning`, no `UnreviewedEchoWarnings`, no
-`unreviewed_echo_warnings`.
+Without it, the demotion alone caught none of the six real echoes in a
+hand-read sample of 20. With it as a gate - exit 1 and a confirmation by name -
+it accused on a signal that was right 6 times in 20. So the detection
+(adapters/openai_chat.py as of f84f278) is listed under the report and in
+`--json`, and it never moves an exit code. No `--accept-echo-warning`, no
+`UnreviewedEchoWarnings`, no `unreviewed_echo_warnings`.
 
-And the Thai fix: round 17 cut Tibetan only at marks from outside its block;
-Thai, Lao, Khmer and Myanmar were still cut at their vowel signs, and a long
-honest chat in them filled the report with false `unchecked` notes.
+And the scripts written without spaces: Tibetan, Thai, Lao, Khmer and Myanmar
+are cut only at marks from outside their block. Cut at their vowel signs, a
+long honest chat in them filled the report with false `unchecked` notes.
 """
 import json
 import random
@@ -179,9 +177,9 @@ def test_there_is_still_no_flag_to_confirm_a_note(tmp_path, command):
 
 
 def test_a_half_emoji_in_a_noted_line_exits_the_same_loud_and_quiet(tmp_path):
-    """Review 16, 3.1, again: a note's line goes to the terminal, and a lone
-    surrogate there made print() raise and the run exit 1 on books that balance.
-    The review's own test passed `--accept-echo-warning`, which no longer exists."""
+    """A note's line goes to the terminal, and a lone surrogate there made
+    print() raise and the run exit 1 on books that balance. The same case in
+    test_core_and_coverage_edges.py goes through the chain view."""
     note = "The bridge was opened to traffic in 1932 by the governor \ud83d"
     path = tmp_path / "log.json"
     path.write_text(json.dumps(_note_log(note, note)), encoding="utf-8")
@@ -275,9 +273,8 @@ def test_the_price_a_note_glued_to_a_word_of_its_script_is_not_seen(script):
 
 
 def test_a_record_with_no_text_line_is_still_a_note(tmp_path, capsys):
-    """Review 13's G03, which asked for exit 1, guarded a real point that stays: a
-    trace carrying only the structured records, without the text list the reader
-    writes beside them, is still said to carry them."""
+    """A trace carrying only the structured records, without the text list the
+    reader writes beside them, is still said to carry them."""
     trace = json.loads((ROOT / "examples" / "balanced_run.json").read_text(encoding="utf-8"))
     trace["_meta"] = {"echo_warning_details": [{"result": "t1", "tool": "read_note", "line": "x"}]}
     path = _write(tmp_path, "t.json", trace)
