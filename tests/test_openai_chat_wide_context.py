@@ -1,7 +1,8 @@
-"""Failing tests for the proverka2 echo rule, which weighs a tool result's last
-line against everything the model has written in the run.
+"""Failing tests for the echo rule of the wide-context reader, before the fix
+that narrowed it: the rule weighed a tool result's last line against everything
+the model has written in the run.
 
-Every test here fails on proverka2 and is expected to. A test passes when the
+Every test here fails on that reader and is expected to. A test passes when the
 reader stops doing what it describes, however the fix is made.
 
 - Eight real results - external or computed - read as the model's own words,
@@ -212,8 +213,9 @@ to_trace(messages)
 
 def test_a_long_codeact_run_reads_in_seconds_not_minutes():
     # 200 turns, each call carrying a 21 KB script: about 4 MB of arguments.
-    # The narrow reader read this in well under a tenth of a second; proverka2
-    # takes about 31 s on the machine this was written on. Run in a subprocess
+    # The narrow reader read this in well under a tenth of a second; the
+    # wide-context reader, before the fix that narrowed it, took about 31 s on
+    # the machine this was written on. Run in a subprocess
     # so a failure costs the budget, not the full read.
     env = {**os.environ, "PYTHONPATH": str(ROOT)}
     try:

@@ -186,7 +186,7 @@ def test_note_read_back_in_a_later_turn():
     # The module docstring names a notes store as a tool that hands the model's
     # words back; read_note's own arguments are empty, so the rule never looks.
     #
-    # Relaxed after the proverka3 review, by the scheme agreed there: an echo
+    # Relaxed after the review of a2e1c82, by the scheme agreed there: an echo
     # from an earlier turn is not demoted blindly, because the same match is
     # also a tool confirming what the model guessed. Either outcome passes -
     # read as model text, or named in _meta - exactly as in

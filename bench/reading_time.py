@@ -25,14 +25,14 @@ Measured in round 10 a second way as well - every reading in a fresh Python
 process, where no cache can be warm - best of three processes, seconds at
 N=100 / N=200. The two ways agreed within a few percent.
 
-  shape        proverka7      proverka8      round 10
+  shape        3edc4e0        0e3a8f2        round 10
   turns        1.25 / 2.54    1.21 / 2.48    1.56 / 3.11
   wide-ids     1.25 / 2.58    1.19 / 2.42    1.54 / 3.04
   wide-none    0.11 / 0.22    0.49 / 0.97    0.69 / 1.36
   wide-name    0.12 / 0.23    0.49 / 0.96    0.67 / 1.34
   wide-names   0.11 / 0.21    0.48 / 0.96    0.66 / 1.32
 
-proverka8 was reported as about twice as slow as proverka7 on the wide shapes.
+0e3a8f2 was reported as about twice as slow as 3edc4e0 on the wide shapes.
 That figure came from this script while it still missed a cache; with every
 cache cleared it is 4.2 to 4.7 times as slow. Round 10 adds 1.36 to 1.40 times
 on the wide shapes and 1.26 to 1.30 on the others - measured while every echo

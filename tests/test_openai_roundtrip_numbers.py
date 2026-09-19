@@ -99,7 +99,7 @@ def test_commit_message_headline_582_of_693_identical(trajectories):
         == rt.shape(oc.to_trace(rt.render(obj), name=p.name,
                                 model_text_tools=agenthallu.ECHO_TOOLS))
         for p, obj in trajectories)
-    # proverka6: 666 -> 641. proverka7: 641 -> 582. The rule now demotes on an
+    # b974a72: 666 -> 641. 3edc4e0: 641 -> 582. The rule now demotes on an
     # exact value match with the answering call - the whole reply, one of its
     # lines, its single JSON value - and warns on anything short of that, so it
     # reaches echoes the native reader's own 8-character guard let through.

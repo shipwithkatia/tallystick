@@ -1,8 +1,8 @@
-"""Failing tests for the proverka3 echo rule, which weighs a tool result's last
+"""Failing tests for the echo rule of a2e1c82, which weighs a tool result's last
 line against the arguments of every call in its turn, and against everything the
 model wrote before when the turn carried no arguments.
 
-Every test here fails on proverka3 and is expected to. They are written for the
+Every test here fails on a2e1c82 and is expected to. They are written for the
 scheme agreed after that review, and pass under it however it is implemented:
 
 - demote automatically only against the arguments of the call a result answers;
@@ -224,9 +224,9 @@ to_trace(m)
 
 
 @pytest.mark.parametrize("script", [
-    # proverka3: about 6.8 s; the one-call reader: under 0.1 s.
+    # a2e1c82: about 6.8 s; the one-call reader: under 0.1 s.
     pytest.param(_NO_ARGUMENT_TURNS, id="E1-100-turns-of-21KB-prose-with-a-no-argument-call"),
-    # proverka3: about 15 s; the one-call reader: under 0.1 s.
+    # a2e1c82: about 15 s; the one-call reader: under 0.1 s.
     pytest.param(_ONE_WIDE_TURN, id="E2-one-turn-with-100-parallel-calls-of-21KB-code"),
 ])
 def test_reading_time_stays_linear(script):

@@ -824,7 +824,7 @@ def _words_of(text: str) -> List[str]:
     In Chinese and Japanese a whole note is one whitespace word, so the quote of
     a JSON value, a fullwidth `：` after a label or 「」 around it made that one
     word match nothing and the share fell to 0: check-trace exited 0 on the
-    model's own note (proverka13, 3.2).
+    model's own note.
 
     Why only there. This is a second way of cutting words, beside whitespace,
     and the two wider ways were tried first and priced on AgentHallu against a
@@ -1018,7 +1018,7 @@ def _share_in(result: str, index: _Words,
     share stands. One measure on both paths: a note read back as
     `json.dumps` writes it by default arrives as `\\uXXXX`, the demotion
     decoded it and this path did not, so the same Russian note that warned
-    when written plainly passed with exit 0 (proverka13, 3.1)."""
+    when written plainly passed with exit 0."""
     best: Tuple[float, str, bool] = (0.0, "", False)
     unsure = False
     for text in _reply_texts(result):
@@ -1080,7 +1080,7 @@ def _hands_back_what_it_was_given(result: str, sent: str) -> bool:
     whether a match holds a space - the three settings the sixth review walked
     through with a newline and a one-character line.
 
-    What it costs, counted afresh on AgentHallu for proverka7 (the corpus as
+    What it costs, counted afresh on AgentHallu for 3edc4e0 (the corpus as
     bench/openai_roundtrip.py renders it; tests/test_openai_roundtrip_numbers.py
     pins the figures and bench/echo_coverage.py measures the threshold). With
     the corpus's four echo tools declared it fires 313 times over 3535 tool

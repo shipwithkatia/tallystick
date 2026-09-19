@@ -1,7 +1,7 @@
 """Break one thing in a copy of the code, run the suite, see which tests notice.
 
     .venv/bin/python bench/mutations/mutate.py                 # HEAD, every mutation
-    .venv/bin/python bench/mutations/mutate.py proverka4 --only M1,M5
+    .venv/bin/python bench/mutations/mutate.py 4cdf21f --only M1,M5
     .venv/bin/python bench/mutations/mutate.py --out mutations.json
 
 This is mutation testing. A test that still passes when the behaviour it is
@@ -48,7 +48,7 @@ GATE = "tallystick/echo_gate.py"
 _SPLIT = '(accepted if w["tool"] and w["tool"] in confirmed else unreviewed).append(w)'
 
 #: name -> [(file, exact snippet, replacement)]. Each snippet must occur once.
-#: Snippets follow the code as of proverka7; on an older ref they report STALE.
+#: Snippets follow the code as of 3edc4e0; on an older ref they report STALE.
 MUTATIONS = {
     "M0_none": [],
     # The reader never reports an echo from an earlier turn.
@@ -77,7 +77,7 @@ MUTATIONS = {
     # The reader stops writing the structured warning records.
     "M9_no_details_recorded": [(OC, "        \"echo_warning_details\": earlier_echo_details,\n", "")],
 
-    # --- proverka7 -----------------------------------------------------------
+    # --- 3edc4e0 ------------------------------------------------------------
     # Eleven boundaries of the rewritten echo path. Every one of these went
     # unnoticed by the whole suite in the sixth review, or guards something the
     # sixth review found broken; each now has a test that fails without it.
@@ -131,7 +131,7 @@ MUTATIONS = {
         (OC, 'dkey = _key(tool) if named_by_log else ""', "dkey = _key(tool)"),
         (OC, "        if key and key != PLACEHOLDER:", "        if key:")],
 
-    # --- proverka8: the cross-turn path, on the same measure -----------------
+    # --- 0e3a8f2: the cross-turn path, on the same measure ------------------
     # A reply that IS, whole, a plain value of an earlier call is no longer
     # reported - the one question coverage cannot ask, because the reply is too
     # short to hold a run worth counting.

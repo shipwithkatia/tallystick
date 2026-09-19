@@ -1,11 +1,11 @@
 # Mutation runs
 
-Tooling for review rounds: does a test actually guard the behaviour it is named
-after?
+Tooling for checking the tests: does a test actually guard the behaviour it is
+named after?
 
 ```bash
 .venv/bin/python bench/mutations/mutate.py            # HEAD, all mutations, ~1 minute
-.venv/bin/python bench/mutations/mutate.py proverka4 --only M1,M5
+.venv/bin/python bench/mutations/mutate.py 4cdf21f --only M1,M5
 ```
 
 Each mutation breaks one thing in a `git archive` copy of the chosen ref (the
@@ -23,7 +23,7 @@ three lists worth reading:
 Mutations are exact source snippets. After a rewrite a snippet can disappear;
 the script then reports that mutation as `STALE` instead of running a no-op.
 
-Recorded on proverka4 (48c8b8a), 424 tests:
+Recorded on 4cdf21f (the code as of 48c8b8a), 424 tests:
 
 | mutation | tests that noticed |
 |---|---|
@@ -37,6 +37,6 @@ Recorded on proverka4 (48c8b8a), 424 tests:
 | M8 audit ignores the books | 5 |
 | M9 no structured warning records | 16 |
 
-`bench/repro_proverka4.sh` reproduces the rest of the proverka4 review: gate
+`bench/repro_gate_findings.sh` reproduces the rest of the review of 4cdf21f: gate
 bypasses, name confirmation, the answering-call rule, the corpus gate rate,
 reading time and the commit figures.

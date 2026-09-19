@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Воспроизведение находок проверки ветки proverka4.
-# Запуск из корня репозитория tallystick:   bash bench/repro_proverka4.sh
-# Проверено на proverka4 @ 48c8b8a. На других ветках цифры могут отличаться - это и есть смысл перезапуска.
-# Репозиторий не меняется: всё пишется во временную папку (mktemp -d).
-# Время работы ~1-2 минуты. Ненулевые коды выхода ниже - ожидаемые, это и есть результат.
+# Reproduces the findings of the review of 4cdf21f.
+# Run from the root of the tallystick repository:   bash bench/repro_gate_findings.sh
+# Checked on 48c8b8a, the code under 4cdf21f. On other commits the figures may differ - that is the point of running it again.
+# The repository is not changed: everything is written to a temporary folder (mktemp -d).
+# Takes about 1-2 minutes. The non-zero exit codes below are expected - they are the result.
 set -u
 cd "$(git rev-parse --show-toplevel)"
 PY="$PWD/.venv/bin/python"; export PYTHONDONTWRITEBYTECODE=1
