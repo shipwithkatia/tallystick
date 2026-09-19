@@ -1,6 +1,6 @@
 """Coverage-gap tests for mutation survivors (proverka 13, section 7).
 
-Each test PASSES on f731bdb and FAILS on the named mutant. They are not defect tests: they pass here by design. Run against a mutated copy:
+Each test PASSES on 23908ba and FAILS on the named mutant. They are not defect tests: they pass here by design. Run against a mutated copy:
     PYTHONPATH=<copy> python -m pytest -p no:cacheprovider test_s7_gaps.py
 """
 import json

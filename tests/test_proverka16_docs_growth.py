@@ -2,7 +2,7 @@
 test_proverka13_docs_numbers.py::test_docs_trace_growth_holds_for_the_chat_it_describes.
 
 That test is left in place and still fails. It guarded a sentence that is gone:
-docs/auditable-traces.md at f731bdb said "ten times the size of the log at 116
+docs/auditable-traces.md at 23908ba said "ten times the size of the log at 116
 turns" and named no command. Round 15 rewrote the paragraph and named
 `python bench/trace_growth.py`. The old test now demands that the CODE reach 10x
 at 116 turns on a tool-call-only chat, which the docs no longer claim (they say
@@ -13,8 +13,8 @@ and prints the numbers they quote. It reads the prose, so a number changed in
 the docs without a new run of the script fails here, and so does a script
 change that moves a published number.
 
-Passes on 67090d6. Run against the text of docs/auditable-traces.md and
-README.md at f731bdb (see `_check`), it fails: that text names no command, and
+Passes on 3aa58a8. Run against the text of docs/auditable-traces.md and
+README.md at 23908ba (see `_check`), it fails: that text names no command, and
 its 116 turns, 667 turns and 4.5 MB are not what the script prints.
 """
 
@@ -109,7 +109,7 @@ def test_the_growth_numbers_in_the_docs_are_what_the_named_command_prints():
 
 def test_the_check_would_have_caught_the_f731bdb_text():
     """The guard is only worth something if it fails on the text the first
-    review found wrong. The f731bdb paragraphs are quoted here verbatim."""
+    review found wrong. The 23908ba paragraphs are quoted here verbatim."""
     old_docs = (
         "That record has a cost for a long chat, and it is better known than met. Every "
         "step lists every artifact before it, so the trace grows with the square of the "

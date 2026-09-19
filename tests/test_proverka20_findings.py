@@ -1,4 +1,4 @@
-"""proverka20: one failing test per finding on 34dc1d4 - the note, the reader,
+"""proverka20: one failing test per finding on 64ff136 - the note, the reader,
 the exit codes and the coverage line. The external review that found them gave
 the command and the numbers for each."""
 
@@ -69,7 +69,7 @@ def _cross_turn(note, reply):
     "limitations, What the commands say, and where. Documented, not fixed, by the "
     "owner's decision of 16 September 2026 after review 20; round 22 marked it"))
 def test_convert_still_says_a_result_may_be_the_models_own_text(tmp_path):
-    """Round 17 (e69a6bc) `convert` listed such a result under the reading:
+    """Round 17 (f84f278) `convert` listed such a result under the reading:
     "left out - result(s) kept as evidence that may hand back the model's own
     text: tool[4] (read_note) call c2, ...". Round 18 took that line out of
     `_reading_notes` with the warnings, and round 19 brought the note back to
@@ -91,7 +91,7 @@ def test_a_note_holding_half_an_emoji_does_not_move_the_exit_code_under_json(tmp
     `may_be_model_text` - and into `reading` - so `--json` cannot be written:
     exit 2. The README's CI line is exactly `check-trace ... --json report.json
     --quiet`. The same log with the half-emoji in a result that is not noted
-    exits 0 with `--json`; round 18 (4d82765), which had no note, exits 0 on
+    exits 0 with `--json`; round 18 (0fa3383), which had no note, exits 0 on
     this one too. The terminal path was fixed in round 19; the file path was not."""
     note = "Sydney is the capital of Australia \ud83d and it was chosen in 1901 as a compromise."
     log = [{"role": "user", "content": "What is the capital of Australia?"},
@@ -183,7 +183,7 @@ def test_a_tool_handing_back_the_models_earlier_message_is_not_silent_evidence(t
     artifacts only as generic `duplicate_content` ("does not decide the
     verdict"). README's "What still passes without a word" lists a store
     record, padding, glued scripts and case, and a `user` message - not this.
-    Same on e69a6bc."""
+    Same on f84f278."""
     draft = ("Sydney is the capital of Australia; it was chosen in 1901 as a compromise "
              "between the two largest cities.")
     chat = [
@@ -264,7 +264,7 @@ def test_arguments_nested_deeper_than_python_recurses_are_exit_2_not_a_traceback
     `except RecursionError`, from `_call_texts` via `_Words.add_call`.
     `check-trace` and `convert` both end in a RecursionError traceback, exit 1 -
     "the trace is not auditable" for check-trace, and a code `convert` is
-    documented never to return. At 900 deep both exit 0. Same on e69a6bc."""
+    documented never to return. At 900 deep both exit 0. Same on f84f278."""
     args = "[" * 1500 + '"x"' + "]" * 1500
     log = [{"role": "user", "content": "q"},
            {"role": "assistant", "content": None, "tool_calls": [{"id": "c1", "type": "function",

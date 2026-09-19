@@ -351,7 +351,7 @@ def test_a_reply_stored_escaped_is_decoded_before_its_lines_are_read():
 
 # ---------------------------------------------------------------------------
 # Round 19: the echo detection is back as a note that moves no exit code.
-# Put back from e69a6bc, where round 18 removed them with the detection.
+# Put back from f84f278, where round 18 removed them with the detection.
 # Tests of the confirmation gate stay out; an exit of 1 became 0.
 # ---------------------------------------------------------------------------
 
@@ -422,7 +422,7 @@ def test_an_external_declaration_does_not_vouch_where_the_placement_is_a_guess()
 
 
 def _noticed_or_noted(read) -> bool:
-    """Demoted, or listed as a note (e69a6bc's `_noticed`). `_noticed` above stays
+    """Demoted, or listed as a note (f84f278's `_noticed`). `_noticed` above stays
     demotion only, as round 18 made it."""
     return read["demoted"] or bool(read["warnings"])
 
@@ -438,7 +438,7 @@ def _noticed_or_noted(read) -> bool:
                  "the echo broken across three lines", id="P3-three-way-split"),
 ])
 def test_an_echo_broken_up_is_not_silent(result, why):
-    # e69a6bc's P1-P3 of `test_an_echo_broken_up_or_diluted_is_not_silent`, which
+    # f84f278's P1-P3 of `test_an_echo_broken_up_or_diluted_is_not_silent`, which
     # round 18 removed (P4 stayed there, on the demotion). Only the note sees them.
     read = _read({"text": CLAIM}, result)
     assert _noticed_or_noted(read), (

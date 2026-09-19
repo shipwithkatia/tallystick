@@ -3,7 +3,7 @@ while the verifier (normalize.py) compares in NFC. A Vietnamese or Korean note
 read back decomposed (NFD - how macOS file names and some stores keep text)
 shares no word with the call that wrote it: not demoted on the answering call,
 not noted on a later one, and a claim quoting it balances. Letter for letter it
-is the same text to a reader and to the audit. Old: e69a6bc behaves the same."""
+is the same text to a reader and to the audit. Old: f84f278 behaves the same."""
 import json
 import unicodedata
 

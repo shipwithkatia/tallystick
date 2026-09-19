@@ -1,6 +1,6 @@
 """proverka13, section 1: the verdict core.
 
-Each test states what the core should do and fails on f731bdb. None of these
+Each test states what the core should do and fails on 23908ba. None of these
 shapes is produced by the adapters in this repository (checked on the 695
 AgentHallu files through `adapters/agenthallu.py`: 0 duplicate step ids, 0
 artifacts that are both an input and an output of one step, 0 inputs produced
@@ -50,7 +50,7 @@ def _exit(tmp_path, trace, name="t.json"):
 def test_duplicate_step_id_verdict_does_not_depend_on_step_order(tmp_path):
     """Two steps share the id s2 and both claim `ans`. validate() allows it,
     producing_step() takes the first in file order - so the order of the
-    `steps` array decides the verdict. f731bdb: exit 1 in one order, exit 0
+    `steps` array decides the verdict. 23908ba: exit 1 in one order, exit 0
     (BOOKS BALANCE on the model's own words) in the other."""
     t = _base()
     t["artifacts"].append({"artifact_id": "t1", "kind": "tool_result", "content": ANSWER})
@@ -90,7 +90,7 @@ def _deep_chain(hops: int, final_first: bool):
 def test_renaming_claim_ids_does_not_change_the_verdict():
     """The same 300-hop honest chain, only the claim ids differ. close_books
     resolves claims in sorted-id order and memoises, so MAX_DEPTH (256) is
-    measured from wherever the walk entered. f731bdb: final claim resolved last
+    measured from wherever the walk entered. 23908ba: final claim resolved last
     -> grounded, books balance; resolved first -> laundered, books do not."""
     a = audit(_deep_chain(300, final_first=False))
     b = audit(_deep_chain(300, final_first=True))
@@ -100,7 +100,7 @@ def test_renaming_claim_ids_does_not_change_the_verdict():
 def test_a_tool_result_made_from_the_answer_cannot_ground_the_answer(tmp_path):
     """A cycle through a root: step s3 takes the answer as input and outputs
     t1; the answer step takes t1 as input and cites it. The chain stops at the
-    root, so the cycle guard never sees it. f731bdb: audit exit 0, and
+    root, so the cycle guard never sees it. 23908ba: audit exit 0, and
     check-trace reports no defect (exit 0)."""
     t = _base()
     t["artifacts"].append({"artifact_id": "t1", "kind": "tool_result", "content": ANSWER})
@@ -113,7 +113,7 @@ def test_a_tool_result_made_from_the_answer_cannot_ground_the_answer(tmp_path):
 def test_a_step_cannot_cite_a_root_it_produced_itself(tmp_path):
     """The answer step lists t1 as its input AND its output, and cites it.
     SELF_CITATION only compares the claim's artifact with the cited one.
-    f731bdb: audit exit 0; check-trace exit 0 with only a `mixed_outputs` note."""
+    23908ba: audit exit 0; check-trace exit 0 with only a `mixed_outputs` note."""
     t = _base()
     t["artifacts"].append({"artifact_id": "t1", "kind": "tool_result", "content": ANSWER})
     t["steps"][1] = {"step_id": "s2", "kind": "answer",

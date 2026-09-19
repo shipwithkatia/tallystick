@@ -1,6 +1,6 @@
-"""proverka16: one failing test per finding on 67090d6.
+"""proverka16: one failing test per finding on 3aa58a8.
 
-Numbers in the docstrings were measured on 67090d6; the external review
+Numbers in the docstrings were measured on 3aa58a8; the external review
 that found them gave the command for each.
 """
 

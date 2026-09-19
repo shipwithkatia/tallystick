@@ -1,6 +1,6 @@
 """proverka13, section 5: numbers in README and docs, recounted.
 
-Both tests fail on f731bdb.
+Both tests fail on 23908ba.
 """
 
 from __future__ import annotations

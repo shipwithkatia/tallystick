@@ -56,7 +56,7 @@ def test_convert_to_another_path_still_names_the_logs_size(tmp_path, capsys):
 
 # ---------------------------------------------------------------------------
 # Round 19: the echo detection is back as a note that moves no exit code.
-# Put back from e69a6bc, where round 18 removed them with the detection.
+# Put back from f84f278, where round 18 removed them with the detection.
 # Tests of the confirmation gate stay out; an exit of 1 became 0.
 # ---------------------------------------------------------------------------
 

@@ -167,7 +167,7 @@ def test_coverage_counts_only_claims_that_close(tmp_path):
     answer = "Canberra is the capital. Revenue grew."
     trace = _posted(answer, [(0, 24), (25, len(answer))])
     trace["entries"] = trace["entries"][:1]          # the second claim has no credit
-    from tallystick.report import answer_cover        # here, so the file loads on e69a6bc
+    from tallystick.report import answer_cover        # here, so the file loads on f84f278
     run = load_run(trace)
     cover = answer_cover(run, close_books(run))
     assert (cover.total, cover.claimed, cover.closed) == (31, 31, 20)
@@ -181,7 +181,7 @@ def test_coverage_counts_only_claims_that_close(tmp_path):
 @pytest.mark.parametrize("script", ["th", "bo", "zh"])
 def test_a_long_chat_with_no_echo_is_read_to_the_end_with_nothing_demoted(tmp_path, script):
     """150 turns; the model writes 1,000 characters into each call, the tool
-    answers 2,000 others. On e69a6bc the Thai chat came back with 13 replies
+    answers 2,000 others. On f84f278 the Thai chat came back with 13 replies
     `unchecked`, exit 1."""
     blocks = {"th": (0x0E01, 0x0E2F, ["", "ั", "ิ", "ี", "ุ"], ""),
               "bo": (0x0F40, 0x0F6A, ["", "ི", "ུ", "ེ", "ོ"], "་"),

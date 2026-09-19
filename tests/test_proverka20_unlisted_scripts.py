@@ -1,7 +1,7 @@
 """proverka20, 2.4a: a note in a script written without spaces that is not on
 the reader's list (_NO_SPACES) is one whitespace word, so a quote, a label or a
 bracket glued to it makes it match nothing. The same shape in English, Chinese
-and Thai is noted; here nothing is said. Old: e69a6bc behaves the same."""
+and Thai is noted; here nothing is said. Old: f84f278 behaves the same."""
 import json
 
 import pytest

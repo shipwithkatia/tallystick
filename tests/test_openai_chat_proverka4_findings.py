@@ -184,13 +184,13 @@ def test_control_python_audit_passes_a_balanced_trace_without_warnings():
 
 # ---------------------------------------------------------------------------
 # Round 19: the echo detection is back as a note that moves no exit code.
-# Put back from e69a6bc, where round 18 removed them with the detection.
+# Put back from f84f278, where round 18 removed them with the detection.
 # Tests of the confirmation gate stay out; an exit of 1 became 0.
 # ---------------------------------------------------------------------------
 
 def _assert_not_silent_or_noted(messages, content):
     """The result is not a root, or it has its own record in echo_warning_details
-    (e69a6bc's `_assert_not_silent` with a_warning_counts=True). `_assert_not_silent`
+    (f84f278's `_assert_not_silent` with a_warning_counts=True). `_assert_not_silent`
     above stays demotion only, as round 18 made it."""
     trace = oc.to_trace(messages)
     art = _result(trace, content)

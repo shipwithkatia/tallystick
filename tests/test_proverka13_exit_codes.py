@@ -1,7 +1,7 @@
 """proverka13, section 2: exit codes.
 
 0 - balances, 1 - verdict against, 2 - could not check. Each test fails on
-f731bdb. An uncaught exception leaves the interpreter with exit 1, which is the
+23908ba. An uncaught exception leaves the interpreter with exit 1, which is the
 "verdict against" code; in-process, the same defect shows as `main` raising.
 """
 
@@ -22,7 +22,7 @@ BALANCED = json.loads((ROOT / "examples" / "balanced_run.json").read_text(encodi
 def test_audit_does_not_pass_a_final_answer_nobody_posted_claims_on(tmp_path):
     """Two final_answer artifacts; one has a claim that grounds, the other has
     no claim at all. check-trace calls this a defect (multiple_final_answers,
-    exit 1); audit checks one answer and exits 0 on both. f731bdb: exit 0."""
+    exit 1); audit checks one answer and exits 0 on both. 23908ba: exit 0."""
     t = {
         "artifacts": [
             {"artifact_id": "doc", "kind": "document", "content": "Canberra is the capital."},
@@ -47,7 +47,7 @@ def test_audit_does_not_pass_a_final_answer_nobody_posted_claims_on(tmp_path):
 def test_deeply_nested_json_is_unreadable_not_a_verdict(tmp_path, command):
     """200,000 nested brackets: valid JSON grammar, but json.loads raises
     RecursionError, which read_json_file does not turn into TraceError.
-    f731bdb: traceback, exit 1."""
+    23908ba: traceback, exit 1."""
     path = tmp_path / "deep.json"
     path.write_text("[" * 200_000 + "]" * 200_000, encoding="utf-8")
     assert main([command, str(path), "--quiet"]) == 2
@@ -66,14 +66,14 @@ def _surrogate_log(tmp_path) -> Path:
 
 
 def test_check_trace_on_a_lone_surrogate_does_not_exit_1(tmp_path):
-    """f731bdb: UnicodeEncodeError in convert.json_bytes (the trace-size
+    """23908ba: UnicodeEncodeError in convert.json_bytes (the trace-size
     measure), traceback, exit 1."""
     assert main(["check-trace", str(_surrogate_log(tmp_path)), "--quiet"]) in (0, 2)
 
 
 def test_convert_on_a_lone_surrogate_exits_2_and_leaves_no_half_file(tmp_path):
     """`convert` has no verdict and so, by its own docstring, no exit 1.
-    f731bdb: UnicodeEncodeError from _write_json (not an OSError), exit 1, and
+    23908ba: UnicodeEncodeError from _write_json (not an OSError), exit 1, and
     a truncated output file of a few hundred bytes left on disk."""
     out = tmp_path / "out.json"
     code = main(["convert", str(_surrogate_log(tmp_path)), "-o", str(out), "--quiet"])
@@ -84,7 +84,7 @@ def test_convert_on_a_lone_surrogate_exits_2_and_leaves_no_half_file(tmp_path):
 def test_audit_json_on_a_lone_surrogate_does_not_exit_1(tmp_path):
     """The balanced example with one character of the answer replaced by a
     lone surrogate audits to BOOKS BALANCE; with --json the report write raises
-    UnicodeEncodeError. f731bdb: exit 1 on a run whose books balance."""
+    UnicodeEncodeError. 23908ba: exit 1 on a run whose books balance."""
     text = json.dumps(BALANCED).replace("fell to 11.2%.", "fell to 11.2%\\ud83d")
     path = tmp_path / "t.json"
     path.write_text(text, encoding="utf-8")
@@ -102,7 +102,7 @@ def test_audit_json_on_a_lone_surrogate_does_not_exit_1(tmp_path):
 ])
 def test_a_malformed_meta_block_is_not_a_verdict(tmp_path, command, key, value):
     """A `_meta` field of the wrong type in an otherwise balanced trace.
-    f731bdb: TypeError / AttributeError escapes, exit 1 from the shell."""
+    23908ba: TypeError / AttributeError escapes, exit 1 from the shell."""
     t = copy.deepcopy(BALANCED)
     t["_meta"] = {key: value}
     path = tmp_path / "t.json"

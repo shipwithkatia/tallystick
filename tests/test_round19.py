@@ -5,7 +5,7 @@ their gate; measured afterwards, the demotion that stayed caught none of the six
 real echoes in review 16's hand-read sample. What was wrong was not showing
 those results but accusing: exit 1 and a confirmation by name, on a signal that
 was right 6 times in 20. So the same detection is back (adapters/openai_chat.py
-as of e69a6bc), listed under the report and in `--json`, and it never moves an
+as of f84f278), listed under the report and in `--json`, and it never moves an
 exit code. No `--accept-echo-warning`, no `UnreviewedEchoWarnings`, no
 `unreviewed_echo_warnings`.
 

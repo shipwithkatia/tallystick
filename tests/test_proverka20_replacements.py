@@ -12,7 +12,7 @@ asserts the exit code is unchanged, so a return of the gate is caught too.
     test_proverka13_mutation_gaps.py::test_a_structured_echo_record_without_its_text_still_blocks
                                                  -> test_a_structured_record_alone_is_noted_everywhere
 
-Measured: all pass on 34dc1d4 and fail on 4d82765 (round 18, no note)."""
+Measured: all pass on 64ff136 and fail on 0fa3383 (round 18, no note)."""
 
 from __future__ import annotations
 

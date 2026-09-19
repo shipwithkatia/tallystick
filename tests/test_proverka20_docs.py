@@ -1,5 +1,5 @@
 """proverka20, 2.6 / 2.7: what the README says against what the tool does, and
-numbers the README gives with no command to recompute them. Measured on 34dc1d4."""
+numbers the README gives with no command to recompute them. Measured on 64ff136."""
 
 from __future__ import annotations
 
@@ -96,7 +96,7 @@ def test_the_price_of_the_half_line_names_a_command_that_recomputes_it():
     """Rule 5: README gives 1,489 posted traces, 130 moved 0 -> 1, and 60 named
     before, with no command and no address: the traces are this project's own
     benchmark output (bench/work*/posted, .gitignore) and no script in bench/
-    counts them. Recounted outside the repo on 34dc1d4: 1489 files, 130 whose
+    counts them. Recounted outside the repo on 64ff136: 1489 files, 130 whose
     only exit-1 reason is answer_mostly_unclaimed - the number holds, nobody
     else can check it. Same for "about 165 characters (29 words)"."""
     para = _paragraph("1,489")

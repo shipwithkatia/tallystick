@@ -2,7 +2,7 @@
 
 `convert log.json -o log.json` overwrites the log with the trace, and only then
 measures "the log on disk" - by the same path. The line then names a log the
-size of the trace, a size no log ever had. f731bdb, 300-turn chat of 122,317
+size of the trace, a size no log ever had. 23908ba, 300-turn chat of 122,317
 bytes: "the trace is 2.9 MB from a log of 2.9 MB on disk (1x)".
 """
 

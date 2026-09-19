@@ -63,7 +63,7 @@ def test_the_depth_boundary_is_exact():
 @pytest.mark.parametrize("final_id", ["a_final", "zz_final", "m_final"])
 def test_a_chain_too_deep_is_unchecked_not_laundered_under_any_name(final_id):
     """Review 13, 1.2, second defect: running out of depth is "could not check".
-    f731bdb: `a_final` came out LAUNDERED, `zz_final` GROUNDED."""
+    23908ba: `a_final` came out LAUNDERED, `zz_final` GROUNDED."""
     b = close_books(load_run(_chain(300, final_id=final_id)))
     a = b.audits[final_id]
     assert a.status is ClaimStatus.UNCHECKED
@@ -168,7 +168,7 @@ def _renamed(t, rng):
 def test_verdicts_do_not_depend_on_claim_names_or_array_order(seed, monkeypatch):
     """Random runs, with the depth limit lowered to 2 so that it is met, audited
     as written and again with every claim renamed and every array shuffled.
-    Each claim must come out the same. f731bdb fails this on some seeds."""
+    Each claim must come out the same. 23908ba fails this on some seeds."""
     monkeypatch.setattr(ledger, "MAX_DEPTH", 2)
     rng = random.Random(seed)
     t = _random_trace(rng)
@@ -239,7 +239,7 @@ def test_a_root_the_step_did_not_make_still_funds_it():
 @pytest.mark.parametrize("command", ["audit", "check-trace"])
 def test_a_meta_field_the_gate_reads_is_refused_when_malformed(tmp_path, meta, command):
     """Skipping a field the echo gate reads, because it had the wrong type,
-    would be a gate that opens on malformed input. f731bdb: `_meta: 5` and a
+    would be a gate that opens on malformed input. 23908ba: `_meta: 5` and a
     non-list `echo_warning_details` were passed over and the run exited 0."""
     t = copy.deepcopy(BALANCED)
     t["_meta"] = meta
