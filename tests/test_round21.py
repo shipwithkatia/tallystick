@@ -480,7 +480,7 @@ def test_n_c2_every_note_a_declaration_cleared_is_named(tmp_path, capsys):
 
 # --------------------------------------------------------------------------- #
 # Written for the three mutants of this round's code that the first run left
-# alive (tallystick-lab/круг-21, mutants.txt)
+# alive
 # --------------------------------------------------------------------------- #
 
 

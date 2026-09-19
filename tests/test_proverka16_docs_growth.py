@@ -138,8 +138,8 @@ CORPUS = ROOT / "bench" / "work-agenthallu" / "AgentHallu"
 def test_the_corpus_sentence_is_what_the_named_command_prints():
     """docs: "None of AgentHallu's 693 trajectories comes near it: the largest trace
     there is 2.3 times its log (`python bench/trace_growth.py --corpus <AgentHallu>`".
-    Needs the corpus, so it guards nothing for a stranger (knowledge.md rule 13);
-    the two tests above do not."""
+    Needs the corpus, which is not in the repository, so it guards nothing for a
+    stranger; the two tests above do not."""
     text = " ".join(DOCS.read_text(encoding="utf-8").split())
     m = re.search(r"None of AgentHallu's (\d+) trajectories comes near it: the largest "
                   r"trace there is ([\d.]+) times its log \(`python bench/trace_growth.py "

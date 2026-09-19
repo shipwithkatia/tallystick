@@ -182,7 +182,7 @@ def test_coverage_counts_only_claims_that_close(tmp_path):
 def test_a_long_chat_with_no_echo_is_read_to_the_end_with_nothing_demoted(tmp_path, script):
     """150 turns; the model writes 1,000 characters into each call, the tool
     answers 2,000 others. On e69a6bc the Thai chat came back with 13 replies
-    `unchecked`, exit 1 (tallystick-lab/круг-18/raw/thai_*.txt)."""
+    `unchecked`, exit 1."""
     blocks = {"th": (0x0E01, 0x0E2F, ["", "ั", "ิ", "ี", "ุ"], ""),
               "bo": (0x0F40, 0x0F6A, ["", "ི", "ུ", "ེ", "ོ"], "་"),
               "zh": (0x4E00, 0x4F00, [""], "")}

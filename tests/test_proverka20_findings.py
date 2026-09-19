@@ -1,5 +1,5 @@
 """proverka20: one failing test per finding on 34dc1d4 - the note, the reader,
-the exit codes and the coverage line. The report (ОТЧЁТ-проверка-20.md) gives
+the exit codes and the coverage line. The external review that found them gave
 the command and the numbers for each."""
 
 from __future__ import annotations

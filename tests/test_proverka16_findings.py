@@ -1,7 +1,7 @@
 """proverka16: one failing test per finding on 67090d6.
 
-Numbers in the docstrings were measured on 67090d6; the report
-(ОТЧЁТ-проверка-16.md) gives the command for each.
+Numbers in the docstrings were measured on 67090d6; the external review
+that found them gave the command for each.
 """
 
 from __future__ import annotations
