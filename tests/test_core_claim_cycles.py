@@ -70,13 +70,20 @@ def _loop(shape: str, n: int, reverse: bool):
 
 
 def test_settling_a_loop_recomputes_only_what_can_improve(monkeypatch):
-    """Calls to `_resolve`, for a loop that closes through one document. The
-    code under test: 2n on both shapes, both name orders. A sweep until nothing
-    changes: n*n on the ring when the document sits at the far end (62,502 for
-    250 claims, 7 s with 2,000-character texts). Recomputing every claim that
-    cites a closed one: n*n on the clique (26 s for 80 claims of 2,000
-    characters). The clique in test_core_and_coverage_edges.py has no document,
-    so it closes nothing and sees neither."""
+    """Calls to `_resolve`, for a loop that closes through one document. What
+    this test holds the code to is a ceiling of 3n on both shapes and both name
+    orders - not an exact cost. A cheaper figure has been measured by hand, but
+    no command in this repository recomputes it, so it is not written here and
+    not guarded: a change that doubled the cost and stayed under 3n would leave
+    this test green.
+
+    Historical, and guarded by nothing here - the cost of two implementations
+    this test never runs. A sweep until nothing changes: n*n on the ring when
+    the document sits at the far end (62,502 calls for 250 claims, 7 s with
+    2,000-character texts). Recomputing every claim that cites a closed one:
+    n*n on the clique (26 s for 80 claims of 2,000 characters). The clique in
+    test_core_and_coverage_edges.py has no document, so it closes nothing and
+    sees neither."""
     calls = [0]
     real = ledger._resolve
 

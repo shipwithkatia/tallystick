@@ -170,11 +170,14 @@ def test_the_threshold_is_one_named_constant():
 
 
 def test_a_bare_word_of_an_earlier_call_is_not_a_value_across_turns():
-    # Across calls nothing ties a reply to a call, so the values weighed there
-    # are the ones a call plainly carried - its JSON values, its literals, its
-    # lines. Not its bare word atoms: in a hand-read sample, every atom match
-    # across calls was the tool doing its job (a reply holding the word
-    # `False`, a query term, a file name).
+    # Across calls nothing ties a reply to a call, so a bare word atom of an
+    # earlier call is not weighed as a value across turns: in a hand-read
+    # sample, every atom match across calls was the tool doing its job (a reply
+    # holding the word `False`, a query term, a file name). That one case is
+    # all this test checks - one log, one atom (`dataset`), and no warning of
+    # kind `earlier_turn`. What a call plainly carried across a turn - its JSON
+    # values, its literals, its lines - is weighed, but not here; no input
+    # below exercises it.
     log = [QUESTION,
            {"role": "assistant", "content": "compute",
             "tool_calls": [_call("python", {"code": "results = compute(dataset)\nprint(len(results))"}, "c0")]},
