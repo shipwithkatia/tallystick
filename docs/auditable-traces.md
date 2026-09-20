@@ -26,8 +26,8 @@ extracting content, Magentic-One's `answer_question`. Others are not a digest:
 a list of search results with their snippets, the text visible in a browser
 window after typing or scrolling, a page as fetched (`visit_webpage`), one
 interpreter's printed output. Whatever the reply was, the trace keeps no record
-of how the tool made it, and an audit of the file stops there. (Measured; see the
-AgentHallu section of the [README](../README.md).)
+of how the tool made it, and an audit of the file stops there. (Measured; see
+[the benchmark](benchmark.md#real-trajectories-agenthallu-v073-september-2026).)
 
 ## What to record
 
@@ -224,3 +224,6 @@ tool-only. And the significance test the script prints
 rejects for the placebo too, so it is printed beside it rather than quoted
 alone. Treat the share as a fact about a recording, not as a predictor of where
 a hallucination is.
+
+---
+Built by Katia Engalycheva, co-authored with Claude (Anthropic) | [GitHub](https://github.com/shipwithkatia) | [LinkedIn](https://www.linkedin.com/in/katiaengalycheva/)

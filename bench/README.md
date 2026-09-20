@@ -1,6 +1,6 @@
 # bench/ — the benchmark, its files, and how to score your own detector
 
-`build.py` constructs the traces, `run.py` scores three methods on them, `ci.py` adds bootstrap intervals, `diagnose.py` sorts a run's false flags by cause, and `agenthallu.py` runs the audit against AgentHallu's real trajectories. The construction and its caveats are under Benchmark in the top-level README; earlier runs are in `HISTORY.md`.
+`build.py` constructs the traces, `run.py` scores three methods on them, `ci.py` adds bootstrap intervals, `diagnose.py` sorts a run's false flags by cause, and `agenthallu.py` runs the audit against AgentHallu's real trajectories. The construction and its caveats are in [`docs/benchmark.md`](../docs/benchmark.md); earlier runs are in `HISTORY.md`.
 
 ## Using the benchmark for your own detector
 
@@ -37,3 +37,6 @@ p-value. `--exclude-codeact` drops the runs whose tools execute inside
 model-written code; `--cut` moves the line; `--json` writes every row.
 
 Nothing in it is held out. On another corpus, run it before trusting the 80%.
+
+---
+Built by Katia Engalycheva, co-authored with Claude (Anthropic) | [GitHub](https://github.com/shipwithkatia) | [LinkedIn](https://www.linkedin.com/in/katiaengalycheva/)

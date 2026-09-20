@@ -465,7 +465,9 @@ def test_bench_and_pipeline_sentence_boundaries_agree():
 
 MISNOMER_FILES = ("README.md", "bench/HISTORY.md", "tallystick/auditability.py",
                   "bench/auditability_agenthallu.py",
-                  "bench/results/auditability-agenthallu.txt")
+                  "bench/results/auditability-agenthallu.txt",
+                  # the README's long sections live here since the TL;DR split
+                  "docs/benchmark.md", "docs/design.md")
 
 
 def test_the_within_trace_test_is_never_called_a_permutation_test():

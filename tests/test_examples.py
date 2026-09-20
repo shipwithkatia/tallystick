@@ -112,15 +112,29 @@ if __name__ == "__main__":
                 print(f"exit code of {name} is {code}, CASES says {CASES[name][1]}")
 
 
-def test_the_readme_quotes_output_the_tool_actually_produces():
+#: The documents allowed to quote a report block. Searched in full, so the
+#: guard follows the text rather than one filename: 2569bc2 moved this block
+#: out of the README and into docs/design.md, and a guard naming only the
+#: README would have passed by finding nothing to check.
+QUOTING_DOCS = ("README.md", "docs/design.md")
+
+
+def test_the_docs_quote_output_the_tool_actually_produces():
     """Twice in this project a number or a sample in the README came from a run
     that no longer existed. A quoted terminal block is the same risk with more
     surface: it looks like evidence and rots silently. This pins it to the
-    golden file, so the two cannot disagree."""
-    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    golden file, so the two cannot disagree - and fails if no document quotes
+    it at all, which is how such a block goes missing."""
     golden = (EXPECTED / "laundered_search.txt").read_text(encoding="utf-8")
     body = golden.rstrip()
-    assert body in readme, (
-        "the report block quoted in README.md is not what the tool prints. "
-        "Regenerate with: python tests/test_examples.py --update, then paste "
-        "examples/expected/laundered_search.txt into the README block")
+    opener = body.splitlines()[0]
+    texts = {name: (ROOT / name).read_text(encoding="utf-8") for name in QUOTING_DOCS}
+    quoting = [name for name, text in texts.items() if opener in text]
+    assert quoting, (
+        f"no document quotes the report block (searched {', '.join(QUOTING_DOCS)}). "
+        "If it moved, add the file to QUOTING_DOCS; if it was dropped, say so here.")
+    for name in quoting:
+        assert body in texts[name], (
+            f"the report block quoted in {name} is not what the tool prints. "
+            "Regenerate with: python tests/test_examples.py --update, then paste "
+            "examples/expected/laundered_search.txt into the block")
