@@ -67,8 +67,10 @@
   Published numbers predate this and were not re-measured; the gate is stricter,
   so a quote that passed on drift in content would now be flagged.
   **The break reason.** `ledger.py` promised results independent of the order of
-  arrays in the input file. The verdict was: 2,000 permutations of the shipped
-  examples move nothing. The sentence explaining it was not — it read
+  arrays in the input file. The verdict was, and is: 2,000 shuffles of every array in
+  each of the two shipped examples move no status and no breaking step, recounted
+  here rather than taken from the review, and the reason is now in that set
+  (`tests/test_break_reason_is_order_independent.py` repeats it at 200). The sentence explaining it was not — it read
   `entries[0].reason`, so one claim with three rejected entries reported
   `artifact_unknown`, `span_mismatch` or `prior_never_funds` according to how the
   file happened to list them, in the terminal, in `--chain` and in `--json`. The
