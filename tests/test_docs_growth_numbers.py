@@ -108,7 +108,7 @@ def test_the_growth_numbers_in_the_docs_are_what_the_named_command_prints():
     assert not problems, "\n".join(problems) + "\n--- script output ---\n" + output
 
 
-def test_the_check_would_have_caught_the_f731bdb_text():
+def test_the_check_would_have_caught_the_23908ba_text():
     """The guard is only worth something if it fails on the text that was
     wrong. The 23908ba paragraphs are quoted here verbatim."""
     old_docs = (
