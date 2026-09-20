@@ -2,6 +2,15 @@
 
 # Benchmark
 
+**Which version measured what.** The constructed benchmark below is a v0.6 run
+(`bench/results/2026-09-n100-v0.6.json`); the real-trajectory tables are a v0.7.3
+run (`bench/results/agenthallu-v0.7.3-rows.jsonl`, and every row carries its
+`tallystick_version`). Nothing here was re-measured on v0.7.5 or v0.8: those
+versions changed how a raw log is read and what is said about a result that may
+be the model's own text, not how a posted trace is audited. Both tables
+recompute from the committed rows with no model and no key —
+`python bench/ci.py bench/results/2026-09-n100-v0.6.json`.
+
 When this benchmark was built, no multi-step dataset with sentence-level labels of unsupported claims was available — the hallucination corpora are one hop, and [AgentHallu](https://arxiv.org/abs/2601.06818) (2026), which does have real multi-step trajectories, labels the responsible *step*, not the sentence; it is the basis of the v0.7 run below. So `bench/build.py` constructs two-hop traces from RAGTruth (test split, Summary and QA tasks, human-annotated hallucinated spans; MIT) without any model: the RAGTruth response becomes the intermediate summary, and a final answer is built by quoting up to three of its sentences, chosen uniformly at random, verbatim. Selection and quoting are seeded (`--seed`, default 7): the item shuffle takes the seed, and each trace's sentence choice is seeded per item, so a trace is byte-identical whatever `--limit` built it, and `--limit N` takes a random prefix of one fixed order rather than a different sample. The seed is recorded in `manifest.json`. Ground truth follows from the annotations alone — a quoted sentence that overlaps an annotated span is laundered, one that overlaps none is grounded.
 
 Four things the reader should know before the number (the first two, and the per-side failure counts behind the fourth, are also printed in the report):

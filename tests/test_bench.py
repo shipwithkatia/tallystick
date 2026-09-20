@@ -485,6 +485,23 @@ def test_the_within_trace_test_is_never_called_a_permutation_test():
         f"found the old name at {offences}")
 
 
+#: The framework-stratified test IS a permutation test. What was retracted under
+#: v0.7.4 is quoting it as the one that settles the association: it rejects for
+#: the placebo too, so it is read beside the placebo and never alone. That
+#: retraction reached every file but `bench/README.md`, which went on calling it
+#: "the test that matters". The guard is positive rather than a banned string,
+#: so the retraction may quote the old words without tripping it.
+
+
+def test_bench_readme_never_presents_the_stratified_test_without_the_placebo():
+    text = (ROOT / "bench" / "README.md").read_text(encoding="utf-8")
+    offences = [" ".join(p.split())[:90] for p in text.split("\n\n")
+                if "permutation test" in p.lower() and "placebo" not in p.lower()]
+    assert not offences, (
+        "a paragraph describes the stratified permutation test with no placebo "
+        f"beside it: {offences}")
+
+
 def test_the_within_trace_null_draws_each_trace_at_its_own_rate():
     """Behavioural, not textual: with every trace tool-only, the null reaches the
     observed count every time; with none, never. A shuffle of a fixed vector of

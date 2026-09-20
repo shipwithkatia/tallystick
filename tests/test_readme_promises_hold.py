@@ -49,8 +49,10 @@ def test_readme_verdict_comments_on_example_logs_match_the_tool():
 
 
 def test_readme_python_version_matches_pyproject():
-    """README says 'Python 3.9 or newer'; pyproject says requires-python >=3.10,
-    so pip refuses the install on 3.9 ('requires a different Python')."""
+    """Every 'Python 3.x or newer' in the README must name the floor in
+    pyproject's requires-python. The README once said 3.9 against a floor of
+    3.10, which sends a reader to an install pip refuses ('requires a different
+    Python'); it says 3.10 now, and this holds it there."""
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     req = re.search(r'^requires-python = "([^"]+)"', (ROOT / "pyproject.toml").read_text(encoding="utf-8"), re.M).group(1)
     floor = re.fullmatch(r">=\s*3\.(\d+)", req).group(1)
@@ -68,3 +70,27 @@ def test_audit_on_an_unreadable_file_raises_trace_error_as_readme_says(tmp_path,
         path.mkdir()
     with pytest.raises(TraceError):
         audit(str(path))
+
+
+def test_readme_status_line_names_the_version_pyproject_installs():
+    """The status line is where a reader learns which version this is. It said
+    v0.7.x while pyproject said 0.8.0 and the latest tag said v0.7.4, and no
+    test compared the three."""
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    version = re.search(r'^version = "([^"]+)"', pyproject, re.M).group(1)
+    line = next((l for l in readme.splitlines() if l.startswith("**Status:**")), None)
+    assert line, "README has no '**Status:**' line"
+    stated = re.search(r"\bv(\d+\.\d+\.\d+)\b", line)
+    assert stated, f"the status line names no version: {line!r}"
+    assert stated.group(1) == version, (stated.group(1), version)
+
+
+def test_the_package_version_matches_pyproject():
+    """`pip install` reads pyproject; `tallystick.__version__` is what a benchmark
+    row file records. Two numbers in two files, so they are compared here."""
+    import tallystick
+
+    pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    version = re.search(r'^version = "([^"]+)"', pyproject, re.M).group(1)
+    assert tallystick.__version__ == version
