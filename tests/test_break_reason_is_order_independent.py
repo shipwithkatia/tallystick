@@ -1,8 +1,9 @@
 """The reason a chain broke is a property of the trace, not of the file's layout.
 
 ledger.py's module docstring promises that results do not depend on the order of
-arrays in the input file. The verdict held - 2,000 permutations of the shipped
-examples give the same statuses - but the sentence under it did not: the reason
+arrays in the input file. The verdict held - 2,000 shuffles of every array in each
+of the two shipped examples, run when this fix landed, move no status, no breaking
+step and, now, no reason - but the sentence under it did not: the reason
 was `entries[0].reason`, the first element of the entries array. One claim with
 three rejected entries reported `artifact_unknown`, `span_mismatch` or
 `prior_never_funds` depending only on how the file happened to list them, and
@@ -16,7 +17,12 @@ from __future__ import annotations
 from itertools import permutations
 
 from tallystick import close_books, load_run
-from tallystick.verify import REASON_ORDER, worst_reason
+
+# `worst_reason` and `REASON_ORDER` are imported inside the two tests that need
+# them, not here: on the code before this fix they do not exist, and a module-level
+# import would make every test in this file an error at collection time. The
+# behaviour tests below must be able to run there and FAIL, which is the only way
+# they are shown to guard anything (project rule 7).
 
 DOC = "The filing reports revenue of 14 million euro for the year."
 ANSWER = "Revenue was 14 million euro."
@@ -62,6 +68,8 @@ def test_the_reason_named_is_the_earliest_gate_that_failed():
 
 
 def test_worst_reason_ranks_by_the_gate_order_and_ignores_ok():
+    from tallystick.verify import worst_reason
+
     class _E:
         def __init__(self, reason):
             self.reason = reason
@@ -75,10 +83,42 @@ def test_worst_reason_ranks_by_the_gate_order_and_ignores_ok():
     assert worst_reason([_E("something_new"), _E("span_mismatch")]) == "span_mismatch"
 
 
+def test_the_shipped_examples_survive_shuffling_every_array():
+    """Verdict, breaking step and reason together, over the two examples the
+    README prints. 200 shuffles here; the same loop at 2,000 was run by hand on
+    both files when this fix landed and moved nothing.
+
+    The existing shuffle tests cover the verdict. This one covers the sentence
+    under it, which is what `entries[0].reason` used to decide.
+    """
+    import json
+    import random
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1]
+    rng = random.Random(7)
+    for name in ("examples/laundered_summary.json", "examples/balanced_run.json"):
+        base = json.loads((root / name).read_text(encoding="utf-8"))
+
+        def verdict(doc):
+            b = close_books(load_run(doc))
+            return (b.books_balance, {k: (a.status.value, a.break_step_id, a.break_reason)
+                                      for k, a in b.audits.items()})
+
+        reference = verdict(json.loads(json.dumps(base)))
+        for _ in range(200):
+            shuffled = json.loads(json.dumps(base))
+            for key in ("artifacts", "steps", "claims", "entries"):
+                if isinstance(shuffled.get(key), list):
+                    rng.shuffle(shuffled[key])
+            assert verdict(shuffled) == reference, name
+
+
 def test_the_gate_order_covers_every_reason_the_verifier_can_give():
     """A new rejection reason added to verify.py without a place in REASON_ORDER
     would silently rank last. Fail here instead."""
     import tallystick.verify as verify
+    from tallystick.verify import REASON_ORDER
 
     named = {value for key, value in vars(verify).items()
              if key.isupper() and isinstance(value, str)
