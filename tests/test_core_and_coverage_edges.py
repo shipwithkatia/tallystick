@@ -392,24 +392,14 @@ def test_the_diff_the_examples_readme_gives_is_empty_on_a_correct_copy():
     assert out == expected
 
 
-def test_echo_coverage_without_the_corpus_says_so_instead_of_crashing(tmp_path):
-    """README names `python bench/echo_coverage.py <AgentHallu>`. Given a
-    directory with no trajectories it prints zeros, then raises
-    ZeroDivisionError and exits 1. strict_mode.py with no argument exits 2 with
-    its usage; auditability_agenthallu.py on a missing path exits 2."""
-    result = subprocess.run([sys.executable, str(ROOT / "bench" / "echo_coverage.py"),
-                             str(tmp_path)], capture_output=True, text=True, timeout=120)
-    assert "Traceback" not in result.stderr, result.stderr[-300:]
-
-
 def test_auditability_script_on_the_clone_root_does_not_report_zero_with_exit_0(tmp_path):
     """docs/auditable-traces.md: "reproducible with `python
     bench/auditability_agenthallu.py --data <AgentHallu>`". `git clone
     https://github.com/liuxuannan/AgentHallu` puts the trajectories one folder
     down, in AgentHallu/AgentHallu/<framework>/. The script globs `*/*.json`, so
     given the clone it prints "0 trajectories, 0 labelled" and every row 0/0,
-    and exits 0. (trace_growth.py, strict_mode.py and echo_coverage.py search
-    recursively and take the clone.) Laid out here with the committed sample."""
+    and exits 0. (trace_growth.py and strict_mode.py search recursively and
+    take the clone.) Laid out here with the committed sample."""
     clone = tmp_path / "AgentHallu"
     shutil.copytree(ROOT / "bench" / "sample-agenthallu", clone / "AgentHallu")
     result = subprocess.run([sys.executable, str(ROOT / "bench" / "auditability_agenthallu.py"),

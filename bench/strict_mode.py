@@ -45,7 +45,8 @@ def main(argv) -> int:
         undeclared = _undeclared_tool_results(trace)
         failed += bool(undeclared and undeclared[0])
     if not n:
-        # The same division by zero as echo_coverage.py (review 16, 5.2).
+        # The same division by zero echo_coverage.py had (review 16, 5.2);
+        # that script was deleted in 60cd0f9.
         print(f"no AgentHallu trajectories under {root} - nothing to measure. The "
               f"corpus is not in this repository: git clone "
               f"https://github.com/liuxuannan/AgentHallu and pass the clone",

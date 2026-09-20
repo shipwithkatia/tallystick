@@ -1082,14 +1082,14 @@ def _hands_back_what_it_was_given(result: str, sent: str) -> bool:
 
     What it costs, counted afresh on AgentHallu for 3edc4e0 (the corpus as
     bench/openai_roundtrip.py renders it; tests/test_openai_roundtrip_numbers.py
-    pins the figures and bench/echo_coverage.py measures the threshold). With
-    the corpus's four echo tools declared it fires 313 times over 3535 tool
-    results, 177 of them on tools nobody declared. Against the reader written
-    for that corpus by hand it is stricter on 157 artifacts and laxer on none -
-    on this corpus. That last clause is not decoration: "laxer on none" is a
-    measurement of these 693 trajectories, not a property of the code, and the
-    sixth review's three-character bypass was exactly a laxer case that this
-    corpus does not contain.
+    pins the figures; bench/echo_coverage.py, which measured the threshold, was
+    deleted in 60cd0f9). With the corpus's four echo tools declared it fires 313
+    times over 3535 tool results, 177 of them on tools nobody declared. Against
+    the reader written for that corpus by hand it is stricter on 157 artifacts
+    and laxer on none - on this corpus. That last clause is not decoration:
+    "laxer on none" is a measurement of these 693 trajectories, not a property
+    of the code, and the sixth review's three-character bypass was exactly a
+    laxer case that this corpus does not contain.
 
     What the notes are worth is stated where their one number is, at
     WARN_SHARE, and in the README.
