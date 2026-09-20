@@ -23,9 +23,12 @@ three lists worth reading:
 Mutations are exact source snippets. After a rewrite a snippet can disappear;
 the script then reports that mutation as `STALE` instead of running a no-op.
 
-The nine M mutations carry a second set of snippets, for `4cdf21f` - the ref the
-table below records - taken from this script as of `9deaac4`, the commit the
-table was made with. The current set is tried first, so a sweep of `HEAD` reads
+Six of the nine M mutations - M1 to M6 - carry a second set of snippets, for
+`4cdf21f`, the ref the table below records, taken from this script as of
+`9deaac4`, the commit the table was made with. M7 to M9 carry none and need
+none: their current snippets still stand in that ref exactly once, and a second
+set that is never reached would hide drift in the first. That is why the check
+below prints six and not nine. The current set is tried first, so a sweep of `HEAD` reads
 as it did before. That the older set is still the recorded one, and still fits
 `4cdf21f`, is itself checked:
 
@@ -48,14 +51,21 @@ break was taken out in round 18 (`tallystick/echo_gate.py` says so at the top,
 and why), so both report `STALE` on `HEAD`; no snippet brings back behaviour the
 code no longer has.
 
-**Which interpreter.** The size of the suite depends on it, so it is named here.
-Under `.venv`, which has `langchain_core` installed, `4cdf21f` holds 424 tests;
-under a system `python3` without the library, 403:
+**Which interpreter, and whether the corpus is there.** The size of the suite
+depends on the interpreter and what passes depends on the corpus, so both are
+named here. Under `.venv`, which has `langchain_core` installed, `4cdf21f` holds
+424 tests; under a system `python3` without the library, 403. Eight of those
+tests skip when AgentHallu is not attached, which is what a fresh clone has:
 
 ```bash
-.venv/bin/python bench/mutations/mutate.py 4cdf21f --only M0_none  # 424 passed
-python3 bench/mutations/mutate.py 4cdf21f --only M0_none           # 403 passed, 1 skipped
+.venv/bin/python bench/mutations/mutate.py 4cdf21f --only M0_none  # 416 passed, 8 skipped
+python3 bench/mutations/mutate.py 4cdf21f --only M0_none           # 395 passed, 9 skipped
 ```
+
+With the corpus symlinked in, the same two commands give 424 passed and 403
+passed, 1 skipped. The ninth skip under `python3` is the langchain module itself, which
+skips at its own first line rather than test by test: 395 + 8 = 403 collected,
+and the module's skip is the one on top.
 
 The 21 between the two are one file, which stops at its own first line of code
 when the library is missing, so the whole module counts as one skip instead of

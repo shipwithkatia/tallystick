@@ -22,6 +22,65 @@
 
 - **v0.7.4** — the AgentHallu run is published (rows, report and diagnosis in `bench/results/`), and `tallystick check-trace` ships with it: what an audit of a raw trace will be able to see, before any claim is posted. It reports a share — of the artifacts a chain passes through or stops at, how many hold the model's own words rather than a tool's output — plus defects a recorder can fix and notes that are nobody's bug. The share is counted over artifacts rather than steps because a step-based fraction measures the recorder: one agent turn logged as a single step and the same turn logged as two score differently, while the artifact count cannot: artifacts are texts, and how turns are grouped into steps does not change how many there are. `document` roots are left out of it, and an artifact recorded with no content counts on neither side. Two artifacts holding the same text is a note, not a defect — it fires on 216 of 225 traces of the published run, and the fix is a change to the agent, not the recording, so failing a build on it would be noise. Because the check calls no model, the line behind it could be measured on the whole dataset instead of the subset a paid run could afford: `bench/auditability_agenthallu.py` over all 693 trajectories, output in `bench/results/auditability-agenthallu.txt`. Of the 443 labelled, those at or above 80% have the label beyond the audit's reach in 24 of 84 runs (29%) and those below in 212 of 359 (59%) — and the script carries the placebo that keeps that from being oversold. Replace the human label with a step drawn at random from the same trajectory, which knows nothing about the hallucination, and the same ordering appears — 13% against 46% — because a trace with more tool-only steps makes any step more likely to be tool-only. So most of the banding is arithmetic. The real labels are not the placebo, though: they sit at a tool boundary 236 times where each trace's own composition predicts 172 (1.37×; in a within-trace Monte Carlo that draws each trace at its own tool-only rate, none of 20,000 draws reached 236 — the floor of what that many draws resolve, not a measured p-value), and most so in the traces with the highest share (24 against 8.8). That test was called a *permutation* test in the v0.7.4 entry, in the README and in the committed report, and it is not one: nothing is shuffled, each trace draws its own coin. Corrected at v0.7.5, with a test that fails the build if the word returns. Hallucinations really do land at tool boundaries more than chance — a fact about agents, not about this number. A first draft of this entry quoted a framework-stratified permutation test at p = 0.0027 as evidence that the association "survives the test that matters"; it rules out a between-framework confounder, it rejects for the placebo too, and quoting it that way was wrong. It is printed beside the placebo and nowhere else. The cut is chosen on this data and not held out, so it decides nothing unless `--min-reachable` asks. `docs/auditable-traces.md` is the specification behind it.
 
+- **v0.7.5** — the log a person already has, read without a converter:
+  `tallystick/adapters/openai_chat.py` reads an OpenAI Chat Completions message
+  list (LiteLLM, vLLM and most gateways write the same keys) and
+  `tallystick/adapters/otel_genai.py` an OpenTelemetry GenAI span export;
+  `check-trace`, `convert` and `propose` all take `--from {auto,tallystick,openai,otel}`.
+  With it: the three tool declarations (`--tool-returns-model-text`,
+  `--tool-returns-verbatim`, `--tool-returns-external`), `--require-declared-tools`
+  for a team whose tool set is fixed, and the demotion the reader decides on its
+  own — a tool reply that IS a value of the call it answered is the model's text,
+  not a root, whatever anyone declares. Six example logs and their exact expected
+  output ship with it under `examples/logs/` and `examples/expected/`. Also here:
+  the within-trace test is called a Monte Carlo rather than a permutation test, in
+  this file, the README and the committed report, with a test that fails the build
+  if the word comes back (`tests/test_bench.py`).
+- **v0.8.0** — what the reader noticed stops being a gate and becomes a sentence.
+  The echo *warning* that held the exit at 1 until each tool was confirmed by name
+  is gone and does not come back: a signal wrong two times in three may not fail a
+  build, but what it noticed is printed — as `NOTE` under the report, in
+  `may_be_model_text` under `--json`, on stderr under `--quiet` — and it moves no
+  exit code. An external review read 20 such notes on AgentHallu by hand: 6 of 20
+  were the model's own text. Three exit-code rules join it: more than half of the
+  answer's letters and digits under no claim is exit 1 (`answer_mostly_unclaimed`,
+  the owner's decision of 16 September 2026 — on 1,489 posted traces it moved 130
+  runs from 0 to 1, `python bench/half_line.py`); a chain deeper than 256 hops is
+  `unchecked` and exit 2 with `chain_too_deep`, not a failure; tool-call arguments
+  nested past 256 levels are refused on every Python rather than wherever the
+  interpreter gives up. `convert` and `check-trace` say out loud, with the sizes,
+  when a trace is ten times the log it was read from, and change no exit code for
+  it.
+- **v0.8.1** — two findings of an external adversarial review of v0.8.0, both
+  demonstrated against the shipped code before anything was changed here.
+  **The quote gate.** Its tolerance for typographic drift was an edit budget of
+  2% of the span's length, with no ceiling, so a long quote bought edits: a
+  308-character source saying `12.4 million euro` cited as `92.4 million euro`
+  balanced and exited 0, and a 2,645-character span had its closing sentence
+  replaced and balanced too. The floor of that budget had been removed in an
+  earlier round and written up as closing the class; it did not. A ceiling would
+  not close it either, since one edit moves a digit. The budget is gone: letters,
+  digits and any separator standing between two digits must survive character for
+  character, while spacing and punctuation need not. The mutation test that
+  asserted `14 million` may be cited as `15 million` now asserts the opposite,
+  and `tests/test_quote_content_survives.py` holds both demonstrated cases open.
+  Published numbers predate this and were not re-measured; the gate is stricter,
+  so a quote that passed on drift in content would now be flagged.
+  **The break reason.** `ledger.py` promised results independent of the order of
+  arrays in the input file. The verdict was: 2,000 permutations of the shipped
+  examples move nothing. The sentence explaining it was not — it read
+  `entries[0].reason`, so one claim with three rejected entries reported
+  `artifact_unknown`, `span_mismatch` or `prior_never_funds` according to how the
+  file happened to list them, in the terminal, in `--chain` and in `--json`. The
+  earliest gate that failed is now named, in a fixed order
+  (`verify.REASON_ORDER`), with the two bookkeeping positions last;
+  `tests/test_break_reason_is_order_independent.py` walks every permutation.
+  Still open from the same review, and not fixed here: inside a *cycle* of claims
+  that cite each other, which step is named still depends on the claim ids,
+  because the members are ordered by id; and a recorder that writes UTF-16 code
+  units where the format means Unicode code points gets a verdict about its agent
+  rather than a word about its offsets.
+
 ## Earlier benchmark results
 
 The construction, the caveats and the scoring are described in [`docs/benchmark.md`](../docs/benchmark.md); they were the same for these runs except where a section says otherwise.

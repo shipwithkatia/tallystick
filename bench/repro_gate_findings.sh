@@ -61,8 +61,8 @@ for k, v in L.items():
 json.dump([{"claims": [E]}, {"credits": [{"artifact_id": "t4", "quote": E}]}], open(f"{D}/answers_t4.json", "w"))
 EOF
 
-echo; echo "== 1. Обходы гейта"
-ex "check-trace notes.json (контроль)" T check-trace "$D/notes.json"
+echo; echo "== 1. Ways around the gate"
+ex "check-trace notes.json (control)" T check-trace "$D/notes.json"
 ex "propose notes.json (fake)" T propose "$D/notes.json" -o "$D/posted.json" --proposer fake --script "$D/answers_t4.json"
 ex "audit posted.json" T audit "$D/posted.json"
 "$PY" -c "
@@ -84,7 +84,7 @@ ex "1d. propose notes_json (fake)" T propose "$D/notes_json.json" -o "$D/posted_
 ex "1d. audit posted_json" T audit "$D/posted_json.json"
 printf "  1d. BOOKS BALANCE printed: "; T audit "$D/posted_json.json" | grep -c "BOOKS BALANCE"
 
-echo; echo "== 2. Подтверждение по имени"
+echo; echo "== 2. Confirmation by tool name"
 ex "2a. same_name" T check-trace "$D/same_name.json"
 ex "2a. same_name --accept-echo-warning read" T check-trace "$D/same_name.json" --accept-echo-warning read
 echo "  2b. positional --quiet (stderr):"; T check-trace "$D/positional.json" --quiet 2>&1 | sed 's/^/     | /'
@@ -94,12 +94,12 @@ T check-trace "$D/dash_name.json" | grep "to confirm" | sed 's/^/  2d. printed: 
 ex "2d. dash_name --accept-echo-warning -n (as printed)" T check-trace "$D/dash_name.json" --accept-echo-warning -n
 ex "2d. dash_name --accept-echo-warning=-n" T check-trace "$D/dash_name.json" --accept-echo-warning=-n
 
-echo; echo "== 3. Правило отвечающего вызова: вид артефакта (tool_result = доказательство)"
+echo; echo "== 3. The answering-call rule: artifact kind (tool_result = evidence)"
 for k in own_json_envelope own_repr own_status_line own_prefix own_noid_renamed own_id_rewritten own_control; do
   printf "  %-20s" "$k"; T convert "$D/$k.json" -o "$D/$k.out.json" | sed -n 2p
 done
 
-echo; echo "== 4 и 7. Корпус AgentHallu: гейт и числа читателя"
+echo; echo "== 4 and 7. The AgentHallu corpus: the gate and the reader's figures"
 "$PY" - <<'EOF'
 import io, json, sys, tempfile, contextlib
 from pathlib import Path
@@ -139,7 +139,7 @@ for label, fl in modes.items():
     else: print(f"      vs native reader: stricter {stricter}, laxer {laxer}")
 EOF
 
-echo; echo "== 5. Время чтения (to_trace), один ход из N параллельных вызовов по 21 КБ; и N мелких ходов"
+echo; echo "== 5. Reading time (to_trace): one turn of N parallel 21KB calls; and N small turns"
 "$PY" - <<'EOF'
 import io, json, time, tempfile, contextlib
 from pathlib import Path
@@ -180,7 +180,7 @@ def turns(n):
 print("  commit 0deb9e8 figure, 21 KB code per call:", "  ".join(f"{n} turns {turns(n):.2f}s" for n in (200, 400, 800)))
 EOF
 
-echo; echo "== 6. Тесты: проверка группы B и test_note_read_back переживает удаление самого предупреждения"
+echo; echo "== 6. Tests: the group B check, and test_note_read_back surviving the removal of the warning itself"
 for mode in M1 M5; do
   mkdir "$D/$mode" && git archive HEAD | tar -x -C "$D/$mode" && ln -s "$PWD/bench/work-agenthallu" "$D/$mode/bench/work-agenthallu"
   "$PY" - "$D/$mode/tallystick/adapters/openai_chat.py" "$mode" <<'EOF'
@@ -196,7 +196,7 @@ EOF
      tests/test_openai_chat_turn_width.py -k "earlier_turn or note_read_back" 2>&1 | tail -1)
 done
 
-echo; echo "== 7. Числа из коммитов: тесты и файл результатов"
+echo; echo "== 7. The figures the commits quote: the tests and the results file"
 "$PY" bench/openai_roundtrip.py bench/work-agenthallu/AgentHallu --out "$D/rt.txt" >/dev/null \
   && cmp -s "$D/rt.txt" bench/results/openai-roundtrip.txt && echo "  bench/results/openai-roundtrip.txt: identical to a fresh run"
 for c in 0deb9e8 bee91ae e199d64 48c8b8a; do

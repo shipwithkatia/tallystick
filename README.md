@@ -1,5 +1,7 @@
 # tallystick
 
+[![ci](https://github.com/shipwithkatia/tallystick/actions/workflows/ci.yml/badge.svg)](https://github.com/shipwithkatia/tallystick/actions/workflows/ci.yml)
+
 Provenance accounting for LLM agent runs: every claim in the final answer is traced back, hop by hop, to something outside the model — or named, together with the step that invented it.
 
 ## TL;DR
@@ -13,7 +15,7 @@ Provenance accounting for LLM agent runs: every claim in the final answer is tra
 
 ![One hop is not enough: the answer quotes the summary, the summary invented a sentence, and the chain breaks at the summarise step](docs/chain.svg)
 
-**Status:** research prototype, v0.7.x. Interfaces may change between versions. The numbers above are summarised from [docs/benchmark.md](docs/benchmark.md), where each names the run it came from; the per-trace row files are committed under `bench/results/`, and the limits of each measurement are stated next to it.
+**Status:** research prototype, v0.8.1. Interfaces may change between versions. The numbers above were measured on v0.6 (the constructed benchmark) and v0.7.3 (the real trajectories); the log readers that arrived in v0.7.5 are not in them. Each is summarised from [docs/benchmark.md](docs/benchmark.md), where it names the run it came from; the per-trace row files are committed under `bench/results/`, and the limits of each measurement are stated next to it. The version-by-version record is in [bench/HISTORY.md](bench/HISTORY.md#versions).
 
 **Authors:** Katia Engalycheva, with Claude (Anthropic) as co-author. The decisions, reviews and write-ups are mine; much of the typing is not.
 
@@ -87,6 +89,18 @@ Python 3.10 or newer. Run the commands below in a terminal — **Terminal** on
 macOS, **PowerShell** on Windows, or the built-in terminal in your editor
 (in Cursor and VS Code: Terminal → New Terminal).
 
+Check that your copy of the code agrees with this one — no key, no network:
+
+```bash
+pip install -e ".[dev]"
+pytest -q
+```
+
+Green is the expected result. A handful of skips is normal: those tests need
+the AgentHallu corpus, which is not in this repository. The expected failures
+(`xfail`) are normal too — each one is an entry under
+[Known limitations](#known-limitations), held open by a test that names it.
+
 **1. Ask whether a run can be checked at all.** This is the cheap question, and
 it comes first: a recording that did not keep what an audit needs cannot be
 audited, however much you spend on the audit. No model is called.
@@ -153,6 +167,16 @@ The report counts, on one line, how many tool results came from tools you
 declared nothing about, and from how many names. That line blocks nothing. A
 tool result is where the audit stops by design, and how much of a run is out of
 reach is what the rest of `check-trace` already reports.
+
+**The share, and how to make it a gate.** The report gives the share of the
+text a chain walks through that holds the model's own words rather than a
+tool's reply — the higher it is, the more of the run an audit can follow. By
+default it decides nothing. `--min-reachable` turns it into a gate: exit 1 when
+the recording is thinner than the line. The bare flag means 0.8, read off the
+AgentHallu run rather than chosen as a constant; `--min-reachable 0.5` moves it.
+What the line is worth — and why most of the banding behind it is arithmetic
+rather than prediction — is in
+[docs/design.md](docs/design.md#before-the-audit-can-this-trace-be-audited-at-all).
 
 **Strict mode, for a team whose tool set is fixed.** `--require-declared-tools`
 turns that count into a gate: exit 1 with `undeclared_tools` until every tool
@@ -433,8 +457,8 @@ More, with the cases behind each: [docs/design.md](docs/design.md#lessons).
 
 ## Next Steps
 
-- [ ] an adapter for log shapes practitioners already have — OpenAI Chat Completions message lists first, then OpenTelemetry GenAI spans
-- [ ] v0.8: check *whether* a funding span supports a claim, not only *where* it is
+- [x] v0.7.5: an adapter for log shapes practitioners already have — OpenAI Chat Completions message lists and OpenTelemetry GenAI spans, read by `check-trace`, `convert` and `propose`
+- [ ] v0.9: check *whether* a funding span supports a claim, not only *where* it is
 - [ ] PyPI release
 
 Done so far and the full list: [docs/design.md](docs/design.md#next-steps).

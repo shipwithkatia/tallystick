@@ -122,16 +122,19 @@ def test_a_hand_built_run_with_a_misfiled_claim_is_refused():
         close_books(run)
 
 
-def test_two_edits_on_a_quote_with_a_one_edit_budget_are_rejected():
-    # guards V12 (cap + 1): 50..99 characters get exactly one edit
+def test_a_changed_digit_is_rejected_however_long_the_quote_is():
+    # guards V12, rewritten with the edit budget it used to guard. That budget was
+    # 2% of the span's length, so this 51-character quote got one free edit and
+    # "14 million" cited as "15 million" passed - which this test asserted. The
+    # budget is gone: content must survive whole, and length buys nothing.
     content = "The company reported revenue of 14 million in 2023."  # 51 chars
-    assert int(len(content) * 0.02) == 1
-    one = content.replace("14", "15")
-    two = content.replace("14", "45")
-    r1 = load_run(_one_hop(quote=one, content=content)); close_books(r1)
-    r2 = load_run(_one_hop(quote=two, content=content)); close_books(r2)
-    assert r1.entries[0].verified is True
-    assert r2.entries[0].verified is False
+    long_content = content + " " + ("Every figure was reviewed by the auditor. " * 40)
+    for text in (content, long_content):
+        for wrong in (text.replace("14", "15", 1), text.replace("14", "45", 1)):
+            run = load_run(_one_hop(quote=wrong, content=text))
+            close_books(run)
+            assert run.entries[0].verified is False, wrong[:60]
+            assert run.entries[0].reason == "span_mismatch"
 
 
 def test_whitespace_between_two_claims_does_not_break_a_citation():

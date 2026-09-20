@@ -139,14 +139,18 @@ audit should say "not recorded", not "not supported".
 
 ## What the verdicts mean
 
-| verdict | exit | what it licenses you to conclude |
-|---|---|---|
-| `AUDITABLE` | 0 | nothing in the recording stands in the audit's way; a clean audit of this trace means something |
-| `PARTIAL` | 1 | the audit will run, but read its silence as "nothing found here", not "nothing there" |
-| `UNAUDITABLE` | 1 | no answer to work back from, or nothing the model wrote: there is no question to ask |
-| — | 2 | the file could not be read at all — including a `_meta` block that is not an object, or holds a field of the wrong type. Never confuse this with a verdict |
+| what it prints | `verdict` in `--json` | exit | what it licenses you to conclude |
+|---|---|---|---|
+| `CAN BE CHECKED` | `auditable` | 0 | nothing in the recording stands in the audit's way; a clean audit of this trace means something |
+| `PARTLY` | `partial` | 1 | the audit will run, but read its silence as "nothing found here", not "nothing there" |
+| `CANNOT BE CHECKED` | `unauditable` | 1 | no answer to work back from, or nothing the model wrote: there is no question to ask |
+| — | — | 2 | the file could not be read at all — including a `_meta` block that is not an object, or holds a field of the wrong type. Never confuse this with a verdict |
 
-The JSON report (`--json`) has these fields. `verdict` is the word above and
+`CAN BE CHECKED` also prints the share when it is low ("nothing in the recording
+is in the way, but only 66% of what the walk goes through is the model's own
+words"); the verdict and the exit code are the same.
+
+The JSON report (`--json`) has these fields. `verdict` is the second column above and
 `min_reachable` the line you asked for, or `null`. `reachable_share` is the
 share, `judged_artifacts` what it is taken over. `artifacts`, `documents`,
 `tool_results` and `derived` count the artifacts by kind (the last three sum to

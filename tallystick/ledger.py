@@ -58,7 +58,7 @@ from enum import Enum
 from typing import Dict, List, Optional, Tuple
 
 from .types import AccountType, Claim, Run
-from .verify import components, verify_run
+from .verify import components, verify_run, worst_reason
 
 #: A claim whose provenance goes deeper than this is not checked. Real runs are
 #: tens of hops deep at most. The limit was set to keep a recursive walk within
@@ -342,7 +342,7 @@ def _resolve(
             ClaimStatus.PRIOR_ONLY if only_prior else ClaimStatus.UNSUPPORTED,
             break_claim_id=claim.claim_id, break_step_id=step_id,
             break_reason=("model prior, no external evidence" if only_prior
-                          else (entries[0].reason if entries else "no entry posted")),
+                          else worst_reason(entries)),
         )
 
     candidates: List[ClaimAudit] = []

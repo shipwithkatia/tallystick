@@ -29,11 +29,14 @@ The per-trace rows of all three runs are committed — `bench/results/2026-09-n1
 `bench/auditability_agenthallu.py` does it, over every trajectory in AgentHallu
 rather than the benchmark's subset — `check-trace` calls no model, so the whole
 dataset is free. It prints the 2x2 table at five cuts, the per-framework tables at
-the chosen one, and a permutation test that shuffles within each framework, which
-is the test that matters: a framework that both records thinly and hallucinates
-past the boundary would otherwise manufacture a pooled association carrying no
-information about any single trace. Read the per-framework tables before the
-p-value. `--exclude-codeact` drops the runs whose tools execute inside
+the chosen one, a placebo that replaces the human label with a step drawn at
+random from the same trajectory, and a permutation test that shuffles within each
+framework. The permutation test rules out one confounder and no more: a framework
+that both records thinly and hallucinates past the boundary would otherwise
+manufacture a pooled association carrying no information about any single trace.
+It rejects for the placebo too, so it is printed beside the placebo and never
+quoted alone — see the correction in `HISTORY.md` under v0.7.4. Read the
+per-framework tables and the placebo before the p-value. `--exclude-codeact` drops the runs whose tools execute inside
 model-written code; `--cut` moves the line; `--json` writes every row.
 
 Nothing in it is held out. On another corpus, run it before trusting the 80%.
