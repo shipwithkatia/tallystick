@@ -23,7 +23,11 @@ three lists worth reading:
 Mutations are exact source snippets. After a rewrite a snippet can disappear;
 the script then reports that mutation as `STALE` instead of running a no-op.
 
-Recorded on 4cdf21f (the code as of 48c8b8a), 424 tests:
+Recorded on 4cdf21f (the code as of 48c8b8a), 403 tests. The count is
+`python bench/mutations/mutate.py 4cdf21f --only M0_none`, which prints
+`403 passed, 1 skipped`; the same number comes out of
+`git worktree add --detach <dir> 4cdf21f` followed by
+`python3 -m pytest -q --collect-only` inside it.
 
 | mutation | tests that noticed |
 |---|---|
