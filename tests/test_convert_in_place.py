@@ -36,5 +36,6 @@ def test_convert_in_place_names_the_log_size_the_log_had(tmp_path, capsys):
     assert main(["convert", str(path), "-o", str(path), "--quiet"]) == 0
     out = " ".join(capsys.readouterr().out.split())
     assert "trace size:" in out                      # the line is printed at all
+    assert "on disk" in out, out                     # and it names the log on disk
     if "on disk" in out:
         assert f"from a log of {_amount(log_size)} on disk" in out, out
