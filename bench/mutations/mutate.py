@@ -17,6 +17,11 @@ Each mutation replaces an exact snippet of source. After a rewrite a snippet
 may no longer exist: that mutation is reported STALE and skipped rather than
 run as a silent no-op. Update its snippet, or delete it.
 
+Two snippet sets are kept for the nine M mutations: the current code's, and the
+code as of 4cdf21f - the ref the table in `README.md` was recorded on, so the
+command printed beside that table still runs. The current set is tried first,
+and a set naming a file the ref does not have is STALE, not an error.
+
 Each mutation is given `--timeout` seconds (600 by default) and then
 abandoned, so one pathological mutation cannot stall a sweep. On interrupt the
 working copy is left on disk rather than deleted under a running pytest.
@@ -48,7 +53,9 @@ GATE = "tallystick/echo_gate.py"
 _SPLIT = '(accepted if w["tool"] and w["tool"] in confirmed else unreviewed).append(w)'
 
 #: name -> [(file, exact snippet, replacement)]. Each snippet must occur once.
-#: Snippets follow the code as of 3edc4e0; on an older ref they report STALE.
+#: Snippets follow the code as of 3edc4e0 and later. For 4cdf21f, the ref the
+#: table in README.md was recorded on, see AS_OF_4CDF21F below; on any other
+#: older ref they report STALE.
 MUTATIONS = {
     "M0_none": [],
     # The reader never reports an echo from an earlier turn.
@@ -193,6 +200,33 @@ MUTATIONS = {
          "CACHES = (openai_chat._pieces, openai_chat._echo_candidates,\n          openai_chat._arg_values, openai_chat._arg_words, openai_chat._json_values)")],
 }
 
+#: The same nine breakages against the code as of 4cdf21f, which is what the
+#: table in README.md records. Copied verbatim from this script as of 9deaac4,
+#: the commit the table was made with; `bench/mutations/check_snippets.py`
+#: fails if a character of it drifts. Six mutations need their own entry here because
+#: the code they break was rewritten after 4cdf21f (the echo reader) or moved
+#: out of `cli.py` into `echo_gate.py` (the gate). M0 and M7-M9 are absent
+#: because their current snippets already fit 4cdf21f.
+AS_OF_4CDF21F = {
+    "M1_no_earlier_echo_report": [
+        (OC, "if line and line in earlier_pieces:", "if False:")],
+    "M2_gate_never_blocks": [
+        (CLI, "unreviewed = [w for w in warnings if w not in accepted]",
+         "unreviewed = []")],
+    "M3_rule_never_demotes": [
+        (OC, "return _stands_in(last, _spellings(sent))", "return False")],
+    "M4_rule_demotes_every_result": [
+        (OC, "    last = _echo_line(result)\n    if not last or not sent:\n        return False\n",
+         "    return True\n")],
+    "M5_no_report_but_every_result_in_guessed": [
+        (OC, "if line and line in earlier_pieces:", "if False:"),
+        (OC, "            aid = f\"t{k}\"\n",
+         "            aid = f\"t{k}\"\n            guessed.append(f\"tool[{k}] -> x\")\n")],
+    "M6_any_confirmation_accepts_all": [
+        (CLI, "accepted = [w for w in warnings if w[\"tool\"] and w[\"tool\"] in confirmed]",
+         "accepted = list(warnings) if confirmed else []")],
+}
+
 FOCUS = ("test_openai_chat_", "test_check_trace_echo_gate", "test_audit_echo_gate",
          "test_openai_roundtrip_numbers")
 
@@ -205,6 +239,38 @@ def copy_of(ref: str, dest: Path) -> None:
     if corpus.exists():
         (dest / "bench").mkdir(exist_ok=True)
         (dest / "bench" / "work-agenthallu").symlink_to(corpus)
+
+
+def misses(edits, tree: Path) -> list[str]:
+    """Why this snippet set does not fit the copy under `tree`: one line per
+    snippet that is not there exactly once. Empty means it fits. A file the ref
+    does not carry is one of those lines and not a traceback - before this the
+    script died on `4cdf21f`, where `echo_gate.py` does not exist yet."""
+    out = []
+    for rel, old, _new in edits:
+        path = tree / rel
+        if not path.exists():
+            out.append(f"{rel}: not a file of this ref")
+            continue
+        found = path.read_text(encoding="utf-8").count(old)
+        if found != 1:
+            out.append(f"{rel}: snippet found {found} times")
+    return out
+
+
+def edits_for(name: str, tree: Path):
+    """`(edits, [])` for the first snippet set that fits the copy, else
+    `(None, reasons)`. The current set is tried first, so a sweep of HEAD reads
+    the same as before the 4cdf21f set was added."""
+    reasons = []
+    for label, edits in (("current", MUTATIONS[name]), ("4cdf21f", AS_OF_4CDF21F.get(name))):
+        if edits is None:
+            continue
+        why = misses(edits, tree)
+        if not why:
+            return edits, []
+        reasons += [f"{label} snippet, {w}" for w in why]
+    return None, reasons
 
 
 def main() -> int:
@@ -229,17 +295,14 @@ def main() -> int:
         for name in names:
             d = work / name
             copy_of(args.ref, d)
-            stale = []
-            for rel, old, new in MUTATIONS[name]:
-                path = d / rel
-                text = path.read_text(encoding="utf-8")
-                if text.count(old) != 1:
-                    stale.append(f"{rel}: snippet found {text.count(old)} times")
-                    continue
-                path.write_text(text.replace(old, new), encoding="utf-8")
-            if stale:
+            edits, stale = edits_for(name, d)
+            if edits is None:
                 print(f"{name:<44} STALE, skipped ({'; '.join(stale)})")
                 continue
+            for rel, old, new in edits:
+                path = d / rel
+                path.write_text(path.read_text(encoding="utf-8").replace(old, new),
+                                encoding="utf-8")
             # Capped, and the child is killed rather than waited on. A run
             # with no cap cannot be told from a run that is merely slow, and a
             # sweep that is interrupted must not leave a pytest behind holding
