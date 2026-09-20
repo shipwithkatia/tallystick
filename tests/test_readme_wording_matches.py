@@ -70,11 +70,14 @@ def test_quiet_says_the_note_in_one_line_on_stderr_as_the_readme_and_help_say(tm
     "(python bench/store_record_threshold.py). The test asks for the old sentence "
     "and for no note, and can never pass. Documented, not fixed."))
 def test_the_store_record_sentence_holds_for_a_20_word_english_note(tmp_path):
-    """README: "On a 20-word English note nothing is said; from about 165
-    characters (29 words) the note is listed". The limit is in characters, not
-    words: a 20-word English note of long words (278 characters) is listed, and
-    a note of short words is silent up to 54 words (189 characters). No command
-    in the repository recomputes the sentence (the script is in the lab)."""
+    """README once said "On a 20-word English note nothing is said; from about
+    165 characters (29 words) the note is listed". It no longer does: today it
+    says the limit is in characters, not words - on a mem0 record a note is
+    listed from about 165 characters, so 20 long words (278 characters) are
+    listed and 20 short ones (69) are not. This test still asks for the old
+    sentence and for no note, so it cannot pass; see the xfail reason above.
+    `bench/store_record_threshold.py` recomputes the threshold and README names
+    it (`python bench/store_record_threshold.py`, no data needed)."""
     words = ("Unquestionably international telecommunications infrastructure investments "
              "significantly outperformed conventional manufacturing expectations throughout "
              "nineteenth century industrialisation ") * 3

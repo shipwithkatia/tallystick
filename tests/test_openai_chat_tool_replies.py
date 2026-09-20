@@ -354,8 +354,10 @@ def test_control_the_cli_audit_notes_the_posted_notes_trace_and_keeps_its_exit(t
 
 
 def test_control_an_openai_warning_names_its_file_message(tmp_path):
-    # With one tool message per result, the reader's index and the file's agree:
-    # the same position check passes on 48c8b8a.
+    # With one tool message per result, the reader's index and the file's agree.
+    # On 48c8b8a this test fails before the position check is reached: the
+    # terminal output has no `NOTE - ` block there, so `_warning_lines` returns
+    # an empty terminal list and `assert all(lines.values())` is what breaks.
     lines = _warning_lines(tmp_path, _notes(ECHO))
     assert all(lines.values())
     assert all(_names_position(ln, 4) for found in lines.values() for ln in found)

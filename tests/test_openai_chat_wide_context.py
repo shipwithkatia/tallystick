@@ -213,10 +213,13 @@ to_trace(messages)
 
 def test_a_long_codeact_run_reads_in_seconds_not_minutes():
     # 200 turns, each call carrying a 21 KB script: about 4 MB of arguments.
-    # The narrow reader read this in well under a tenth of a second; the
-    # wide-context reader, before the fix that narrowed it, took about 31 s on
-    # the machine this was written on. Run in a subprocess
-    # so a failure costs the budget, not the full read.
+    # What this test guards is the budget and nothing finer: the read finishes
+    # inside BUDGET_SECONDS. It does not time the read, so no figure here is
+    # held to. The wide-context reader this budget was written against is in no
+    # commit reachable from HEAD, so the seconds it took cannot be measured
+    # again from this history; the figure that used to stand here has been
+    # dropped rather than left unrepeatable. Run in a subprocess so a failure
+    # costs the budget, not the full read.
     env = {**os.environ, "PYTHONPATH": str(ROOT)}
     try:
         subprocess.run([sys.executable, "-c", _READ_A_LONG_RUN], cwd=ROOT, env=env,

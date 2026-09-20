@@ -147,7 +147,8 @@ def test_the_laundered_chinese_note_is_noted_by_audit_end_to_end(tmp_path):
     assert _assert_noted_everywhere("audit", path, "tool[4]", tmp_path) == 0
 
 
-# replaces test_mutation_coverage.py::test_a_structured_echo_record_without_its_text_still_blocks
+# replaces test_a_structured_echo_record_without_its_text_still_blocks, which
+# lived in test_mutation_coverage.py and was deleted in 3d8df63
 def test_a_structured_record_alone_is_noted_everywhere(tmp_path):
     """G03: a trace carrying only `echo_warning_details`, without the text list
     the reader writes beside it, must not lose the record."""
