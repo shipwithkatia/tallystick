@@ -213,7 +213,16 @@ def test_chain_view_of_a_balancing_trace_with_half_an_emoji_does_not_exit_1(tmp_
 
 def test_a_readable_trace_with_half_an_emoji_in_a_meta_note_does_not_exit_1(tmp_path):
     """examples/balanced_run.json with `_meta: {"notes": ["a note \\ud83d"]}`:
-    `audit` exits 0, `check-trace` prints the note and exits 1 with a traceback."""
+    `check-trace` prints the note - escaped, as `note: a note \\ud83d` - and
+    exits 0 with nothing on stderr. The surrogate reaches the terminal escaped,
+    so print() never raises. (`audit` on the same input exits 0 too; that was
+    measured, and this test does not run it.)
+
+    This docstring said "exits 1 with a traceback" until this round. That was
+    true when the test was written failing in 47930de: the behaviour was the
+    finding. The behaviour was fixed and the test's name corrected, and the
+    docstring was left describing the fault. The assertion below is what the
+    name says, not what the old docstring said."""
     trace = json.loads((ROOT / "examples" / "balanced_run.json").read_text(encoding="utf-8"))
     trace["_meta"] = {"notes": ["a note \ud83d"]}
     path = tmp_path / "t.json"
