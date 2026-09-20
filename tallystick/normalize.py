@@ -43,28 +43,3 @@ def normalize(text: str) -> str:
     t = t.translate(_INVISIBLE).translate(_QUOTES).translate(_DASHES)
     t = _WS.sub(" ", t)
     return t.strip().casefold()
-
-
-def levenshtein(a: str, b: str, cap: int) -> int:
-    """Edit distance, abandoning early once it provably exceeds `cap`.
-
-    Used only to forgive typographic drift (a trimmed edge, a stray character), and
-    only within a tolerance proportional to length - see verify.SPAN_TOLERANCE.
-    """
-    if abs(len(a) - len(b)) > cap:
-        return cap + 1
-    prev = list(range(len(b) + 1))
-    for i, ca in enumerate(a, start=1):
-        cur = [i] + [0] * len(b)
-        best = cur[0]
-        for j, cb in enumerate(b, start=1):
-            cur[j] = min(
-                prev[j] + 1,
-                cur[j - 1] + 1,
-                prev[j - 1] + (ca != cb),
-            )
-            best = min(best, cur[j])
-        if best > cap:
-            return cap + 1
-        prev = cur
-    return prev[-1]

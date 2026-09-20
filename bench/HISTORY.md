@@ -51,6 +51,35 @@
   interpreter gives up. `convert` and `check-trace` say out loud, with the sizes,
   when a trace is ten times the log it was read from, and change no exit code for
   it.
+- **v0.8.1** — two findings of an external adversarial review of v0.8.0, both
+  demonstrated against the shipped code before anything was changed here.
+  **The quote gate.** Its tolerance for typographic drift was an edit budget of
+  2% of the span's length, with no ceiling, so a long quote bought edits: a
+  308-character source saying `12.4 million euro` cited as `92.4 million euro`
+  balanced and exited 0, and a 2,645-character span had its closing sentence
+  replaced and balanced too. The floor of that budget had been removed in an
+  earlier round and written up as closing the class; it did not. A ceiling would
+  not close it either, since one edit moves a digit. The budget is gone: letters,
+  digits and any separator standing between two digits must survive character for
+  character, while spacing and punctuation need not. The mutation test that
+  asserted `14 million` may be cited as `15 million` now asserts the opposite,
+  and `tests/test_quote_content_survives.py` holds both demonstrated cases open.
+  Published numbers predate this and were not re-measured; the gate is stricter,
+  so a quote that passed on drift in content would now be flagged.
+  **The break reason.** `ledger.py` promised results independent of the order of
+  arrays in the input file. The verdict was: 2,000 permutations of the shipped
+  examples move nothing. The sentence explaining it was not — it read
+  `entries[0].reason`, so one claim with three rejected entries reported
+  `artifact_unknown`, `span_mismatch` or `prior_never_funds` according to how the
+  file happened to list them, in the terminal, in `--chain` and in `--json`. The
+  earliest gate that failed is now named, in a fixed order
+  (`verify.REASON_ORDER`), with the two bookkeeping positions last;
+  `tests/test_break_reason_is_order_independent.py` walks every permutation.
+  Still open from the same review, and not fixed here: inside a *cycle* of claims
+  that cite each other, which step is named still depends on the claim ids,
+  because the members are ordered by id; and a recorder that writes UTF-16 code
+  units where the format means Unicode code points gets a verdict about its agent
+  rather than a word about its offsets.
 
 ## Earlier benchmark results
 

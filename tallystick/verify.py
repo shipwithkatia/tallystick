@@ -30,12 +30,8 @@ from __future__ import annotations
 
 from typing import Dict, List, Optional
 
-from .normalize import levenshtein, normalize
+from .normalize import normalize
 from .types import AccountType, Entry, Run, Step
-
-#: Fraction of a span's length that may differ and still count as the same quote.
-#: Covers trimmed edges and stray typographic characters, nothing more.
-SPAN_TOLERANCE = 0.02
 
 #: Reasons an entry can be rejected. Stable strings - they end up in reports and in
 #: users' assertions, so treat them as public API.
@@ -48,6 +44,57 @@ PRIOR_NEVER_FUNDS = "prior_never_funds"
 ASSUMPTION_UNDECLARED = "assumption_undeclared"
 SELF_CITATION = "self_citation"
 OK = "ok"
+
+#: The gates in the order they are applied, and the order a mixed failure is
+#: reported in: the report names the earliest gate that failed rather than
+#: whichever entry the input file happened to list first - see `worst_reason`.
+#:
+#: The two bookkeeping positions rank last on purpose. A claim funded only by a
+#: model prior is reported as exactly that by the ledger, before this order is
+#: consulted; when a prior sits beside a real citation that failed, what the
+#: reader needs is why the evidence failed, not that a prior was also posted.
+REASON_ORDER = (
+    ARTIFACT_UNKNOWN,
+    NOT_REACHABLE,
+    SELF_CITATION,
+    SPAN_OUT_OF_RANGE,
+    NO_QUOTE,
+    SPAN_MISMATCH,
+    ASSUMPTION_UNDECLARED,
+    PRIOR_NEVER_FUNDS,
+)
+
+
+def worst_reason(entries) -> str:
+    """The reason a reader should be given when several entries under one claim
+    were rejected: the earliest gate in REASON_ORDER that any of them failed.
+
+    The ledger used to take `entries[0].reason` - the first element of an array -
+    so the same trace with its entries written in another order named a different
+    defect. The verdict never moved; the sentence explaining it did.
+    """
+    reasons = [e.reason for e in entries if e.reason and e.reason != OK]
+    if not reasons:
+        return "no entry posted"
+    return min(reasons, key=lambda r: (REASON_ORDER.index(r)
+                                       if r in REASON_ORDER else len(REASON_ORDER), r))
+
+
+def _content(s: str) -> str:
+    """What a string says, with spacing and punctuation dropped: its letters and
+    digits, plus any character standing between two digits.
+
+    That last clause is what keeps `12.4` from matching `124`: a separator inside
+    a number is content, not typography. Everything else a recorder may add or
+    drop - spaces, quotes, dashes, a trailing full stop - is not.
+    """
+    keep = []
+    for i, ch in enumerate(s):
+        if ch.isalnum():
+            keep.append(ch)
+        elif 0 < i < len(s) - 1 and s[i - 1].isdigit() and s[i + 1].isdigit():
+            keep.append(ch)
+    return "".join(keep)
 
 
 def verify_entry(run: Run, entry: Entry, _flow: Optional[_Flow] = None) -> Entry:
@@ -127,10 +174,18 @@ def verify_entry(run: Run, entry: Entry, _flow: Optional[_Flow] = None) -> Entry
         entry.reason = OK
         return entry
 
-    # No tolerance floor: a quote shorter than 1/SPAN_TOLERANCE characters gets
-    # no free edit at all. Otherwise "14%" could be cited as "44%" and pass.
-    cap = int(len(actual) * SPAN_TOLERANCE)
-    if cap and levenshtein(actual, quoted, cap) <= cap:
+    # Typographic drift is forgiven; content is not. What the two strings say -
+    # their letters, their digits, and any separator standing between two digits -
+    # must be identical, character for character. Spacing and punctuation may
+    # differ, and that is the whole of the tolerance.
+    #
+    # This replaces an edit budget of 2% of the span's length. That budget had no
+    # ceiling, so it bought more edits the longer the quote: a 308-character source
+    # saying "12.4 million euro" could be cited as "92.4 million euro" and pass,
+    # and a 2,645-character one could have its closing sentence replaced outright.
+    # A cap on the budget would not have closed it either - one edit is enough to
+    # move a digit - so the budget is gone rather than bounded.
+    if _content(actual) and _content(actual) == _content(quoted):
         entry.verified = True
         entry.reason = OK
         return entry

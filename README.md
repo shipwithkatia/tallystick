@@ -15,7 +15,7 @@ Provenance accounting for LLM agent runs: every claim in the final answer is tra
 
 ![One hop is not enough: the answer quotes the summary, the summary invented a sentence, and the chain breaks at the summarise step](docs/chain.svg)
 
-**Status:** research prototype, v0.8.0. Interfaces may change between versions. The numbers above were measured on v0.6 (the constructed benchmark) and v0.7.3 (the real trajectories); the log readers that arrived in v0.7.5 are not in them. Each is summarised from [docs/benchmark.md](docs/benchmark.md), where it names the run it came from; the per-trace row files are committed under `bench/results/`, and the limits of each measurement are stated next to it. The version-by-version record is in [bench/HISTORY.md](bench/HISTORY.md#versions).
+**Status:** research prototype, v0.8.1. Interfaces may change between versions. The numbers above were measured on v0.6 (the constructed benchmark) and v0.7.3 (the real trajectories); the log readers that arrived in v0.7.5 are not in them. Each is summarised from [docs/benchmark.md](docs/benchmark.md), where it names the run it came from; the per-trace row files are committed under `bench/results/`, and the limits of each measurement are stated next to it. The version-by-version record is in [bench/HISTORY.md](bench/HISTORY.md#versions).
 
 **Authors:** Katia Engalycheva, with Claude (Anthropic) as co-author. The decisions, reviews and write-ups are mine; much of the typing is not.
 
