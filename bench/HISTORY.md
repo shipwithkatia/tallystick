@@ -47,30 +47,32 @@
   the owner's decision of 16 September 2026 — on 1,489 posted traces it moved 130
   runs from 0 to 1, `python bench/half_line.py`); a chain deeper than 256 hops is
   `unchecked` and exit 2 with `chain_too_deep`, not a failure; tool-call arguments
-  nested past 256 levels are refused on every Python rather than wherever the
-  interpreter gives up. `convert` and `check-trace` say out loud, with the sizes,
+  nested past 256 levels are refused at that limit of ours rather than wherever
+  the interpreter gives up, the same on the Pythons CI runs. `convert` and
+  `check-trace` say out loud, with the sizes,
   when a trace is ten times the log it was read from, and change no exit code for
   it.
 - **v0.8.1** — two findings of an external adversarial review of v0.8.0, both
   demonstrated against the shipped code before anything was changed here.
   **The quote gate.** Its tolerance for typographic drift was an edit budget of
   2% of the span's length, with no ceiling, so a long quote bought edits: a
-  308-character source saying `12.4 million euro` cited as `92.4 million euro`
-  balanced and exited 0, and a 2,645-character span had its closing sentence
+  307-character source saying `12.4 million euro` cited as `92.4 million euro`
+  balanced and exited 0, and a 2,707-character span had its closing sentence
   replaced and balanced too. The floor of that budget had been removed in an
   earlier round and written up as closing the class; it did not. A ceiling would
-  not close it either, since one edit moves a digit. The budget is gone: letters,
-  digits and any separator standing between two digits must survive character for
-  character, while spacing and punctuation need not. The mutation test that
+  not close it either, since one edit moves a digit. The budget is gone, replaced by a
+  content signature of letters, digits and separators standing between two digits
+  — itself too narrow, and corrected at v0.8.2 below. The mutation test that
   asserted `14 million` may be cited as `15 million` now asserts the opposite,
   and `tests/test_quote_content_survives.py` holds both demonstrated cases open.
-  Published numbers predate this and were not re-measured; the gate is stricter,
-  so a quote that passed on drift in content would now be flagged.
+  Published numbers predate this and were re-checked rather than re-measured:
+  see v0.8.2, where the count is given.
   **The break reason.** `ledger.py` promised results independent of the order of
   arrays in the input file. The verdict was, and is: 2,000 shuffles of every array in
   each of the two shipped examples move no status and no breaking step, recounted
   here rather than taken from the review, and the reason is now in that set
-  (`tests/test_break_reason_is_order_independent.py` repeats it at 200). The sentence explaining it was not — it read
+  (`tests/test_break_reason_is_order_independent.py` repeats the 2,000
+  shuffles). The sentence explaining it was not — it read
   `entries[0].reason`, so one claim with three rejected entries reported
   `artifact_unknown`, `span_mismatch` or `prior_never_funds` according to how the
   file happened to list them, in the terminal, in `--chain` and in `--json`. The
@@ -83,9 +85,296 @@
   units where the format means Unicode code points gets a verdict about its agent
   rather than a word about its offsets.
 
+- **v0.8.2** — the quote gate says what it means, and the price is measured.
+  **Never released:** this rule lived in a working copy only, an external review
+  broke it before it reached `main`, and the published project went from v0.8.1
+  straight to v0.8.3.
+  An external review of v0.8.1 (project rule 10) demonstrated that the content
+  signature was looser than the three documents describing it: it kept letters,
+  digits and separators standing between two digits, and dropped every other mark,
+  so `+5%` cited as `-5%`, `EUR 12` as `USD 12`, `>50` as `50`, `mg/kg` as
+  `mg kg`, `notable` as `not able` and `safe.` as `safe?` all balanced at exit 0 —
+  20 of 33 tampered quotes in the review's own set. The model-side locate already
+  refused every one of them, so the gate was the weaker of the two rules the
+  project states, which is the opposite of what `docs/design.md` implied.
+  **The rule is now a property rather than a list**, because a list closes the
+  cases someone thought of and nothing else: *only the setting may differ.* Three
+  clauses follow — nothing may be substituted; a space may be added or dropped only
+  where it touches a mark, never between two letters or digits; a mark may be added
+  or dropped only at the ends of the quote. `tallystick/verify.py:says_the_same`
+  carries the statement and what each clause protects; `normalize` remains the one
+  honest list (case, NFC, invisible characters, quotation and dash styles, runs of
+  whitespace).
+  **The price, measured before the change and against a threshold named before the
+  measurement** (rule 15). Threshold: 0 changed verdicts on the 424 posted traces of
+  the two published runs — every quote in them is a slice of its own source, so any
+  change there is a new false alarm on honest data rather than a fabrication caught.
+  Result on 424 traces and 11,547 claims: **0 verdicts changed, 0 claim statuses
+  changed**, against v0.8.1 and against v0.8.0 alike. The reason is visible in the
+  same files: of **5,615 EVIDENCE entries, 0 have a quote that differs from its
+  source slice at all** — `propose/pipeline.py` writes `quoted_span` as the slice.
+  So the published tables in [`docs/benchmark.md`](../docs/benchmark.md) cannot move
+  under either rule change, and this is a count rather than an argument. The posted
+  files are not in the repository (`docs/benchmark.md` says so); the count was run on
+  the owner's copies, offline, at no cost.
+  **What this does not measure.** The price falls on a recorder that writes a quote
+  by other means than slicing — a thousands separator retyped, a narrow no-break
+  space lost to a PDF extractor. Across every real text the repository holds, 114 of
+  556 numeric tokens (20.5%) carry a separator between two digits and so are exposed
+  to the rule; the number actually paying it is 0, because no path in the repository
+  emits a quote that is not a slice. Exposure, not cost. The experiment that would
+  measure the cost needs a recorder that quotes from logged text, and does not exist
+  yet.
+  **Still open**, unchanged from v0.8.1: the step named inside a cycle of claims that
+  cite each other depends on the claim ids, and a recorder writing UTF-16 code units
+  where the format means code points gets a verdict about its agent rather than a
+  word about its offsets.
+
+- **v0.8.3** — the gate reads a sequence, and one reading serves both halves.
+  The v0.8.2 rule was written as a property in three clauses, and an instrument
+  built before this change showed what no test had: those clauses closed the middle
+  of a quote and left its two ends open, because the test that guarded them only
+  ever probed the middle. `bench/quote_gate_corpus.py` plants each kind of change
+  **in the middle of a quote and at each of its two edges**, drops every pair the
+  equality fast path in `verify_entry` would have answered (counting those would be
+  counting free passes — project rule 35), and runs two controls that must fail.
+  **The rule is now one sentence about a sequence rather than a list of clauses**:
+  a quote says what the source says when it reads as the same sequence — the words
+  in order, each carrying whatever is stuck to a number in it (a sign, a currency
+  mark, a percent sign, a mark standing between two digits), and the marks that end
+  a sentence. One clause follows, and it is the only one: marks that end a sentence
+  may be added or dropped where the quote begins or ends, but never exchanged for
+  others, so `safe.` cited as `safe` balances and `safe.` cited as `safe?` does not.
+  The reading itself moved to `tallystick/tokens.py`, which `verify.py` and
+  `propose/pipeline.py` both import.
+  **Broken by the external review that followed** (rule 10), and the entry is
+  left standing with what it got wrong: the sentence above went on to claim that
+  the gate could not be more forgiving than the locate "by construction", which
+  was never true in either direction — `a 5 % rise` verifies against `a 5% rise`
+  and the locate places no span for it — and the test named after that claim
+  checked it on 27 chosen pairs. Worse, the rule kept the old habit of naming
+  what counts as content: whole Unicode categories were setting, so a `-`
+  standing one space from its number was neither a word nor part of one, and
+  `margin - 5.2 % lower` cited as `margin 5.2 % lower` balanced at exit 0. See
+  v0.8.4.
+  **Measured against thresholds named before the measurement** (rule 15): refuse
+  100% of tampering, accept 100% of the drift the rule is asked about. Material is
+  the `quoted_span` of all 5,615 EVIDENCE entries in the posted files of the two
+  published runs — 160,029 tampering pairs and 42,214 drift pairs. The rule refuses
+  **100% of tampering and accepts 100% of drift** (99.0% if the 445 spaces held out
+  of the drift set are counted as failures); the v0.8.1 content signature on the
+  same instrument refuses 37.2% and accepts 99.3%, `always accept` fails the
+  tampering side, `always refuse` fails the drift side, and the three land on three
+  different points — so the candidate's 100% is a measurement rather than an
+  instrument saying yes. Re-run on 20 September 2026 against the committed
+  `bench/results/quote_gate_corpus.json`, which it reproduces exactly; that is
+  reproducibility, not an independent check (rule 14). The posted files are not in
+  the repository, and without them the instrument falls back to text the repository
+  carries, so a stranger can run it on smaller material.
+  **The published tables cannot move**, for the reason recorded at v0.8.2 and not
+  re-measured here: every quote in those files is an exact slice of its source, and
+  `verify_entry` settles an exact slice before any rule is consulted. The exposure
+  recorded at v0.8.2 — a recorder that retypes a number instead of slicing it — is
+  unchanged.
+  **Still open**: the new rule has had no external review (rule 10); the step named
+  inside a cycle of claims that cite each other still depends on the claim ids; and
+  a recorder writing UTF-16 code units where the format means code points still gets
+  a verdict about its agent rather than a word about its offsets.
+
+- **v0.8.4** — the gate lists what may differ, not what may not.
+  An external review (rule 10) broke v0.8.3 three days after it was written, and
+  not on a case v0.8.3 had missed: on the **shape** of the rule. Four rules for
+  this gate in a row named what counts as content and let the rest be noise — an
+  edit budget, a signature of letters and digits, a sequence of tokens over whole
+  Unicode categories — and each was broken by a reader who thought of a character
+  the list had not. The review's demonstration: `Operating margin - 5.2 % against
+  the prior year` cited as `Operating margin 5.2 % against the prior year`,
+  `BOOKS BALANCE`, exit 0. A fifth list would have been the same move a fifth
+  time, so the **owner's decision was to invert the default**: name the characters
+  a quote is *allowed* to differ by, and treat every other character — including
+  the ones nobody here has thought of — as content. That sentence is true of the
+  list and incomplete about the gate: the list applies after
+  `tallystick/normalize.py` has read both sides, and that reading already
+  forgives letter case, the kind of dash, the style of a quotation mark, Unicode
+  composition and invisible characters, so `Polish` cited as `polish` and `–$5`
+  as `-$5` pass. Both lists in full are under
+  [Known limitations](../README.md#known-limitations) in the README.
+  **The list is four lines** (`tallystick/tokens.py:SETTING`): whitespace, the
+  comma, the two quotation marks, and a run of sentence marks where the quote
+  opens or closes. Each carries the reason it is there. A run of setting that
+  separates two letters or digits leaves one space behind it, which is what keeps
+  `66,300` from reading as `66300` and `not able` from reading as `notable` — and,
+  said rather than left to be found, what makes `66,300` read the same as `66 300`,
+  which is looser than v0.8.3: the separator has to be there, which one it is is
+  setting. The
+  one clause that is about position rather than about a character: a sentence
+  mark may be added or dropped where the quote begins or ends, never exchanged
+  for another, and a full stop — and only a full stop — may follow the mark that
+  closes the quoted sentence, because that one is the recorder's own.
+  **What it buys, measured rather than argued.** The instrument now sweeps
+  characters instead of only cases: for each of 3,565 punctuation and symbol
+  codepoints it builds a quote with that character beside a space and at its end
+  and cites it without. v0.8.1 let 3,550 of them be dropped without noticing,
+  v0.8.3 let 140, v0.8.4 lets 0 — and 0 was named as the threshold before the
+  sweep was run, beside the two that were already named. On the pair corpus,
+  built from the `quoted_span` of all 5,615 EVIDENCE entries of the two published
+  runs: **211,038 tampering pairs and 42,625 drift pairs, 100% refused and 100%
+  accepted**, against 83.9% and 99.0% for the v0.8.3 rule and 28.2% and 98.3% for
+  the v0.8.1 signature on the same instrument, with `always accept` failing the
+  tampering side and `always refuse` the drift side. Every number here is from a
+  run made on 20 September 2026 (`python bench/quote_gate_corpus.py --limit
+  100000 --json bench/results/quote_gate_corpus.json`, the line now in the
+  script's own Usage), and the JSON it writes is committed beside it.
+  **Three families joined the tampering set** and v0.8.3 accepts all three at
+  every site: a sign standing apart from its number (16,845 pairs), a bracket
+  that carries the sign — `net income (1.2) bn` cited as `net income 1.2 bn`
+  (16,845) — and a mark nobody put on any list, `5‰` cited as `5` (16,845, which
+  v0.8.3 refuses and v0.8.1 accepts).
+  **One class moved the other way, and it is a correction of the instrument
+  rather than of the rule.** v0.8.3 held 445 spaces out of the drift set on the
+  argument that dropping them makes one number out of two. Split by what they
+  actually do: 474 pairs where the space keeps a sign off a digit (`1946 - 5
+  July` → `1946 -5 July`) are tampering and are asserted as such — v0.8.3 accepts
+  300 of them; 411 pairs where a mark with a digit behind it stays exactly where
+  it was (`March 11, 2011` → `March 11,2011`, `10^3 = 1000` → `10^3= 1000`) are
+  drift, because the words are still held apart by the mark that was always
+  there. v0.8.3 refuses 408 of those 411, which is a false-alarm class the
+  hold-out kept anyone from seeing. Nothing is held out of the count now, so the
+  100% has no asterisk beside it.
+  **Time re-measured** (§36), since the rule changed: one entry over the largest
+  real artifact, 20,000 characters, is 5.1 ms against a ceiling of one second
+  named before the fix, and doubling the input multiplies the time by 1.96 to
+  2.03 over five doublings — linear, and 2.7× faster than v0.8.3's 13.9 ms.
+  **The published tables cannot move**, and this was recomputed rather than
+  carried: all 5,615 EVIDENCE quotes in the 424 posted files of both runs are
+  exact slices of their sources, character for character, so `verify_entry`
+  settles them before any rule is consulted. The count was made by a script that
+  never calls `verify_entry` — 424 files, 11,547 claims, 5,615 entries, 0 that
+  differ.
+  **What it costs**, and it is refusals rather than passes: a colon or semicolon
+  dropped, a hyphen a recorder spelled out (`state-of-the-art` cited as `state of
+  the art`), a bracket dropped mid-quote — which v0.8.3 called setting — and a
+  full stop read as content wherever it stands between two words, so `the U.S.
+  delegation` cited as `the US delegation` is refused. None of these appears in
+  42,625 drift pairs of real material; they are exposure, not cost, and the
+  experiment that would measure the cost needs a recorder that quotes from logged
+  text by other means than slicing.
+  **Still open**: the rule has had one external review and the fix that followed
+  it has had none (rule 10); git tags are still the sixth place a version lives
+  and still stop at `v0.7.4`, so a reader who wants the code behind a published
+  number has neither a tag nor a hash; the step named inside a cycle of claims
+  that cite each other still depends on the claim ids; and a recorder writing
+  UTF-16 code units where the format means code points still gets a verdict about
+  its agent rather than a word about its offsets.
+
+- **v0.9.0** — the gate asks where a quote was cut. Released after v0.8.1;
+  v0.8.2 to v0.8.4 above were never merged. The release notes, readable on their
+  own, are in [`CHANGELOG.md`](../CHANGELOG.md); this entry keeps what they leave
+  out.
+  **Why.** Every rule above compared two strings, and one forgery has nothing in
+  the pair of strings to see: a trace may declare its span one character to the
+  right, and `66 300 people affected` cut there is `300 people affected`, word
+  for word. The equality fast path answered it before any rule was consulted.
+  Rounds 3 to 9 of external review closed that shape one mark at a time — `.5%`,
+  `,300`, ` 300`, `-$5.2`, `~$3`, `≤$5`, `$100-$300` — until round 9 read a
+  number at the boundary as one thing (sign, currency, digits and what joins
+  them, share, brackets) and asked one question of it: does the boundary fall
+  inside it. The same question is asked of a word (`unsafe` cited as `safe`).
+  **Measured** on `bench/quote_gate_corpus.py` over all 5,615 real quotes
+  (`--limit 100000`, run on 24 September 2026): 305,499 tampering pairs and
+  284,010 typographic pairs, 194,321 spans cut inside a number and 415,886
+  inside a word, 1,381 values of real tool output (members of a list of
+  numbers written with no space after the comma counted apart: 192 of 192
+  refused); every threshold met, both
+  controls failing as they must. The v0.8.1 content signature on the same pairs:
+  25.23% of the tampering refused.
+  **What it cost, measured against v0.8.1** (the published version): 8 of the
+  5,615 real quotes refused (one a real cut, `1/2` cited as `2`; seven named
+  prices), 75 of 1,044 values of real tool output refused (7.18%, members of
+  11 lists in one trajectory), 1 of 11,547 claim statuses changed on the 424
+  posted traces.
+  An intermediate version of round 9 refused 577 of the 1,044 (55.27%), mostly
+  `key=value` pairs in URLs, because it read `=` as part of a number; the
+  release does not.
+  **The published tables did not move, and the old reason for that no longer
+  holds.** Up to v0.8.4 this file said the tables could not move because every
+  quote in the posted files is an exact slice of its source, which
+  `verify_entry` settles before any rule. The boundary checks now run before
+  that equality, and refuse 8 exact slices. So the tables were re-derived
+  rather than argued: re-auditing the 424 posted files on v0.9.0 reproduces all
+  580 sentence flags of the v0.6 rows and all 225 trajectory scores of the
+  v0.7.3 rows. The model sides were not rerun.
+  **The model-side proposer** asks the gate's question about a number of a span
+  before placing it, and since a fix made before release asks it of the span as
+  placed rather than of its core, so an exact `-$5.2 million` is placed again;
+  with punctuation added around it, it is placed nowhere. It does not ask the
+  question about a word: of the 5,611 spans it places on the 5,615 quotes, the
+  gate refuses 4 for cutting a word. Price of the fix on the 5,615 quotes:
+  5,611 placed before and after it, 0 placed differently. What the reviews
+  found it still places wrongly or not at all is under Known limitations in the
+  README. The worst of it is a class, not a case: when the model adds a full
+  stop or quotation marks, the word search drops a mark at the edge of the
+  quote, and where the gate does not protect that cut the forgery closes the
+  books at exit 0 (`!ready` placed as `ready`, a removed diff line
+  `-enable_ssl = true` as `enable_ssl = true`; 15 of 31 forms tried, 21
+  before the sign check below).
+  **The proposer wrote a sign the model never quoted, from v0.6.0.** The last
+  review asked something no class of the instrument had asked: what the
+  proposer does with a quote its source does not hold. Source `a loss of
+  $5 million`, model quote `-$5 million`: the word search, to which a dash is a
+  separator, placed `$5 million` and wrote it into the trace as the model's
+  quote, and the audit closed the books. The same answer on b92acc6 (v0.6.0),
+  5972b77, 6816b58, 1f9dacc and aa2ddfa, so this was never a regression. The
+  module's own docstring promised a match on words "that forgives punctuation
+  and case and never a changed character". The instrument asked 30 such quotes
+  first and failed on 8, all a sign added (`-$5`, `- $5`, `–$5`, `—$5`,
+  `-€5`, a minus inside a longer quote, `- 5.2 %`, `-(5%)`). A changed digit,
+  a dropped sign and a reversed sign were already placed nowhere. The rule: a
+  span the word search finds is placed only if the text it
+  writes, read alone, states the same signs and digits as the quote read alone
+  (`propose/pipeline.py:_signs_and_numerals`, the gate's reading of a number
+  with a dash glued to a letter read as a hyphen). The gate is unchanged. A
+  stop rule was set before measuring: if more than 1% of the 5,615 real quotes
+  stopped being placed, the rule would be reverted and the finding recorded as
+  open. Measured: 0 of 5,615 (5,611 placed before and after). That ruler is
+  nearly blind here: every one of those quotes is an exact slice, and all but
+  4 are placed before the word search is reached; the 4 are exact hits that
+  cut a number, and neither version places them. The one with power is the same quotes with a full
+  stop added, or quotation marks around them: 5 of 5,615 are no longer placed
+  in each case. All 5 open on a list bullet before a year (`- 2017: Vittoria
+  Colizza`, two sources). Before, they were placed without the bullet; read
+  alone, `- ` there cannot be told from a sign. 0 of 1,044 tool values, 0 of
+  11,547 statuses and 0 published rows moved; the audit side does not call the
+  proposer. What it does not reach: a mark before a word (`- Paris is big.`),
+  a trailing minus, accounting brackets, a dash glued to a square or a curly
+  bracket (`-[5]`), a dash a space away from a bracket (`- (5%)`). These are
+  the forms tried, not the class. Nor does any of these prices reach a third
+  route: a quote into the model's own intermediate text is written clipped to
+  the claims it falls in, not as it was checked, and a dash just before the
+  claim is lost (`– (5%) this year` written as `(5%) this year`). No earlier
+  round measured it; every price above was taken on the exact search and the
+  word search, two of the three routes. Measured now as exposure, not as
+  cost: of the 2,767 quotes the published runs write into intermediate text,
+  404 would be written without the dash standing just before them (a dash not
+  glued to a letter on its left) had the model quoted it, all 404 a list bullet
+  at the start of a line (README,
+  Known limitations).
+  **Time.** Checking the 424 posted traces (`verify_run` alone, best of five
+  runs, one machine) takes 0.48 s on v0.9.0 against 0.052 s on v0.8.1: about
+  nine times slower, about 1.1 ms a trace. v0.8.1 answered almost every quote
+  by string equality; v0.9.0 reads both boundaries of every quote.
+  **Still open**: everything under Known limitations in the README, with its
+  frequency where it was counted. That list is what the external reviews had
+  found by 25 September 2026, and it is not complete: each review found shapes
+  the one before it had not, and the next will most likely find more; v0.9.0
+  refuses what the README describes as refused, and anything else it may
+  accept. The rule was frozen for this release, so none of the classes the
+  external reviews found has been closed or priced. Git tags stop at `v0.7.4`
+  until `v0.9.0` is tagged at the merge.
+
 ## Earlier benchmark results
 
-The construction, the caveats and the scoring are described in [`docs/benchmark.md`](../docs/benchmark.md); they were the same for these runs except where a section says otherwise.
+The construction, the caveats and the scoring are described in [`docs/benchmark.md`](../docs/benchmark.md); the differences these runs had from it that we know of are named in each section.
 
 ### Results — v0.5.2 (September 2026)
 

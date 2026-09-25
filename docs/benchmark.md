@@ -5,13 +5,58 @@
 **Which version measured what.** The constructed benchmark below is a v0.6 run
 (`bench/results/2026-09-n100-v0.6.json`); the real-trajectory tables are a v0.7.3
 run (`bench/results/agenthallu-v0.7.3-rows.jsonl`, and every row carries its
-`tallystick_version`). Nothing here was re-measured on v0.7.5 or v0.8: those
-versions changed how a raw log is read and what is said about a result that may
-be the model's own text, not how a posted trace is audited. Both tables
-recompute from the committed rows with no model and no key —
-`python bench/ci.py bench/results/2026-09-n100-v0.6.json`.
+`tallystick_version`). Both tables recompute from the committed rows with no
+model and no key — `python bench/ci.py bench/results/2026-09-n100-v0.6.json`.
 
-When this benchmark was built, no multi-step dataset with sentence-level labels of unsupported claims was available — the hallucination corpora are one hop, and [AgentHallu](https://arxiv.org/abs/2601.06818) (2026), which does have real multi-step trajectories, labels the responsible *step*, not the sentence; it is the basis of the v0.7 run below. So `bench/build.py` constructs two-hop traces from RAGTruth (test split, Summary and QA tasks, human-annotated hallucinated spans; MIT) without any model: the RAGTruth response becomes the intermediate summary, and a final answer is built by quoting up to three of its sentences, chosen uniformly at random, verbatim. Selection and quoting are seeded (`--seed`, default 7): the item shuffle takes the seed, and each trace's sentence choice is seeded per item, so a trace is byte-identical whatever `--limit` built it, and `--limit N` takes a random prefix of one fixed order rather than a different sample. The seed is recorded in `manifest.json`. Ground truth follows from the annotations alone — a quoted sentence that overlaps an annotated span is laundered, one that overlaps none is grounded.
+**What the quote-gate changes reach here, and what they do not.** Every quality
+figure on this page — precision, recall, F1, the bootstrap intervals, and both
+AgentHallu tables — was measured under the quote gate as it stood before v0.8.1.
+That gate is the one thing on this page a rule change could move, and the path is
+traceable rather than suspected: `sentence_flags_from_audit` in `bench/run.py`
+builds its per-sentence flags from `balance.audits[...].status`, and those
+statuses are what the quote gate in `tallystick/verify.py` decides. The gate has
+changed in two releases since: v0.8.1 removed an edit budget of 2% of the span's
+length, and v0.9.0 (the working versions v0.8.2 to v0.8.4 were never released)
+names what a quote may differ by rather
+than what it may not, and asks where the span was cut — a span whose boundary
+falls inside a number or a word, as the check reads them, is refused, even when
+the quote matches it word for word. The shapes it does not read as a number or a
+word that the reviews have found are under Known limitations in the README, and
+that list is not complete.
+
+On the instrument in
+[`bench/quote_gate_corpus.py`](../bench/quote_gate_corpus.py), with 305,499
+tampering pairs and 284,010 typographic pairs built from the 5,615 real quotes
+of both published runs, the v0.8.1 signature refuses 25.23% of the
+tampering and v0.9.0 refuses all of it, accepting every typographic pair. That
+is a statement about the classes the instrument asks about. The ones it does not
+ask about that the reviews have found — forgeries still accepted, honest quotes
+refused, with frequencies where they were counted — are under Known limitations
+in the [README](../README.md#known-limitations), a list that is not complete.
+
+**It does not move the numbers below, and that was re-derived rather than
+argued.** All 5,615 EVIDENCE quotes in the 424 posted files of both runs are exact
+slices of their sources, character for character (a count that never calls the
+gate). Up to v0.8.4 that was enough: `verify_entry` settled an exact slice before
+any rule. It no longer is. The boundary checks run before that equality, and they
+refuse 8 of the 5,615 exact slices: one real cut (`1/2` cited as `2`) and seven
+named prices of the rule. So the posted files were audited again on v0.9.0 and
+compared with the committed row files: all 580 sentence flags of the v0.6 run (290
+sentences, two proposer runs) and all 225 trajectory scores of the v0.7.3 run are
+reproduced. One of the 11,547 claims changes status (`Magentic_One__004`, an
+intermediate claim); no scored sentence or trajectory rests on it. The judges'
+rows do not depend on tallystick and were not rerun; nor was the proposer, which
+is a model. Those posted files are not in this repository — see the note on
+`bench/diagnose.py` below and [Reproducing the numbers](../README.md#reproducing-the-numbers)
+— so the re-audit was run on the owner's copies, offline and at no cost.
+
+Two changes that do **not** reach these numbers, for reasons as specific: the
+half-answer rule of v0.8.0 (`answer_mostly_unclaimed`) moves an exit code, not a
+claim status, and nothing here is scored from exit codes; and v0.8.1's fix to the
+break reason names a different reason without moving a status or a breaking step
+(2,000 shuffles of every array move neither).
+
+When this benchmark was built, we found no multi-step dataset with sentence-level labels of unsupported claims — the hallucination corpora are one hop, and [AgentHallu](https://arxiv.org/abs/2601.06818) (2026), which does have real multi-step trajectories, labels the responsible *step*, not the sentence; it is the basis of the v0.7 run below. So `bench/build.py` constructs two-hop traces from RAGTruth (test split, Summary and QA tasks, human-annotated hallucinated spans; MIT) without any model: the RAGTruth response becomes the intermediate summary, and a final answer is built by quoting up to three of its sentences, chosen uniformly at random, verbatim. Selection and quoting are seeded (`--seed`, default 7): the item shuffle takes the seed, and each trace's sentence choice is seeded per item, so a trace is byte-identical whatever `--limit` built it, and `--limit N` takes a random prefix of one fixed order rather than a different sample. The seed is recorded in `manifest.json`. Ground truth follows from the annotations alone — a quoted sentence that overlaps an annotated span is laundered, one that overlaps none is grounded.
 
 Four things the reader should know before the number (the first two, and the per-side failure counts behind the fourth, are also printed in the report):
 
@@ -88,7 +133,7 @@ Read the first row as: where the hallucination was stated in the agent's own pro
 - **The boundary is the finding, not the footnote.** 61 of the 115 labelled runs — 53% — are labelled at a step whose only artifacts are tool results. No post-hoc audit of the file can reach them: the page the digest came from is not in the file. That is a statement about what a trace has to contain for provenance to be checkable at all, and it is measured, not argued. It also tracks something the file carries without any label, and `tallystick check-trace` reports that quantity. Measured on all 443 labelled trajectories in the dataset — which costs nothing, since that check reads the file and calls no model: where at least 80% of the artifacts a chain passes through hold the model's own words rather than a tool's output, the hallucination is beyond the boundary in 24 of 84 runs (29%); below that line, in 212 of 359 (59%). Most of that gap is arithmetic rather than prediction — a placebo label, a step picked at random from the same run, reproduces the ordering — so read it first as "a thin recording has more of itself out of reach", which is what makes a clean audit of one worth less. Real labels do sit at tool boundaries more often than the placebo (236 against an expected 172), which is a fact about agents rather than about the share.
 
   The 53% rests on one definition — a labelled step whose only recorded artifacts are tool results — and that definition is worth arguing with, so the argument is measured rather than left open ([`bench/boundary_sensitivity.py`](../bench/boundary_sensitivity.py), output in [`bench/results/boundary-sensitivity.txt`](../bench/results/boundary-sensitivity.txt)). The objection that moves it: the model wrote the tool call at that step, so a reader can say there *is* model text there. Every one of the 236 labelled steps beyond the boundary carries a call, and 96 of them carry more than 200 characters of it; counting each of those as reachable takes the share from 53% to 32% on the whole corpus, and from 53% to 43% on the 115 scored here. Read next to what the calls say, the objection is weak — `{"query": "which two ASEAN capitals are furthest apart"}` asserts nothing that could be checked against a source — but weak is not unmeasured, so treat the finding as **32–53%**, not as one number. The other two objections move it the other way: reading `final_answer`, note stores and `terminate` as model text costs 12 traces out of the boundary set, and including the CodeAct runs gives 53.3% where excluding them gives 57.3%, so the published figure is already the lower of the two. Nothing here checks AgentHallu's labels themselves.
-- **23 reachable misses, and they are not one failure.** 16 of the 23 are labelled at step 1 — the plan. The agent read the question wrong or chose the wrong rule before doing anything, and everything after it, the answer included, is faithfully derived from that choice. The chain to a root is intact and the audit is right to close it; the error is in the reasoning, which a provenance audit does not judge. Five more are misreadings of a real source (1946 taken for 1937; the wrong actor from a cast list): the words are in the source, the meaning is not, and those need a check of *whether* a span supports a claim — the v0.8 question. The last two had no claim to check. The three groups do not overlap.
+- **23 reachable misses, and they are not one failure.** 16 of the 23 are labelled at step 1 — the plan. The agent read the question wrong or chose the wrong rule before doing anything, and everything after it, the answer included, is faithfully derived from that choice. The chain to a root is intact and the audit is right to close it; the error is in the reasoning, which a provenance audit does not judge. Five more are misreadings of a real source (1946 taken for 1937; the wrong actor from a cast list): the words are in the source, the meaning is not, and those need a check of *whether* a span supports a claim — the next open question in [design.md](design.md#next-steps). The last two had no claim to check. The three groups do not overlap.
 - **35% false alarms, and paraphrase is most of them.** `bench/diagnose_agenthallu.py` sorts them by why the chain broke: a paraphrase of a source, a quote the proposer offered that is not verbatim in the source, a computation or formula the agent derived, something the agent stated from its own knowledge. It reads the posted files of the run, which are not in this repository, so the counts per cause are not quoted here. Only the last cause is the audit working as designed on a claim with no external support — and AgentHallu calls those runs clean because the answer was *true*, which is the other question. The rest is the cost of verbatim verification against agents that paraphrase what they read and compute what they report.
 
 **Two changes were measured on the previous run's files and refused** rather than shipped, with the numbers in [`bench/HISTORY.md`](../bench/HISTORY.md): skipping the model's narration of itself in coverage, and requiring the claim's numbers to appear in the funding span. One was adopted: a bare-value answer the segmenter returns nothing locatable for is posted whole, which closed a silent pass on 15 answers that carried no claim at all and so could not be flagged whatever they said.

@@ -608,6 +608,24 @@ def test_a_sign_or_bracket_on_a_number_is_part_of_the_number():
     assert _locate_tolerant("grew in 2024 (Passage 1).", "grew in 2024", []) == (0, 12)
 
 
+def test_a_bracket_ends_a_word_even_between_two_digits():
+    """The clause that arrived when this reading moved to `tallystick/tokens.py`
+    and that no test noticed: a mark between two digits belongs to the number
+    (`3.5`, `1,000`), but a bracket does not, whatever stands either side of it.
+
+    `10^15(100%)` is a number and a bracketed number, and reading it as one long
+    number made the space in front of the bracket look like a change of content.
+    Removing the clause leaves the whole suite green, which is how this test
+    came to be written (external review of v0.8.3, finding 4)."""
+    from tallystick.tokens import words
+    # without the clause the bracket is a mark between two digits, so the two
+    # readings below would be ["10^15(100%"] and ["10^15", "(100%)"] - one word
+    # against two, which is what made the space look like a change of content.
+    assert [w for _, _, w in words("10^15(100%) of it")] == ["10^15", "100%", "of", "it"]
+    assert [w for _, _, w in words("10^15 (100%) of it")] == ["10^15", "(100%)", "of", "it"]
+    assert [w for _, _, w in words("3.5 and 1,000")] == ["3.5", "and", "1,000"]
+
+
 def test_coverage_sentences_start_where_the_last_one_ended():
     """v0.6 review: the sentence regex let a sentence begin after any full
     stop, so "3.5%" produced the claim "5% compared to last year." and the

@@ -2,8 +2,8 @@
 
 ledger.py's module docstring promises that results do not depend on the order of
 arrays in the input file. The verdict held - 2,000 shuffles of every array in each
-of the two shipped examples, run when this fix landed, move no status, no breaking
-step and, now, no reason - but the sentence under it did not: the reason
+of the two shipped examples, which the last test here repeats, move no status, no
+breaking step and, now, no reason - but the sentence under it did not: the reason
 was `entries[0].reason`, the first element of the entries array. One claim with
 three rejected entries reported `artifact_unknown`, `span_mismatch` or
 `prior_never_funds` depending only on how the file happened to list them, and
@@ -62,9 +62,16 @@ def test_every_order_of_the_same_entries_gives_the_same_reason():
 def test_the_reason_named_is_the_earliest_gate_that_failed():
     """Of the three, the citation into an artifact that does not exist is the
     most fundamental: nothing about the quote or the prior can be assessed until
-    the cited thing is there."""
-    balance = close_books(load_run(_trace(ENTRIES)))
-    assert balance.audits["c1"].break_reason == "artifact_unknown"
+    the cited thing is there.
+
+    Asserted over every order, not over the order ENTRIES happens to be declared
+    in: `entries[0].reason` returns the same string for that one order by
+    coincidence, so the declaration-order form passed on the unfixed code and
+    guarded nothing (project rule 7).
+    """
+    for order in permutations(ENTRIES):
+        balance = close_books(load_run(_trace(order)))
+        assert balance.audits["c1"].break_reason == "artifact_unknown"
 
 
 def test_worst_reason_ranks_by_the_gate_order_and_ignores_ok():
@@ -85,11 +92,15 @@ def test_worst_reason_ranks_by_the_gate_order_and_ignores_ok():
 
 def test_the_shipped_examples_survive_shuffling_every_array():
     """Verdict, breaking step and reason together, over the two examples the
-    README prints. 200 shuffles here; the same loop at 2,000 was run by hand on
-    both files when this fix landed and moved nothing.
+    README prints, at 2,000 shuffles - the figure the history file publishes, so
+    a fresh clone can recompute it rather than take it on trust (project rule 5).
 
-    The existing shuffle tests cover the verdict. This one covers the sentence
-    under it, which is what `entries[0].reason` used to decide.
+    What this does NOT do, despite an earlier version of this docstring saying so:
+    guard the `entries[0].reason` fix. Neither shipped example has a claim with
+    two rejected entries - `laundered_summary.json` has one such claim with one
+    entry, `balanced_run.json` has none - so both implementations agree on them by
+    construction. The guard on that fix is the permutation test above. This is a
+    general order-independence test, and that is all it is.
     """
     import json
     import random
@@ -106,7 +117,7 @@ def test_the_shipped_examples_survive_shuffling_every_array():
                                       for k, a in b.audits.items()})
 
         reference = verdict(json.loads(json.dumps(base)))
-        for _ in range(200):
+        for _ in range(2000):
             shuffled = json.loads(json.dumps(base))
             for key in ("artifacts", "steps", "claims", "entries"):
                 if isinstance(shuffled.get(key), list):

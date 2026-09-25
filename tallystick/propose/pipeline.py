@@ -17,8 +17,17 @@ from __future__ import annotations
 import re
 import unicodedata
 from dataclasses import asdict, dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
+# `cuts_a_number`, not the raw `cuts_number`: the proposer asks the question
+# the gate asks, of the text the gate reads (round 9). Reading the raw text, it
+# saw `500−` as a number with a symbol after it where the gate, after
+# `normalize` has folded the minus into a dash, sees a compound.
+# `numbers_near` and `_opens_a_line` are the gate's reading of a number and of
+# where a line begins, borrowed so that the sign check below does not grow a
+# second reading of its own.
+from ..tokens import _opens_a_line, core as _core, cuts_a_number as _cuts_number, \
+    is_separator as _is_sep, numbers_near as _numbers_near, words as _words
 from ..types import Artifact, ArtifactKind, Run
 from .base import Proposer, parse_json
 from .prompts import (
@@ -53,70 +62,6 @@ def _as_list(value: Any, what: str, log: ProposalLog) -> List[Any]:
         return value
     log.warnings.append(f"proposer returned {type(value).__name__} for {what}; expected a list")
     return []
-
-
-_SEP_CATS = frozenset({"Pd", "Ps", "Pe", "Pi", "Pf", "Pc", "Zs", "Zl", "Zp"})
-_SEP_CHARS = frozenset(".,;:!?'\"`\u2026\u00a1\u00bf\u00b7")
-
-
-def _is_sep(ch: str) -> bool:
-    """Characters a word match may disagree on: whitespace, dashes, brackets,
-    quotation marks, connectors and sentence punctuation. Everything else is
-    part of a word - a "%" or "$" changes what a number means and is kept."""
-    return ch.isspace() or unicodedata.category(ch) in _SEP_CATS or ch in _SEP_CHARS
-
-
-def _words(text: str) -> List[Tuple[int, int, str]]:
-    """(start, end, folded word) for every maximal run of non-separator
-    characters in `text`, with three extensions for numbers: a mark between
-    two digits ("3.5", "1,000"), a dash directly before a number that starts
-    a word ("-5%") and a bracket pair hugging a single token with a digit in
-    it ("(5%)", "(2024)") belong to the word. "-5%" and "(5%)" are not "5%",
-    and "3-5" is not "3.5". Folding is NFC + casefold of the word
-    alone, so the span is still read from the original text whatever the fold
-    does to the word's length."""
-    n = len(text)
-
-    def sep(k: int) -> bool:
-        # "3.5", "1,000", "10:30", "2020-2021": a mark between two digits is
-        # part of the number, not a place where "3-5" may stand in for "3.5".
-        ch = text[k]
-        if not _is_sep(ch):
-            return False
-        return ch.isspace() or not (
-            0 < k < n - 1 and text[k - 1].isdigit() and text[k + 1].isdigit())
-
-    out: List[Tuple[int, int, str]] = []
-    i = 0
-    while i < n:
-        if sep(i):
-            i += 1
-            continue
-        j = i
-        while j < n and not sep(j):
-            j += 1
-        a, b = i, j
-        if text[a].isdigit() and a > 0 and unicodedata.category(text[a - 1]) == "Pd" \
-                and (a == 1 or _is_sep(text[a - 2])):
-            a -= 1
-        if any(ch.isdigit() for ch in text[i:j]) and a > 0 and b < n \
-                and text[a - 1] == "(" and text[b] == ")" \
-                and (a == 1 or _is_sep(text[a - 2])) and (b + 1 == n or _is_sep(text[b + 1])):
-            a, b = a - 1, b + 1
-        out.append((a, b, unicodedata.normalize("NFC", text[a:b]).casefold()))
-        i = j
-    return out
-
-
-def _core(content: str, span: Tuple[int, int]) -> Tuple[int, int]:
-    """`span` shrunk to its first and last word character. Punctuation and
-    spacing at the edges are not text anybody vouched for or quoted."""
-    a, b = span
-    while a < b and _is_sep(content[a]):
-        a += 1
-    while b > a and _is_sep(content[b - 1]):
-        b -= 1
-    return a, b
 
 
 def _split_to_claims(content: str, span: Tuple[int, int],
@@ -206,33 +151,39 @@ def _ends_sentence(line: str, m: "re.Match[str]") -> bool:
     while start > 0 and not line[start - 1].isspace():
         start -= 1
     return not _ABBREV_RE.search(line[start:m.start()])
-def _cuts_number(text: str, a: int, b: int) -> bool:
-    """Does the span [a, b) start or end inside a number, as _words reads
-    numbers? Inside means: a digit at the edge of the span continued on the
-    outside by a digit; by a dash, a sign or a currency mark before it
-    ("-5%", "$100"); by a percent sign after it; by a mark between two digits
-    ("3.5", "1,000", "2020-2021", "10:30", "3/4"); or by a bracket hugging a
-    token with a digit in it ("(5%)")."""
-    if a >= b:
-        return False
-    n = len(text)
-    if text[a].isdigit() and a > 0:
-        left = text[a - 1]
-        if left.isdigit() or left in "+$\u20ac\u00a3" or unicodedata.category(left) == "Pd":
-            return True
-        if _is_sep(left) and not left.isspace() and a > 1 and text[a - 2].isdigit():
-            return True
-    if text[b - 1].isdigit() and b < n:
-        right = text[b]
-        if right.isdigit() or right in "%+$\u20ac\u00a3":   # "65+", "5€"
-            return True
-        if _is_sep(right) and not right.isspace() and b + 1 < n and text[b + 1].isdigit():
-            return True
-    # "(5%)": a bracket pair hugging the token, as _words keeps it whole
-    if a > 0 and b < n and text[a - 1] == "(" and text[b] == ")" \
-            and any(ch.isdigit() for ch in text[a:b]) and not any(ch.isspace() for ch in text[a:b]):
-        return True
-    return False
+
+
+def _a_sign(ch: str) -> bool:
+    """A dash of any kind, or a plus, minus or plus-minus sign."""
+    return unicodedata.category(ch) == "Pd" or ch in "+\u2212\u00b1\u2213"
+
+
+def _signs_and_numerals(text: str, lo: int, hi: int,
+                        opens_a_line: Callable[[int], bool]) -> List[str]:
+    """Every number with a numeral in `text[lo:hi]`, read whole by the gate's
+    reading (`tokens.numbers_near`), written as its signs and numerals alone:
+    `-$5 million` -> `-5`, `- 5.2 %` -> `-52`, `66 400` -> `66400`. Every dash
+    and the minus sign are written `-`: `–$5` and `-$5` state one number.
+
+    Two corrections to what the gate reads as part of a number, each asked of
+    the character before it. A sign glued in front of a bracket that hugs a
+    number is its sign (`-(5%)`); the gate reads the bracket and stops. A dash
+    glued to a letter or a numeral on its left is a hyphen, not a sign
+    (`COVID-19`), which is how `tokens.words` reads it too."""
+    def word_char(ch: str) -> bool:
+        return unicodedata.category(ch)[0] in "LMN"
+
+    out: List[str] = []
+    for s, e in _numbers_near(text, lo, hi, opens_a_line):
+        if (text[s] == "(" and s > 0 and _a_sign(text[s - 1])
+                and not (s > 1 and word_char(text[s - 2]))):
+            s -= 1
+        if _a_sign(text[s]) and s > 0 and word_char(text[s - 1]):
+            s += 1
+        out.append("".join(
+            "-" if unicodedata.category(c) == "Pd" or c == "\u2212" else c
+            for c in text[s:e] if _a_sign(c) or unicodedata.category(c)[0] == "N"))
+    return out
 
 
 def _locate_tolerant(haystack: str, needle: str, taken: List[Tuple[int, int]],
@@ -245,9 +196,26 @@ def _locate_tolerant(haystack: str, needle: str, taken: List[Tuple[int, int]],
     The fallback compares the sequence of words (runs of anything but
     separators, case-folded) and returns the span from the first matched word to the last.
     Punctuation, spacing, case and quote or dash variants are forgiven; a
-    changed letter or digit is not, and words are never merged or split. That
-    is stricter than the verifier's 2% edit tolerance on purpose: a locate
-    that forgave one character would let "14" find "15".
+    changed letter or digit is not, and words are never merged or split: a
+    locate that forgave one character would let "14" find "15".
+
+    Nor is a changed sign. A dash is a separator to the word match, so from
+    v0.6.0 until this check was added `-$5 million` found `$5 million` in
+    `a loss of $5 million`, and the slice was written into the trace as the
+    model's quote (the last review). A span the words find is placed only if
+    the text it would write states the numbers the quote states, written as
+    their signs and numerals (`_signs_and_numerals`): a sign added, left out
+    or turned over is a different number. Both are read alone, so a `- ` a
+    quote opens on is read as a sign and not as a list bullet: the proposer
+    cannot see which it was, and placing nothing is the error that is logged.
+
+    The verifier is the stricter of the two on content - it refuses every
+    change of content this locate refuses, and `tokens.cuts_number` is the one
+    reading of a number both call. It is the more forgiving of the two on
+    setting, and deliberately: it also audits traces nobody ran a locate over,
+    so `a 5 % rise` verifies against `a 5% rise` where this function would
+    place no span at all. The two answer different questions, and only the
+    first direction is a promise (`tests/test_only_the_listed_setting_may_differ.py`).
     """
     ndl = [w for _, _, w in _words(needle)]
     if not ndl:
@@ -262,19 +230,46 @@ def _locate_tolerant(haystack: str, needle: str, taken: List[Tuple[int, int]],
         # "Etta Cone commissioned" is there word for word. (The v0.7.0 rule
         # required a word boundary on both sides and refused 177 verbatim
         # quotes in one AgentHallu run for that reason.)
+        # The question is asked of the hit as it will be placed, which is what
+        # the gate asks. Asked of its core, it lost the ASCII minus - a dash
+        # is a separator to the word match - and `-$5.2 million` was asked as
+        # `$5.2 million`, which does cut `-$5.2`: the honest quote was placed
+        # nowhere (the review of round 9, section 7.2).
         blocked = list(taken)
         while span is not None:
-            if not _cuts_number(haystack, *_core(haystack, span)):
+            if not _cuts_number(haystack, *span):
                 return span
             blocked.append(span)
             span = _locate(haystack, needle, blocked)
     n = len(ndl)
+    # The quote's numbers, and later the numbers of the slice that would be
+    # written in its place, each read alone and the same way. A line opens only
+    # after a line break inside the text, never at its start: the start of a
+    # quote is wherever the model began copying, and a `- ` there may be a
+    # sign. The slice is read alone too, not in its source: the question is
+    # whether the text written into the trace says what the model quoted, and a
+    # sign standing outside the slice is not written (`"-(5%) this year"`
+    # placed as `(5%) this year`).
+    def stated(text: str) -> List[str]:
+        return _signs_and_numerals(
+            text, 0, len(text), lambda k: "\n" in text[:k] and _opens_a_line(text, k))
+    quoted = stated(needle.strip())
     for i in range(len(hay) - n + 1):
         if hay[i][2] != ndl[0]:
             continue
         if [w for _, _, w in hay[i:i + n]] != ndl:
             continue
         span = (hay[i][0], hay[i + n - 1][1])
+        # The words match, and the span may still cut a number the exact hit
+        # was refused for: `5.2 % lower.` in `margin - 5.2 % lower.` is the
+        # same words either way (the review of round 8, section 2.3). The
+        # gate would refuse it, so the proposer does not place it.
+        if _cuts_number(haystack, *span):
+            continue
+        # The words match and the numbers do not: a sign the separators hid
+        # (`-$5 million` against `$5 million`). Not the model's quote.
+        if stated(haystack[span[0]:span[1]]) != quoted:
+            continue
         if not any(x < span[1] and span[0] < y for x, y in taken):
             return span
     return None

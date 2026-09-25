@@ -1,0 +1,4425 @@
+{
+ "thresholds": {
+  "tampering_refused": 1.0,
+  "drift_accepted": 1.0,
+  "characters_forgiven": 0,
+  "spans_through_a_number_refused": 1.0,
+  "spans_between_numbers_accepted": 1.0,
+  "spans_through_a_word_refused": 1.0,
+  "spans_between_words_accepted": 1.0
+ },
+ "corpus": "5615 real EVIDENCE quotes from the posted runs",
+ "sampled": 5615,
+ "drift_pairs": 267162,
+ "tampering_pairs": 288660,
+ "spans_cutting_a_number": 101077,
+ "spans_cutting_none": 50528,
+ "spans_cutting_a_word": 112300,
+ "spans_cutting_no_word": 101070,
+ "honest_word_shapes_lost_by_a_crude_check": [
+  56150,
+  101070
+ ],
+ "answered_by_the_fast_path": {
+  "a space against a digit added at the left edge, and the numbers are the same [drift]": 11230,
+  "a space against a digit added at the right edge, and the numbers are the same [drift]": 11230,
+  "a space against a digit dropped at the left edge, and the numbers are the same [drift]": 11230,
+  "a space against a digit dropped at the right edge, and the numbers are the same [drift]": 11230,
+  "a space too few [drift]": 280,
+  "a space too many [drift]": 16665,
+  "another case [drift]": 16689,
+  "another kind of dash [drift]": 2613,
+  "another kind of quotation mark [drift]": 3036
+ },
+ "powered": true,
+ "characters_swept": 3565,
+ "marks_against_a_digit": {
+  "a comma against a digit added at the left edge | the head of a number | tampering": [
+   0,
+   11230,
+   0
+  ],
+  "a comma against a digit added at the right edge | the numbers are the same | drift": [
+   11230,
+   11230,
+   0
+  ],
+  "a comma against a digit dropped at the left edge | the head of a number | tampering": [
+   0,
+   11230,
+   0
+  ],
+  "a comma against a digit dropped at the right edge | the numbers are the same | drift": [
+   11230,
+   11230,
+   0
+  ],
+  "a double quotation mark against a digit added at the left edge | the numbers are the same | drift": [
+   11230,
+   11230,
+   0
+  ],
+  "a double quotation mark against a digit added at the right edge | the numbers are the same | drift": [
+   11230,
+   11230,
+   0
+  ],
+  "a double quotation mark against a digit dropped at the left edge | the numbers are the same | drift": [
+   11230,
+   11230,
+   0
+  ],
+  "a double quotation mark against a digit dropped at the right edge | the numbers are the same | drift": [
+   11230,
+   11230,
+   0
+  ],
+  "a full stop against a digit added at the left edge | the head of a number | tampering": [
+   0,
+   11230,
+   0
+  ],
+  "a full stop against a digit added at the right edge | the numbers are the same | drift": [
+   11230,
+   11230,
+   0
+  ],
+  "a full stop against a digit dropped at the left edge | the head of a number | tampering": [
+   0,
+   11230,
+   0
+  ],
+  "a full stop against a digit dropped at the right edge | the numbers are the same | drift": [
+   11230,
+   11230,
+   0
+  ],
+  "a question mark against a digit dropped at the left edge | the numbers are the same | drift": [
+   11230,
+   11230,
+   0
+  ],
+  "a question mark against a digit dropped at the right edge | the numbers are the same | drift": [
+   11230,
+   11230,
+   0
+  ],
+  "a single quotation mark against a digit added at the left edge | the numbers are the same | drift": [
+   11230,
+   11230,
+   0
+  ],
+  "a single quotation mark against a digit added at the right edge | the numbers are the same | drift": [
+   11230,
+   11230,
+   0
+  ],
+  "a single quotation mark against a digit dropped at the left edge | the numbers are the same | drift": [
+   11230,
+   11230,
+   0
+  ],
+  "a single quotation mark against a digit dropped at the right edge | the numbers are the same | drift": [
+   11230,
+   11230,
+   0
+  ],
+  "a space against a digit added at the left edge | the numbers are the same | drift": [
+   11230,
+   11230,
+   11230
+  ],
+  "a space against a digit added at the right edge | the numbers are the same | drift": [
+   11230,
+   11230,
+   11230
+  ],
+  "a space against a digit dropped at the left edge | the numbers are the same | drift": [
+   11230,
+   11230,
+   11230
+  ],
+  "a space against a digit dropped at the right edge | the numbers are the same | drift": [
+   11230,
+   11230,
+   11230
+  ],
+  "an ellipsis against a digit added at the left edge | the numbers are the same | drift": [
+   11230,
+   11230,
+   0
+  ],
+  "an ellipsis against a digit added at the right edge | the numbers are the same | drift": [
+   11230,
+   11230,
+   0
+  ],
+  "an ellipsis against a digit dropped at the left edge | the numbers are the same | drift": [
+   11230,
+   11230,
+   0
+  ],
+  "an ellipsis against a digit dropped at the right edge | the numbers are the same | drift": [
+   11230,
+   11230,
+   0
+  ],
+  "an exclamation mark against a digit dropped at the left edge | the numbers are the same | drift": [
+   11230,
+   11230,
+   0
+  ],
+  "an exclamation mark against a digit dropped at the right edge | the numbers are the same | drift": [
+   11230,
+   11230,
+   0
+  ]
+ },
+ "results": {
+  "CONTROL always accept": {
+   "drift_accepted": 1.0,
+   "drift_accepted_of": [
+    267162,
+    267162
+   ],
+   "tampering_refused": 0.0,
+   "tampering_refused_of": [
+    0,
+    288660
+   ],
+   "characters_forgiven": 3550,
+   "characters_forgiven_names": [
+    "U+0021 EXCLAMATION MARK",
+    "U+0023 NUMBER SIGN",
+    "U+0024 DOLLAR SIGN",
+    "U+0025 PERCENT SIGN",
+    "U+0026 AMPERSAND",
+    "U+0028 LEFT PARENTHESIS",
+    "U+0029 RIGHT PARENTHESIS",
+    "U+002A ASTERISK",
+    "U+002B PLUS SIGN",
+    "U+002D HYPHEN-MINUS",
+    "U+002E FULL STOP",
+    "U+002F SOLIDUS",
+    "U+003A COLON",
+    "U+003B SEMICOLON",
+    "U+003C LESS-THAN SIGN",
+    "U+003D EQUALS SIGN",
+    "U+003E GREATER-THAN SIGN",
+    "U+003F QUESTION MARK",
+    "U+0040 COMMERCIAL AT",
+    "U+005B LEFT SQUARE BRACKET",
+    "U+005C REVERSE SOLIDUS",
+    "U+005D RIGHT SQUARE BRACKET",
+    "U+005E CIRCUMFLEX ACCENT",
+    "U+005F LOW LINE",
+    "U+0060 GRAVE ACCENT",
+    "U+007B LEFT CURLY BRACKET",
+    "U+007C VERTICAL LINE",
+    "U+007D RIGHT CURLY BRACKET",
+    "U+007E TILDE",
+    "U+00A1 INVERTED EXCLAMATION MARK",
+    "U+00A2 CENT SIGN",
+    "U+00A3 POUND SIGN",
+    "U+00A4 CURRENCY SIGN",
+    "U+00A5 YEN SIGN",
+    "U+00A6 BROKEN BAR",
+    "U+00A7 SECTION SIGN",
+    "U+00A8 DIAERESIS",
+    "U+00A9 COPYRIGHT SIGN",
+    "U+00AC NOT SIGN",
+    "U+00AE REGISTERED SIGN"
+   ],
+   "spans_through_a_number_refused": 1.0,
+   "spans_through_a_number_refused_of": [
+    101077,
+    101077
+   ],
+   "spans_between_numbers_accepted": 1.0,
+   "spans_between_numbers_accepted_of": [
+    50528,
+    50528
+   ],
+   "spans_through_a_word_refused": 0.5,
+   "spans_through_a_word_refused_of": [
+    56150,
+    112300
+   ],
+   "spans_between_words_accepted": 1.0,
+   "spans_between_words_accepted_of": [
+    101070,
+    101070
+   ],
+   "spans_by_kind": {
+    "the head of the span is inside a number set with a colon, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a number set with a colon, the span carrying the separator and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a number set with a comma, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a number set with a comma, the span carrying the separator and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a number set with a full stop, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a number set with a full stop, the span carrying the separator and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a number set with a space, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a number set with a space, the span carrying the separator and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a number set with nothing at all, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the span begins after a grouped number [drift]": [
+     5608,
+     5608
+    ],
+    "the span begins after a grouped number [tampering]": [
+     0,
+     7
+    ],
+    "the span begins at a grouped number whole [drift]": [
+     5615,
+     5615
+    ],
+    "the span begins at a number a sentence begins with [drift]": [
+     5615,
+     5615
+    ],
+    "the span begins at the second of two numbers a clause comma divides [drift]": [
+     5615,
+     5615
+    ],
+    "the span begins at the year of a date [drift]": [
+     5615,
+     5615
+    ],
+    "the span ends at a number a clause comma follows [drift]": [
+     5615,
+     5615
+    ],
+    "the span ends at a number its own sentence ends after [drift]": [
+     5615,
+     5615
+    ],
+    "the span ends at a number the next sentence begins with a number after [drift]": [
+     5615,
+     5615
+    ],
+    "the span ends before a grouped number [drift]": [
+     5615,
+     5615
+    ],
+    "the tail of the span is inside a number set with a colon, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a number set with a colon, the span carrying the separator and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a number set with a comma, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a number set with a comma, the span carrying the separator and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a number set with a full stop, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a number set with a full stop, the span carrying the separator and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a number set with a space, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a number set with a space, the span carrying the separator and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a number set with nothing at all, the citation word for word [tampering]": [
+     0,
+     5615
+    ]
+   },
+   "words_by_kind": {
+    "the head of the span is at a scrape seam,  - Wikipedia|It became  [drift]": [
+     5615,
+     5615
+    ],
+    "the head of the span is at a scrape seam, arlo results|The Venezu [drift]": [
+     5615,
+     5615
+    ],
+    "the head of the span is at a scrape seam, de Sora.\\n\\n|El poblado [drift]": [
+     5615,
+     5615
+    ],
+    "the head of the span is at a scrape seam, l Conference|Deputy chi [drift]": [
+     5615,
+     5615
+    ],
+    "the head of the span is at a scrape seam, ter of Bihar|In office [drift]": [
+     5615,
+     5615
+    ],
+    "the head of the span is inside a word, dis-, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, dis-, the span carrying the affix and the citation dropping it [tampering]": [
+     5615,
+     5615
+    ],
+    "the head of the span is inside a word, im-, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, im-, the span carrying the affix and the citation dropping it [tampering]": [
+     5615,
+     5615
+    ],
+    "the head of the span is inside a word, in-, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, in-, the span carrying the affix and the citation dropping it [tampering]": [
+     5615,
+     5615
+    ],
+    "the head of the span is inside a word, non- with a hyphen, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, non- with a hyphen, the span carrying the affix and the citation dropping it [tampering]": [
+     5615,
+     5615
+    ],
+    "the head of the span is inside a word, non-, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, non-, the span carrying the affix and the citation dropping it [tampering]": [
+     5615,
+     5615
+    ],
+    "the head of the span is inside a word, the pair round 5 left open, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, the pair round 5 left open, the span carrying the affix and the citation dropping it [tampering]": [
+     5615,
+     5615
+    ],
+    "the head of the span is inside a word, un- with the word opening a sentence, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, un- with the word opening a sentence, the span carrying the affix and the citation dropping it [tampering]": [
+     5615,
+     5615
+    ],
+    "the head of the span is inside a word, un-, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, un-, the span carrying the affix and the citation dropping it [tampering]": [
+     5615,
+     5615
+    ],
+    "the span begins at a word after a full stop and a space [drift]": [
+     5615,
+     5615
+    ],
+    "the span begins at a word after a line break [drift]": [
+     5615,
+     5615
+    ],
+    "the span begins at a word after a space [drift]": [
+     5615,
+     5615
+    ],
+    "the span begins at the second word of a pair an en dash divides [drift]": [
+     5615,
+     5615
+    ],
+    "the span begins at the whole of a word a prefix flips [drift]": [
+     5615,
+     5615
+    ],
+    "the span ends at a word a hyphen does not reach [drift]": [
+     5615,
+     5615
+    ],
+    "the span ends at a word before a space [drift]": [
+     5615,
+     5615
+    ],
+    "the span ends at a word its own sentence ends after [drift]": [
+     5615,
+     5615
+    ],
+    "the tail of the span is at a scrape seam,  - Wikipedia|It became  [drift]": [
+     5615,
+     5615
+    ],
+    "the tail of the span is at a scrape seam, arlo results|The Venezu [drift]": [
+     5615,
+     5615
+    ],
+    "the tail of the span is at a scrape seam, de Sora.\\n\\n|El poblado [drift]": [
+     5615,
+     5615
+    ],
+    "the tail of the span is at a scrape seam, l Conference|Deputy chi [drift]": [
+     5615,
+     5615
+    ],
+    "the tail of the span is at a scrape seam, ter of Bihar|In office [drift]": [
+     5615,
+     5615
+    ],
+    "the tail of the span is inside a word, -less, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a word, -less, the span carrying the affix and the citation dropping it [tampering]": [
+     5615,
+     5615
+    ],
+    "the tail of the span is inside a word, -n't, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a word, -n't, the span carrying the affix and the citation dropping it [tampering]": [
+     5615,
+     5615
+    ]
+   },
+   "drift_by_kind": {
+    "a comma dropped [left edge]": [
+     2264,
+     2264
+    ],
+    "a comma dropped [middle]": [
+     2264,
+     2264
+    ],
+    "a comma dropped [right edge]": [
+     2264,
+     2264
+    ],
+    "a comma added [left edge]": [
+     5241,
+     5241
+    ],
+    "a comma added [middle]": [
+     5241,
+     5241
+    ],
+    "a comma added [right edge]": [
+     5241,
+     5241
+    ],
+    "a space too few [left edge]": [
+     3581,
+     3581
+    ],
+    "a space too few [middle]": [
+     3570,
+     3570
+    ],
+    "a space too few [right edge]": [
+     3612,
+     3612
+    ],
+    "the closing mark doubled [right edge]": [
+     3315,
+     3315
+    ],
+    "the closing full stop dropped [right edge]": [
+     3315,
+     3315
+    ],
+    "a comma against a digit dropped at the right edge, and the numbers are the same [right edge]": [
+     11230,
+     11230
+    ],
+    "a comma against a digit added at the right edge, and the numbers are the same [right edge]": [
+     11230,
+     11230
+    ],
+    "a double quotation mark against a digit dropped at the left edge, and the numbers are the same [left edge]": [
+     11230,
+     11230
+    ],
+    "a double quotation mark against a digit added at the left edge, and the numbers are the same [left edge]": [
+     11230,
+     11230
+    ],
+    "a double quotation mark against a digit dropped at the right edge, and the numbers are the same [right edge]": [
+     11230,
+     11230
+    ],
+    "a double quotation mark against a digit added at the right edge, and the numbers are the same [right edge]": [
+     11230,
+     11230
+    ],
+    "a single quotation mark against a digit dropped at the left edge, and the numbers are the same [left edge]": [
+     11230,
+     11230
+    ],
+    "a single quotation mark against a digit added at the left edge, and the numbers are the same [left edge]": [
+     11230,
+     11230
+    ],
+    "a single quotation mark against a digit dropped at the right edge, and the numbers are the same [right edge]": [
+     11230,
+     11230
+    ],
+    "a single quotation mark against a digit added at the right edge, and the numbers are the same [right edge]": [
+     11230,
+     11230
+    ],
+    "a full stop against a digit dropped at the right edge, and the numbers are the same [right edge]": [
+     11230,
+     11230
+    ],
+    "a full stop against a digit added at the right edge, and the numbers are the same [right edge]": [
+     11230,
+     11230
+    ],
+    "an exclamation mark against a digit dropped at the left edge, and the numbers are the same [left edge]": [
+     11230,
+     11230
+    ],
+    "an exclamation mark against a digit dropped at the right edge, and the numbers are the same [right edge]": [
+     11230,
+     11230
+    ],
+    "a question mark against a digit dropped at the left edge, and the numbers are the same [left edge]": [
+     11230,
+     11230
+    ],
+    "a question mark against a digit dropped at the right edge, and the numbers are the same [right edge]": [
+     11230,
+     11230
+    ],
+    "an ellipsis against a digit dropped at the left edge, and the numbers are the same [left edge]": [
+     11230,
+     11230
+    ],
+    "an ellipsis against a digit added at the left edge, and the numbers are the same [left edge]": [
+     11230,
+     11230
+    ],
+    "an ellipsis against a digit dropped at the right edge, and the numbers are the same [right edge]": [
+     11230,
+     11230
+    ],
+    "an ellipsis against a digit added at the right edge, and the numbers are the same [right edge]": [
+     11230,
+     11230
+    ],
+    "the closing full stop added [right edge]": [
+     2300,
+     2300
+    ],
+    "a space dropped after a mark standing between two numbers [left edge]": [
+     118,
+     118
+    ],
+    "a space dropped after a mark standing between two numbers [middle]": [
+     118,
+     118
+    ],
+    "a space dropped after a mark standing between two numbers [right edge]": [
+     118,
+     118
+    ]
+   },
+   "tampering_by_kind": {
+    "a digit changed [left edge]": [
+     5615,
+     5615
+    ],
+    "a digit changed [middle]": [
+     5615,
+     5615
+    ],
+    "a digit changed [right edge]": [
+     5615,
+     5615
+    ],
+    "the sign before a number [left edge]": [
+     5615,
+     5615
+    ],
+    "the sign before a number [middle]": [
+     5615,
+     5615
+    ],
+    "the sign before a number [right edge]": [
+     5615,
+     5615
+    ],
+    "the currency mark [left edge]": [
+     5615,
+     5615
+    ],
+    "the currency mark [middle]": [
+     5615,
+     5615
+    ],
+    "the currency mark [right edge]": [
+     5615,
+     5615
+    ],
+    "a comparison sign removed [left edge]": [
+     5615,
+     5615
+    ],
+    "a comparison sign removed [middle]": [
+     5615,
+     5615
+    ],
+    "a comparison sign removed [right edge]": [
+     5615,
+     5615
+    ],
+    "a space inside a word [left edge]": [
+     5615,
+     5615
+    ],
+    "a space inside a word [middle]": [
+     5615,
+     5615
+    ],
+    "a space inside a word [right edge]": [
+     5615,
+     5615
+    ],
+    "the closing mark of a statement [left edge]": [
+     5615,
+     5615
+    ],
+    "the closing mark of a statement [middle]": [
+     5615,
+     5615
+    ],
+    "the closing mark of a statement [right edge]": [
+     5615,
+     5615
+    ],
+    "the separator inside a unit [left edge]": [
+     5615,
+     5615
+    ],
+    "the separator inside a unit [middle]": [
+     5615,
+     5615
+    ],
+    "the separator inside a unit [right edge]": [
+     5615,
+     5615
+    ],
+    "the separator inside a number [left edge]": [
+     5615,
+     5615
+    ],
+    "the separator inside a number [middle]": [
+     5615,
+     5615
+    ],
+    "the separator inside a number [right edge]": [
+     5615,
+     5615
+    ],
+    "a negation dropped [left edge]": [
+     5615,
+     5615
+    ],
+    "a negation dropped [middle]": [
+     5615,
+     5615
+    ],
+    "a negation dropped [right edge]": [
+     5615,
+     5615
+    ],
+    "a sign standing apart from its number [left edge]": [
+     5615,
+     5615
+    ],
+    "a sign standing apart from its number [middle]": [
+     5615,
+     5615
+    ],
+    "a sign standing apart from its number [right edge]": [
+     5615,
+     5615
+    ],
+    "a bracket that carries the sign [left edge]": [
+     5615,
+     5615
+    ],
+    "a bracket that carries the sign [middle]": [
+     5615,
+     5615
+    ],
+    "a bracket that carries the sign [right edge]": [
+     5615,
+     5615
+    ],
+    "a mark nobody put on the list [left edge]": [
+     5615,
+     5615
+    ],
+    "a mark nobody put on the list [middle]": [
+     5615,
+     5615
+    ],
+    "a mark nobody put on the list [right edge]": [
+     5615,
+     5615
+    ],
+    "a mark opening the span, in front of a number [left edge]": [
+     5615,
+     5615
+    ],
+    "a mark opening the span, in front of a number [middle]": [
+     5615,
+     5615
+    ],
+    "a mark opening the span, in front of a number [right edge]": [
+     5615,
+     5615
+    ],
+    "an opening mark added where the span began without one [left edge]": [
+     11226,
+     11226
+    ],
+    "a comma against a digit dropped at the left edge, and the head of a number [left edge]": [
+     11230,
+     11230
+    ],
+    "a comma against a digit added at the left edge, and the head of a number [left edge]": [
+     11230,
+     11230
+    ],
+    "a full stop against a digit dropped at the left edge, and the head of a number [left edge]": [
+     11230,
+     11230
+    ],
+    "a full stop against a digit added at the left edge, and the head of a number [left edge]": [
+     11230,
+     11230
+    ],
+    "a closing mark added where the span ended without one [right edge]": [
+     4490,
+     4490
+    ],
+    "a digit of the real quote changed [left edge]": [
+     2646,
+     2646
+    ],
+    "a digit of the real quote changed [middle]": [
+     2646,
+     2646
+    ],
+    "a digit of the real quote changed [right edge]": [
+     2646,
+     2646
+    ],
+    "a comma inside a word dropped [left edge]": [
+     162,
+     162
+    ],
+    "a comma inside a word dropped [middle]": [
+     162,
+     162
+    ],
+    "a comma inside a word dropped [right edge]": [
+     162,
+     162
+    ],
+    "a space dropped so two numbers read as one [left edge]": [
+     39,
+     39
+    ],
+    "a space dropped so two numbers read as one [middle]": [
+     39,
+     39
+    ],
+    "a space dropped so two numbers read as one [right edge]": [
+     39,
+     39
+    ],
+    "a comma dropped and two numbers read as one [left edge]": [
+     8,
+     8
+    ],
+    "a comma dropped and two numbers read as one [middle]": [
+     8,
+     8
+    ],
+    "a comma dropped and two numbers read as one [right edge]": [
+     8,
+     8
+    ],
+    "a space dropped so a sign joins its number [left edge]": [
+     158,
+     158
+    ],
+    "a space dropped so a sign joins its number [middle]": [
+     158,
+     158
+    ],
+    "a space dropped so a sign joins its number [right edge]": [
+     158,
+     158
+    ]
+   },
+   "verdict": "FAIL"
+  },
+  "CONTROL always refuse": {
+   "drift_accepted": 0.0,
+   "drift_accepted_of": [
+    0,
+    267162
+   ],
+   "tampering_refused": 1.0,
+   "tampering_refused_of": [
+    288660,
+    288660
+   ],
+   "characters_forgiven": 0,
+   "characters_forgiven_names": [],
+   "spans_through_a_number_refused": 1.0,
+   "spans_through_a_number_refused_of": [
+    101077,
+    101077
+   ],
+   "spans_between_numbers_accepted": 0.0,
+   "spans_between_numbers_accepted_of": [
+    0,
+    50528
+   ],
+   "spans_through_a_word_refused": 1.0,
+   "spans_through_a_word_refused_of": [
+    112300,
+    112300
+   ],
+   "spans_between_words_accepted": 0.0,
+   "spans_between_words_accepted_of": [
+    0,
+    101070
+   ],
+   "spans_by_kind": {
+    "the head of the span is inside a number set with a colon, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a number set with a colon, the span carrying the separator and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a number set with a comma, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a number set with a comma, the span carrying the separator and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a number set with a full stop, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a number set with a full stop, the span carrying the separator and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a number set with a space, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a number set with a space, the span carrying the separator and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a number set with nothing at all, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the span begins after a grouped number [drift]": [
+     0,
+     5608
+    ],
+    "the span begins after a grouped number [tampering]": [
+     0,
+     7
+    ],
+    "the span begins at a grouped number whole [drift]": [
+     0,
+     5615
+    ],
+    "the span begins at a number a sentence begins with [drift]": [
+     0,
+     5615
+    ],
+    "the span begins at the second of two numbers a clause comma divides [drift]": [
+     0,
+     5615
+    ],
+    "the span begins at the year of a date [drift]": [
+     0,
+     5615
+    ],
+    "the span ends at a number a clause comma follows [drift]": [
+     0,
+     5615
+    ],
+    "the span ends at a number its own sentence ends after [drift]": [
+     0,
+     5615
+    ],
+    "the span ends at a number the next sentence begins with a number after [drift]": [
+     0,
+     5615
+    ],
+    "the span ends before a grouped number [drift]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a number set with a colon, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a number set with a colon, the span carrying the separator and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a number set with a comma, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a number set with a comma, the span carrying the separator and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a number set with a full stop, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a number set with a full stop, the span carrying the separator and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a number set with a space, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a number set with a space, the span carrying the separator and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a number set with nothing at all, the citation word for word [tampering]": [
+     0,
+     5615
+    ]
+   },
+   "words_by_kind": {
+    "the head of the span is at a scrape seam,  - Wikipedia|It became  [drift]": [
+     0,
+     5615
+    ],
+    "the head of the span is at a scrape seam, arlo results|The Venezu [drift]": [
+     0,
+     5615
+    ],
+    "the head of the span is at a scrape seam, de Sora.\\n\\n|El poblado [drift]": [
+     0,
+     5615
+    ],
+    "the head of the span is at a scrape seam, l Conference|Deputy chi [drift]": [
+     0,
+     5615
+    ],
+    "the head of the span is at a scrape seam, ter of Bihar|In office [drift]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, dis-, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, dis-, the span carrying the affix and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, im-, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, im-, the span carrying the affix and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, in-, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, in-, the span carrying the affix and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, non- with a hyphen, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, non- with a hyphen, the span carrying the affix and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, non-, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, non-, the span carrying the affix and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, the pair round 5 left open, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, the pair round 5 left open, the span carrying the affix and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, un- with the word opening a sentence, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, un- with the word opening a sentence, the span carrying the affix and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, un-, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, un-, the span carrying the affix and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the span begins at a word after a full stop and a space [drift]": [
+     0,
+     5615
+    ],
+    "the span begins at a word after a line break [drift]": [
+     0,
+     5615
+    ],
+    "the span begins at a word after a space [drift]": [
+     0,
+     5615
+    ],
+    "the span begins at the second word of a pair an en dash divides [drift]": [
+     0,
+     5615
+    ],
+    "the span begins at the whole of a word a prefix flips [drift]": [
+     0,
+     5615
+    ],
+    "the span ends at a word a hyphen does not reach [drift]": [
+     0,
+     5615
+    ],
+    "the span ends at a word before a space [drift]": [
+     0,
+     5615
+    ],
+    "the span ends at a word its own sentence ends after [drift]": [
+     0,
+     5615
+    ],
+    "the tail of the span is at a scrape seam,  - Wikipedia|It became  [drift]": [
+     0,
+     5615
+    ],
+    "the tail of the span is at a scrape seam, arlo results|The Venezu [drift]": [
+     0,
+     5615
+    ],
+    "the tail of the span is at a scrape seam, de Sora.\\n\\n|El poblado [drift]": [
+     0,
+     5615
+    ],
+    "the tail of the span is at a scrape seam, l Conference|Deputy chi [drift]": [
+     0,
+     5615
+    ],
+    "the tail of the span is at a scrape seam, ter of Bihar|In office [drift]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a word, -less, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a word, -less, the span carrying the affix and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a word, -n't, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a word, -n't, the span carrying the affix and the citation dropping it [tampering]": [
+     0,
+     5615
+    ]
+   },
+   "drift_by_kind": {
+    "a comma dropped [left edge]": [
+     0,
+     2264
+    ],
+    "a comma dropped [middle]": [
+     0,
+     2264
+    ],
+    "a comma dropped [right edge]": [
+     0,
+     2264
+    ],
+    "a comma added [left edge]": [
+     0,
+     5241
+    ],
+    "a comma added [middle]": [
+     0,
+     5241
+    ],
+    "a comma added [right edge]": [
+     0,
+     5241
+    ],
+    "a space too few [left edge]": [
+     0,
+     3581
+    ],
+    "a space too few [middle]": [
+     0,
+     3570
+    ],
+    "a space too few [right edge]": [
+     0,
+     3612
+    ],
+    "the closing mark doubled [right edge]": [
+     0,
+     3315
+    ],
+    "the closing full stop dropped [right edge]": [
+     0,
+     3315
+    ],
+    "a comma against a digit dropped at the right edge, and the numbers are the same [right edge]": [
+     0,
+     11230
+    ],
+    "a comma against a digit added at the right edge, and the numbers are the same [right edge]": [
+     0,
+     11230
+    ],
+    "a double quotation mark against a digit dropped at the left edge, and the numbers are the same [left edge]": [
+     0,
+     11230
+    ],
+    "a double quotation mark against a digit added at the left edge, and the numbers are the same [left edge]": [
+     0,
+     11230
+    ],
+    "a double quotation mark against a digit dropped at the right edge, and the numbers are the same [right edge]": [
+     0,
+     11230
+    ],
+    "a double quotation mark against a digit added at the right edge, and the numbers are the same [right edge]": [
+     0,
+     11230
+    ],
+    "a single quotation mark against a digit dropped at the left edge, and the numbers are the same [left edge]": [
+     0,
+     11230
+    ],
+    "a single quotation mark against a digit added at the left edge, and the numbers are the same [left edge]": [
+     0,
+     11230
+    ],
+    "a single quotation mark against a digit dropped at the right edge, and the numbers are the same [right edge]": [
+     0,
+     11230
+    ],
+    "a single quotation mark against a digit added at the right edge, and the numbers are the same [right edge]": [
+     0,
+     11230
+    ],
+    "a full stop against a digit dropped at the right edge, and the numbers are the same [right edge]": [
+     0,
+     11230
+    ],
+    "a full stop against a digit added at the right edge, and the numbers are the same [right edge]": [
+     0,
+     11230
+    ],
+    "an exclamation mark against a digit dropped at the left edge, and the numbers are the same [left edge]": [
+     0,
+     11230
+    ],
+    "an exclamation mark against a digit dropped at the right edge, and the numbers are the same [right edge]": [
+     0,
+     11230
+    ],
+    "a question mark against a digit dropped at the left edge, and the numbers are the same [left edge]": [
+     0,
+     11230
+    ],
+    "a question mark against a digit dropped at the right edge, and the numbers are the same [right edge]": [
+     0,
+     11230
+    ],
+    "an ellipsis against a digit dropped at the left edge, and the numbers are the same [left edge]": [
+     0,
+     11230
+    ],
+    "an ellipsis against a digit added at the left edge, and the numbers are the same [left edge]": [
+     0,
+     11230
+    ],
+    "an ellipsis against a digit dropped at the right edge, and the numbers are the same [right edge]": [
+     0,
+     11230
+    ],
+    "an ellipsis against a digit added at the right edge, and the numbers are the same [right edge]": [
+     0,
+     11230
+    ],
+    "the closing full stop added [right edge]": [
+     0,
+     2300
+    ],
+    "a space dropped after a mark standing between two numbers [left edge]": [
+     0,
+     118
+    ],
+    "a space dropped after a mark standing between two numbers [middle]": [
+     0,
+     118
+    ],
+    "a space dropped after a mark standing between two numbers [right edge]": [
+     0,
+     118
+    ]
+   },
+   "tampering_by_kind": {
+    "a digit changed [left edge]": [
+     0,
+     5615
+    ],
+    "a digit changed [middle]": [
+     0,
+     5615
+    ],
+    "a digit changed [right edge]": [
+     0,
+     5615
+    ],
+    "the sign before a number [left edge]": [
+     0,
+     5615
+    ],
+    "the sign before a number [middle]": [
+     0,
+     5615
+    ],
+    "the sign before a number [right edge]": [
+     0,
+     5615
+    ],
+    "the currency mark [left edge]": [
+     0,
+     5615
+    ],
+    "the currency mark [middle]": [
+     0,
+     5615
+    ],
+    "the currency mark [right edge]": [
+     0,
+     5615
+    ],
+    "a comparison sign removed [left edge]": [
+     0,
+     5615
+    ],
+    "a comparison sign removed [middle]": [
+     0,
+     5615
+    ],
+    "a comparison sign removed [right edge]": [
+     0,
+     5615
+    ],
+    "a space inside a word [left edge]": [
+     0,
+     5615
+    ],
+    "a space inside a word [middle]": [
+     0,
+     5615
+    ],
+    "a space inside a word [right edge]": [
+     0,
+     5615
+    ],
+    "the closing mark of a statement [left edge]": [
+     0,
+     5615
+    ],
+    "the closing mark of a statement [middle]": [
+     0,
+     5615
+    ],
+    "the closing mark of a statement [right edge]": [
+     0,
+     5615
+    ],
+    "the separator inside a unit [left edge]": [
+     0,
+     5615
+    ],
+    "the separator inside a unit [middle]": [
+     0,
+     5615
+    ],
+    "the separator inside a unit [right edge]": [
+     0,
+     5615
+    ],
+    "the separator inside a number [left edge]": [
+     0,
+     5615
+    ],
+    "the separator inside a number [middle]": [
+     0,
+     5615
+    ],
+    "the separator inside a number [right edge]": [
+     0,
+     5615
+    ],
+    "a negation dropped [left edge]": [
+     0,
+     5615
+    ],
+    "a negation dropped [middle]": [
+     0,
+     5615
+    ],
+    "a negation dropped [right edge]": [
+     0,
+     5615
+    ],
+    "a sign standing apart from its number [left edge]": [
+     0,
+     5615
+    ],
+    "a sign standing apart from its number [middle]": [
+     0,
+     5615
+    ],
+    "a sign standing apart from its number [right edge]": [
+     0,
+     5615
+    ],
+    "a bracket that carries the sign [left edge]": [
+     0,
+     5615
+    ],
+    "a bracket that carries the sign [middle]": [
+     0,
+     5615
+    ],
+    "a bracket that carries the sign [right edge]": [
+     0,
+     5615
+    ],
+    "a mark nobody put on the list [left edge]": [
+     0,
+     5615
+    ],
+    "a mark nobody put on the list [middle]": [
+     0,
+     5615
+    ],
+    "a mark nobody put on the list [right edge]": [
+     0,
+     5615
+    ],
+    "a mark opening the span, in front of a number [left edge]": [
+     0,
+     5615
+    ],
+    "a mark opening the span, in front of a number [middle]": [
+     0,
+     5615
+    ],
+    "a mark opening the span, in front of a number [right edge]": [
+     0,
+     5615
+    ],
+    "an opening mark added where the span began without one [left edge]": [
+     0,
+     11226
+    ],
+    "a comma against a digit dropped at the left edge, and the head of a number [left edge]": [
+     0,
+     11230
+    ],
+    "a comma against a digit added at the left edge, and the head of a number [left edge]": [
+     0,
+     11230
+    ],
+    "a full stop against a digit dropped at the left edge, and the head of a number [left edge]": [
+     0,
+     11230
+    ],
+    "a full stop against a digit added at the left edge, and the head of a number [left edge]": [
+     0,
+     11230
+    ],
+    "a closing mark added where the span ended without one [right edge]": [
+     0,
+     4490
+    ],
+    "a digit of the real quote changed [left edge]": [
+     0,
+     2646
+    ],
+    "a digit of the real quote changed [middle]": [
+     0,
+     2646
+    ],
+    "a digit of the real quote changed [right edge]": [
+     0,
+     2646
+    ],
+    "a comma inside a word dropped [left edge]": [
+     0,
+     162
+    ],
+    "a comma inside a word dropped [middle]": [
+     0,
+     162
+    ],
+    "a comma inside a word dropped [right edge]": [
+     0,
+     162
+    ],
+    "a space dropped so two numbers read as one [left edge]": [
+     0,
+     39
+    ],
+    "a space dropped so two numbers read as one [middle]": [
+     0,
+     39
+    ],
+    "a space dropped so two numbers read as one [right edge]": [
+     0,
+     39
+    ],
+    "a comma dropped and two numbers read as one [left edge]": [
+     0,
+     8
+    ],
+    "a comma dropped and two numbers read as one [middle]": [
+     0,
+     8
+    ],
+    "a comma dropped and two numbers read as one [right edge]": [
+     0,
+     8
+    ],
+    "a space dropped so a sign joins its number [left edge]": [
+     0,
+     158
+    ],
+    "a space dropped so a sign joins its number [middle]": [
+     0,
+     158
+    ],
+    "a space dropped so a sign joins its number [right edge]": [
+     0,
+     158
+    ]
+   },
+   "verdict": "FAIL"
+  },
+  "v0.8.1 content signature": {
+   "drift_accepted": 0.9975520470725627,
+   "drift_accepted_of": [
+    266508,
+    267162
+   ],
+   "tampering_refused": 0.20865031524977484,
+   "tampering_refused_of": [
+    60229,
+    288660
+   ],
+   "characters_forgiven": 3550,
+   "characters_forgiven_names": [
+    "U+0021 EXCLAMATION MARK",
+    "U+0023 NUMBER SIGN",
+    "U+0024 DOLLAR SIGN",
+    "U+0025 PERCENT SIGN",
+    "U+0026 AMPERSAND",
+    "U+0028 LEFT PARENTHESIS",
+    "U+0029 RIGHT PARENTHESIS",
+    "U+002A ASTERISK",
+    "U+002B PLUS SIGN",
+    "U+002D HYPHEN-MINUS",
+    "U+002E FULL STOP",
+    "U+002F SOLIDUS",
+    "U+003A COLON",
+    "U+003B SEMICOLON",
+    "U+003C LESS-THAN SIGN",
+    "U+003D EQUALS SIGN",
+    "U+003E GREATER-THAN SIGN",
+    "U+003F QUESTION MARK",
+    "U+0040 COMMERCIAL AT",
+    "U+005B LEFT SQUARE BRACKET",
+    "U+005C REVERSE SOLIDUS",
+    "U+005D RIGHT SQUARE BRACKET",
+    "U+005E CIRCUMFLEX ACCENT",
+    "U+005F LOW LINE",
+    "U+0060 GRAVE ACCENT",
+    "U+007B LEFT CURLY BRACKET",
+    "U+007C VERTICAL LINE",
+    "U+007D RIGHT CURLY BRACKET",
+    "U+007E TILDE",
+    "U+00A1 INVERTED EXCLAMATION MARK",
+    "U+00A2 CENT SIGN",
+    "U+00A3 POUND SIGN",
+    "U+00A4 CURRENCY SIGN",
+    "U+00A5 YEN SIGN",
+    "U+00A6 BROKEN BAR",
+    "U+00A7 SECTION SIGN",
+    "U+00A8 DIAERESIS",
+    "U+00A9 COPYRIGHT SIGN",
+    "U+00AC NOT SIGN",
+    "U+00AE REGISTERED SIGN"
+   ],
+   "spans_through_a_number_refused": 1.0,
+   "spans_through_a_number_refused_of": [
+    101077,
+    101077
+   ],
+   "spans_between_numbers_accepted": 1.0,
+   "spans_between_numbers_accepted_of": [
+    50528,
+    50528
+   ],
+   "spans_through_a_word_refused": 1.0,
+   "spans_through_a_word_refused_of": [
+    112300,
+    112300
+   ],
+   "spans_between_words_accepted": 1.0,
+   "spans_between_words_accepted_of": [
+    101070,
+    101070
+   ],
+   "spans_by_kind": {
+    "the head of the span is inside a number set with a colon, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a number set with a colon, the span carrying the separator and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a number set with a comma, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a number set with a comma, the span carrying the separator and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a number set with a full stop, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a number set with a full stop, the span carrying the separator and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a number set with a space, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a number set with a space, the span carrying the separator and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a number set with nothing at all, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the span begins after a grouped number [drift]": [
+     5608,
+     5608
+    ],
+    "the span begins after a grouped number [tampering]": [
+     0,
+     7
+    ],
+    "the span begins at a grouped number whole [drift]": [
+     5615,
+     5615
+    ],
+    "the span begins at a number a sentence begins with [drift]": [
+     5615,
+     5615
+    ],
+    "the span begins at the second of two numbers a clause comma divides [drift]": [
+     5615,
+     5615
+    ],
+    "the span begins at the year of a date [drift]": [
+     5615,
+     5615
+    ],
+    "the span ends at a number a clause comma follows [drift]": [
+     5615,
+     5615
+    ],
+    "the span ends at a number its own sentence ends after [drift]": [
+     5615,
+     5615
+    ],
+    "the span ends at a number the next sentence begins with a number after [drift]": [
+     5615,
+     5615
+    ],
+    "the span ends before a grouped number [drift]": [
+     5615,
+     5615
+    ],
+    "the tail of the span is inside a number set with a colon, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a number set with a colon, the span carrying the separator and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a number set with a comma, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a number set with a comma, the span carrying the separator and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a number set with a full stop, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a number set with a full stop, the span carrying the separator and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a number set with a space, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a number set with a space, the span carrying the separator and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a number set with nothing at all, the citation word for word [tampering]": [
+     0,
+     5615
+    ]
+   },
+   "words_by_kind": {
+    "the head of the span is at a scrape seam,  - Wikipedia|It became  [drift]": [
+     5615,
+     5615
+    ],
+    "the head of the span is at a scrape seam, arlo results|The Venezu [drift]": [
+     5615,
+     5615
+    ],
+    "the head of the span is at a scrape seam, de Sora.\\n\\n|El poblado [drift]": [
+     5615,
+     5615
+    ],
+    "the head of the span is at a scrape seam, l Conference|Deputy chi [drift]": [
+     5615,
+     5615
+    ],
+    "the head of the span is at a scrape seam, ter of Bihar|In office [drift]": [
+     5615,
+     5615
+    ],
+    "the head of the span is inside a word, dis-, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, dis-, the span carrying the affix and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, im-, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, im-, the span carrying the affix and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, in-, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, in-, the span carrying the affix and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, non- with a hyphen, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, non- with a hyphen, the span carrying the affix and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, non-, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, non-, the span carrying the affix and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, the pair round 5 left open, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, the pair round 5 left open, the span carrying the affix and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, un- with the word opening a sentence, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, un- with the word opening a sentence, the span carrying the affix and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, un-, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, un-, the span carrying the affix and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the span begins at a word after a full stop and a space [drift]": [
+     5615,
+     5615
+    ],
+    "the span begins at a word after a line break [drift]": [
+     5615,
+     5615
+    ],
+    "the span begins at a word after a space [drift]": [
+     5615,
+     5615
+    ],
+    "the span begins at the second word of a pair an en dash divides [drift]": [
+     5615,
+     5615
+    ],
+    "the span begins at the whole of a word a prefix flips [drift]": [
+     5615,
+     5615
+    ],
+    "the span ends at a word a hyphen does not reach [drift]": [
+     5615,
+     5615
+    ],
+    "the span ends at a word before a space [drift]": [
+     5615,
+     5615
+    ],
+    "the span ends at a word its own sentence ends after [drift]": [
+     5615,
+     5615
+    ],
+    "the tail of the span is at a scrape seam,  - Wikipedia|It became  [drift]": [
+     5615,
+     5615
+    ],
+    "the tail of the span is at a scrape seam, arlo results|The Venezu [drift]": [
+     5615,
+     5615
+    ],
+    "the tail of the span is at a scrape seam, de Sora.\\n\\n|El poblado [drift]": [
+     5615,
+     5615
+    ],
+    "the tail of the span is at a scrape seam, l Conference|Deputy chi [drift]": [
+     5615,
+     5615
+    ],
+    "the tail of the span is at a scrape seam, ter of Bihar|In office [drift]": [
+     5615,
+     5615
+    ],
+    "the tail of the span is inside a word, -less, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a word, -less, the span carrying the affix and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a word, -n't, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a word, -n't, the span carrying the affix and the citation dropping it [tampering]": [
+     0,
+     5615
+    ]
+   },
+   "drift_by_kind": {
+    "a comma dropped [left edge]": [
+     2172,
+     2264
+    ],
+    "a comma dropped [middle]": [
+     2189,
+     2264
+    ],
+    "a comma dropped [right edge]": [
+     2177,
+     2264
+    ],
+    "a comma added [left edge]": [
+     5241,
+     5241
+    ],
+    "a comma added [middle]": [
+     5241,
+     5241
+    ],
+    "a comma added [right edge]": [
+     5241,
+     5241
+    ],
+    "a space too few [left edge]": [
+     3572,
+     3581
+    ],
+    "a space too few [middle]": [
+     3549,
+     3570
+    ],
+    "a space too few [right edge]": [
+     3596,
+     3612
+    ],
+    "the closing mark doubled [right edge]": [
+     3315,
+     3315
+    ],
+    "the closing full stop dropped [right edge]": [
+     3315,
+     3315
+    ],
+    "a comma against a digit dropped at the right edge, and the numbers are the same [right edge]": [
+     11230,
+     11230
+    ],
+    "a comma against a digit added at the right edge, and the numbers are the same [right edge]": [
+     11230,
+     11230
+    ],
+    "a double quotation mark against a digit dropped at the left edge, and the numbers are the same [left edge]": [
+     11230,
+     11230
+    ],
+    "a double quotation mark against a digit added at the left edge, and the numbers are the same [left edge]": [
+     11230,
+     11230
+    ],
+    "a double quotation mark against a digit dropped at the right edge, and the numbers are the same [right edge]": [
+     11230,
+     11230
+    ],
+    "a double quotation mark against a digit added at the right edge, and the numbers are the same [right edge]": [
+     11230,
+     11230
+    ],
+    "a single quotation mark against a digit dropped at the left edge, and the numbers are the same [left edge]": [
+     11230,
+     11230
+    ],
+    "a single quotation mark against a digit added at the left edge, and the numbers are the same [left edge]": [
+     11230,
+     11230
+    ],
+    "a single quotation mark against a digit dropped at the right edge, and the numbers are the same [right edge]": [
+     11230,
+     11230
+    ],
+    "a single quotation mark against a digit added at the right edge, and the numbers are the same [right edge]": [
+     11230,
+     11230
+    ],
+    "a full stop against a digit dropped at the right edge, and the numbers are the same [right edge]": [
+     11230,
+     11230
+    ],
+    "a full stop against a digit added at the right edge, and the numbers are the same [right edge]": [
+     11230,
+     11230
+    ],
+    "an exclamation mark against a digit dropped at the left edge, and the numbers are the same [left edge]": [
+     11230,
+     11230
+    ],
+    "an exclamation mark against a digit dropped at the right edge, and the numbers are the same [right edge]": [
+     11230,
+     11230
+    ],
+    "a question mark against a digit dropped at the left edge, and the numbers are the same [left edge]": [
+     11230,
+     11230
+    ],
+    "a question mark against a digit dropped at the right edge, and the numbers are the same [right edge]": [
+     11230,
+     11230
+    ],
+    "an ellipsis against a digit dropped at the left edge, and the numbers are the same [left edge]": [
+     11230,
+     11230
+    ],
+    "an ellipsis against a digit added at the left edge, and the numbers are the same [left edge]": [
+     11230,
+     11230
+    ],
+    "an ellipsis against a digit dropped at the right edge, and the numbers are the same [right edge]": [
+     11230,
+     11230
+    ],
+    "an ellipsis against a digit added at the right edge, and the numbers are the same [right edge]": [
+     11230,
+     11230
+    ],
+    "the closing full stop added [right edge]": [
+     2300,
+     2300
+    ],
+    "a space dropped after a mark standing between two numbers [left edge]": [
+     0,
+     118
+    ],
+    "a space dropped after a mark standing between two numbers [middle]": [
+     0,
+     118
+    ],
+    "a space dropped after a mark standing between two numbers [right edge]": [
+     0,
+     118
+    ]
+   },
+   "tampering_by_kind": {
+    "a digit changed [left edge]": [
+     0,
+     5615
+    ],
+    "a digit changed [middle]": [
+     0,
+     5615
+    ],
+    "a digit changed [right edge]": [
+     0,
+     5615
+    ],
+    "the sign before a number [left edge]": [
+     5615,
+     5615
+    ],
+    "the sign before a number [middle]": [
+     5602,
+     5615
+    ],
+    "the sign before a number [right edge]": [
+     5615,
+     5615
+    ],
+    "the currency mark [left edge]": [
+     5615,
+     5615
+    ],
+    "the currency mark [middle]": [
+     5602,
+     5615
+    ],
+    "the currency mark [right edge]": [
+     5615,
+     5615
+    ],
+    "a comparison sign removed [left edge]": [
+     5615,
+     5615
+    ],
+    "a comparison sign removed [middle]": [
+     5380,
+     5615
+    ],
+    "a comparison sign removed [right edge]": [
+     5277,
+     5615
+    ],
+    "a space inside a word [left edge]": [
+     5615,
+     5615
+    ],
+    "a space inside a word [middle]": [
+     5615,
+     5615
+    ],
+    "a space inside a word [right edge]": [
+     5615,
+     5615
+    ],
+    "the closing mark of a statement [left edge]": [
+     5615,
+     5615
+    ],
+    "the closing mark of a statement [middle]": [
+     5615,
+     5615
+    ],
+    "the closing mark of a statement [right edge]": [
+     5615,
+     5615
+    ],
+    "the separator inside a unit [left edge]": [
+     5615,
+     5615
+    ],
+    "the separator inside a unit [middle]": [
+     5615,
+     5615
+    ],
+    "the separator inside a unit [right edge]": [
+     5615,
+     5615
+    ],
+    "the separator inside a number [left edge]": [
+     0,
+     5615
+    ],
+    "the separator inside a number [middle]": [
+     0,
+     5615
+    ],
+    "the separator inside a number [right edge]": [
+     0,
+     5615
+    ],
+    "a negation dropped [left edge]": [
+     0,
+     5615
+    ],
+    "a negation dropped [middle]": [
+     0,
+     5615
+    ],
+    "a negation dropped [right edge]": [
+     0,
+     5615
+    ],
+    "a sign standing apart from its number [left edge]": [
+     5615,
+     5615
+    ],
+    "a sign standing apart from its number [middle]": [
+     5615,
+     5615
+    ],
+    "a sign standing apart from its number [right edge]": [
+     5615,
+     5615
+    ],
+    "a bracket that carries the sign [left edge]": [
+     5615,
+     5615
+    ],
+    "a bracket that carries the sign [middle]": [
+     5615,
+     5615
+    ],
+    "a bracket that carries the sign [right edge]": [
+     5615,
+     5615
+    ],
+    "a mark nobody put on the list [left edge]": [
+     5615,
+     5615
+    ],
+    "a mark nobody put on the list [middle]": [
+     5615,
+     5615
+    ],
+    "a mark nobody put on the list [right edge]": [
+     5615,
+     5615
+    ],
+    "a mark opening the span, in front of a number [left edge]": [
+     5615,
+     5615
+    ],
+    "a mark opening the span, in front of a number [middle]": [
+     5380,
+     5615
+    ],
+    "a mark opening the span, in front of a number [right edge]": [
+     5277,
+     5615
+    ],
+    "an opening mark added where the span began without one [left edge]": [
+     11226,
+     11226
+    ],
+    "a comma against a digit dropped at the left edge, and the head of a number [left edge]": [
+     11230,
+     11230
+    ],
+    "a comma against a digit added at the left edge, and the head of a number [left edge]": [
+     11230,
+     11230
+    ],
+    "a full stop against a digit dropped at the left edge, and the head of a number [left edge]": [
+     11230,
+     11230
+    ],
+    "a full stop against a digit added at the left edge, and the head of a number [left edge]": [
+     11230,
+     11230
+    ],
+    "a closing mark added where the span ended without one [right edge]": [
+     4490,
+     4490
+    ],
+    "a digit of the real quote changed [left edge]": [
+     0,
+     2646
+    ],
+    "a digit of the real quote changed [middle]": [
+     0,
+     2646
+    ],
+    "a digit of the real quote changed [right edge]": [
+     0,
+     2646
+    ],
+    "a comma inside a word dropped [left edge]": [
+     14,
+     162
+    ],
+    "a comma inside a word dropped [middle]": [
+     14,
+     162
+    ],
+    "a comma inside a word dropped [right edge]": [
+     15,
+     162
+    ],
+    "a space dropped so two numbers read as one [left edge]": [
+     0,
+     39
+    ],
+    "a space dropped so two numbers read as one [middle]": [
+     0,
+     39
+    ],
+    "a space dropped so two numbers read as one [right edge]": [
+     0,
+     39
+    ],
+    "a comma dropped and two numbers read as one [left edge]": [
+     0,
+     8
+    ],
+    "a comma dropped and two numbers read as one [middle]": [
+     0,
+     8
+    ],
+    "a comma dropped and two numbers read as one [right edge]": [
+     0,
+     8
+    ],
+    "a space dropped so a sign joins its number [left edge]": [
+     158,
+     158
+    ],
+    "a space dropped so a sign joins its number [middle]": [
+     158,
+     158
+    ],
+    "a space dropped so a sign joins its number [right edge]": [
+     158,
+     158
+    ]
+   },
+   "verdict": "FAIL"
+  },
+  "v0.8.3 sequence of tokens": {
+   "drift_accepted": 0.9986861904013296,
+   "drift_accepted_of": [
+    266811,
+    267162
+   ],
+   "tampering_refused": 0.6526397838287259,
+   "tampering_refused_of": [
+    188391,
+    288660
+   ],
+   "characters_forgiven": 140,
+   "characters_forgiven_names": [
+    "U+0028 LEFT PARENTHESIS",
+    "U+0029 RIGHT PARENTHESIS",
+    "U+002D HYPHEN-MINUS",
+    "U+003A COLON",
+    "U+003B SEMICOLON",
+    "U+005B LEFT SQUARE BRACKET",
+    "U+005D RIGHT SQUARE BRACKET",
+    "U+005F LOW LINE",
+    "U+0060 GRAVE ACCENT",
+    "U+007B LEFT CURLY BRACKET",
+    "U+007D RIGHT CURLY BRACKET",
+    "U+00A1 INVERTED EXCLAMATION MARK",
+    "U+00B7 MIDDLE DOT",
+    "U+00BF INVERTED QUESTION MARK",
+    "U+037E GREEK QUESTION MARK",
+    "U+0387 GREEK ANO TELEIA",
+    "U+058A ARMENIAN HYPHEN",
+    "U+05BE HEBREW PUNCTUATION MAQAF",
+    "U+0F3A TIBETAN MARK GUG RTAGS GYON",
+    "U+0F3B TIBETAN MARK GUG RTAGS GYAS",
+    "U+0F3C TIBETAN MARK ANG KHANG GYON",
+    "U+0F3D TIBETAN MARK ANG KHANG GYAS",
+    "U+1400 CANADIAN SYLLABICS HYPHEN",
+    "U+169B OGHAM FEATHER MARK",
+    "U+169C OGHAM REVERSED FEATHER MARK",
+    "U+1806 MONGOLIAN TODO SOFT HYPHEN",
+    "U+1FEF GREEK VARIA",
+    "U+2010 HYPHEN",
+    "U+2011 NON-BREAKING HYPHEN",
+    "U+2012 FIGURE DASH",
+    "U+2013 EN DASH",
+    "U+2014 EM DASH",
+    "U+2015 HORIZONTAL BAR",
+    "U+2039 SINGLE LEFT-POINTING ANGLE QUOTATION MARK",
+    "U+203A SINGLE RIGHT-POINTING ANGLE QUOTATION MARK",
+    "U+203F UNDERTIE",
+    "U+2040 CHARACTER TIE",
+    "U+2045 LEFT SQUARE BRACKET WITH QUILL",
+    "U+2046 RIGHT SQUARE BRACKET WITH QUILL",
+    "U+2054 INVERTED UNDERTIE"
+   ],
+   "spans_through_a_number_refused": 1.0,
+   "spans_through_a_number_refused_of": [
+    101077,
+    101077
+   ],
+   "spans_between_numbers_accepted": 1.0,
+   "spans_between_numbers_accepted_of": [
+    50528,
+    50528
+   ],
+   "spans_through_a_word_refused": 1.0,
+   "spans_through_a_word_refused_of": [
+    112300,
+    112300
+   ],
+   "spans_between_words_accepted": 1.0,
+   "spans_between_words_accepted_of": [
+    101070,
+    101070
+   ],
+   "spans_by_kind": {
+    "the head of the span is inside a number set with a colon, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a number set with a colon, the span carrying the separator and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a number set with a comma, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a number set with a comma, the span carrying the separator and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a number set with a full stop, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a number set with a full stop, the span carrying the separator and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a number set with a space, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a number set with a space, the span carrying the separator and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a number set with nothing at all, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the span begins after a grouped number [drift]": [
+     5608,
+     5608
+    ],
+    "the span begins after a grouped number [tampering]": [
+     0,
+     7
+    ],
+    "the span begins at a grouped number whole [drift]": [
+     5615,
+     5615
+    ],
+    "the span begins at a number a sentence begins with [drift]": [
+     5615,
+     5615
+    ],
+    "the span begins at the second of two numbers a clause comma divides [drift]": [
+     5615,
+     5615
+    ],
+    "the span begins at the year of a date [drift]": [
+     5615,
+     5615
+    ],
+    "the span ends at a number a clause comma follows [drift]": [
+     5615,
+     5615
+    ],
+    "the span ends at a number its own sentence ends after [drift]": [
+     5615,
+     5615
+    ],
+    "the span ends at a number the next sentence begins with a number after [drift]": [
+     5615,
+     5615
+    ],
+    "the span ends before a grouped number [drift]": [
+     5615,
+     5615
+    ],
+    "the tail of the span is inside a number set with a colon, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a number set with a colon, the span carrying the separator and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a number set with a comma, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a number set with a comma, the span carrying the separator and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a number set with a full stop, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a number set with a full stop, the span carrying the separator and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a number set with a space, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a number set with a space, the span carrying the separator and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a number set with nothing at all, the citation word for word [tampering]": [
+     0,
+     5615
+    ]
+   },
+   "words_by_kind": {
+    "the head of the span is at a scrape seam,  - Wikipedia|It became  [drift]": [
+     5615,
+     5615
+    ],
+    "the head of the span is at a scrape seam, arlo results|The Venezu [drift]": [
+     5615,
+     5615
+    ],
+    "the head of the span is at a scrape seam, de Sora.\\n\\n|El poblado [drift]": [
+     5615,
+     5615
+    ],
+    "the head of the span is at a scrape seam, l Conference|Deputy chi [drift]": [
+     5615,
+     5615
+    ],
+    "the head of the span is at a scrape seam, ter of Bihar|In office [drift]": [
+     5615,
+     5615
+    ],
+    "the head of the span is inside a word, dis-, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, dis-, the span carrying the affix and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, im-, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, im-, the span carrying the affix and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, in-, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, in-, the span carrying the affix and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, non- with a hyphen, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, non- with a hyphen, the span carrying the affix and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, non-, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, non-, the span carrying the affix and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, the pair round 5 left open, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, the pair round 5 left open, the span carrying the affix and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, un- with the word opening a sentence, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, un- with the word opening a sentence, the span carrying the affix and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, un-, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, un-, the span carrying the affix and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the span begins at a word after a full stop and a space [drift]": [
+     5615,
+     5615
+    ],
+    "the span begins at a word after a line break [drift]": [
+     5615,
+     5615
+    ],
+    "the span begins at a word after a space [drift]": [
+     5615,
+     5615
+    ],
+    "the span begins at the second word of a pair an en dash divides [drift]": [
+     5615,
+     5615
+    ],
+    "the span begins at the whole of a word a prefix flips [drift]": [
+     5615,
+     5615
+    ],
+    "the span ends at a word a hyphen does not reach [drift]": [
+     5615,
+     5615
+    ],
+    "the span ends at a word before a space [drift]": [
+     5615,
+     5615
+    ],
+    "the span ends at a word its own sentence ends after [drift]": [
+     5615,
+     5615
+    ],
+    "the tail of the span is at a scrape seam,  - Wikipedia|It became  [drift]": [
+     5615,
+     5615
+    ],
+    "the tail of the span is at a scrape seam, arlo results|The Venezu [drift]": [
+     5615,
+     5615
+    ],
+    "the tail of the span is at a scrape seam, de Sora.\\n\\n|El poblado [drift]": [
+     5615,
+     5615
+    ],
+    "the tail of the span is at a scrape seam, l Conference|Deputy chi [drift]": [
+     5615,
+     5615
+    ],
+    "the tail of the span is at a scrape seam, ter of Bihar|In office [drift]": [
+     5615,
+     5615
+    ],
+    "the tail of the span is inside a word, -less, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a word, -less, the span carrying the affix and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a word, -n't, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a word, -n't, the span carrying the affix and the citation dropping it [tampering]": [
+     0,
+     5615
+    ]
+   },
+   "drift_by_kind": {
+    "a comma dropped [left edge]": [
+     2264,
+     2264
+    ],
+    "a comma dropped [middle]": [
+     2264,
+     2264
+    ],
+    "a comma dropped [right edge]": [
+     2264,
+     2264
+    ],
+    "a comma added [left edge]": [
+     5241,
+     5241
+    ],
+    "a comma added [middle]": [
+     5241,
+     5241
+    ],
+    "a comma added [right edge]": [
+     5241,
+     5241
+    ],
+    "a space too few [left edge]": [
+     3581,
+     3581
+    ],
+    "a space too few [middle]": [
+     3570,
+     3570
+    ],
+    "a space too few [right edge]": [
+     3612,
+     3612
+    ],
+    "the closing mark doubled [right edge]": [
+     3315,
+     3315
+    ],
+    "the closing full stop dropped [right edge]": [
+     3315,
+     3315
+    ],
+    "a comma against a digit dropped at the right edge, and the numbers are the same [right edge]": [
+     11230,
+     11230
+    ],
+    "a comma against a digit added at the right edge, and the numbers are the same [right edge]": [
+     11230,
+     11230
+    ],
+    "a double quotation mark against a digit dropped at the left edge, and the numbers are the same [left edge]": [
+     11230,
+     11230
+    ],
+    "a double quotation mark against a digit added at the left edge, and the numbers are the same [left edge]": [
+     11230,
+     11230
+    ],
+    "a double quotation mark against a digit dropped at the right edge, and the numbers are the same [right edge]": [
+     11230,
+     11230
+    ],
+    "a double quotation mark against a digit added at the right edge, and the numbers are the same [right edge]": [
+     11230,
+     11230
+    ],
+    "a single quotation mark against a digit dropped at the left edge, and the numbers are the same [left edge]": [
+     11230,
+     11230
+    ],
+    "a single quotation mark against a digit added at the left edge, and the numbers are the same [left edge]": [
+     11230,
+     11230
+    ],
+    "a single quotation mark against a digit dropped at the right edge, and the numbers are the same [right edge]": [
+     11230,
+     11230
+    ],
+    "a single quotation mark against a digit added at the right edge, and the numbers are the same [right edge]": [
+     11230,
+     11230
+    ],
+    "a full stop against a digit dropped at the right edge, and the numbers are the same [right edge]": [
+     11230,
+     11230
+    ],
+    "a full stop against a digit added at the right edge, and the numbers are the same [right edge]": [
+     11230,
+     11230
+    ],
+    "an exclamation mark against a digit dropped at the left edge, and the numbers are the same [left edge]": [
+     11230,
+     11230
+    ],
+    "an exclamation mark against a digit dropped at the right edge, and the numbers are the same [right edge]": [
+     11230,
+     11230
+    ],
+    "a question mark against a digit dropped at the left edge, and the numbers are the same [left edge]": [
+     11230,
+     11230
+    ],
+    "a question mark against a digit dropped at the right edge, and the numbers are the same [right edge]": [
+     11230,
+     11230
+    ],
+    "an ellipsis against a digit dropped at the left edge, and the numbers are the same [left edge]": [
+     11230,
+     11230
+    ],
+    "an ellipsis against a digit added at the left edge, and the numbers are the same [left edge]": [
+     11230,
+     11230
+    ],
+    "an ellipsis against a digit dropped at the right edge, and the numbers are the same [right edge]": [
+     11230,
+     11230
+    ],
+    "an ellipsis against a digit added at the right edge, and the numbers are the same [right edge]": [
+     11230,
+     11230
+    ],
+    "the closing full stop added [right edge]": [
+     2300,
+     2300
+    ],
+    "a space dropped after a mark standing between two numbers [left edge]": [
+     1,
+     118
+    ],
+    "a space dropped after a mark standing between two numbers [middle]": [
+     1,
+     118
+    ],
+    "a space dropped after a mark standing between two numbers [right edge]": [
+     1,
+     118
+    ]
+   },
+   "tampering_by_kind": {
+    "a digit changed [left edge]": [
+     0,
+     5615
+    ],
+    "a digit changed [middle]": [
+     0,
+     5615
+    ],
+    "a digit changed [right edge]": [
+     0,
+     5615
+    ],
+    "the sign before a number [left edge]": [
+     0,
+     5615
+    ],
+    "the sign before a number [middle]": [
+     0,
+     5615
+    ],
+    "the sign before a number [right edge]": [
+     0,
+     5615
+    ],
+    "the currency mark [left edge]": [
+     0,
+     5615
+    ],
+    "the currency mark [middle]": [
+     0,
+     5615
+    ],
+    "the currency mark [right edge]": [
+     0,
+     5615
+    ],
+    "a comparison sign removed [left edge]": [
+     0,
+     5615
+    ],
+    "a comparison sign removed [middle]": [
+     0,
+     5615
+    ],
+    "a comparison sign removed [right edge]": [
+     0,
+     5615
+    ],
+    "a space inside a word [left edge]": [
+     0,
+     5615
+    ],
+    "a space inside a word [middle]": [
+     0,
+     5615
+    ],
+    "a space inside a word [right edge]": [
+     0,
+     5615
+    ],
+    "the closing mark of a statement [left edge]": [
+     0,
+     5615
+    ],
+    "the closing mark of a statement [middle]": [
+     0,
+     5615
+    ],
+    "the closing mark of a statement [right edge]": [
+     0,
+     5615
+    ],
+    "the separator inside a unit [left edge]": [
+     0,
+     5615
+    ],
+    "the separator inside a unit [middle]": [
+     0,
+     5615
+    ],
+    "the separator inside a unit [right edge]": [
+     0,
+     5615
+    ],
+    "the separator inside a number [left edge]": [
+     0,
+     5615
+    ],
+    "the separator inside a number [middle]": [
+     0,
+     5615
+    ],
+    "the separator inside a number [right edge]": [
+     0,
+     5615
+    ],
+    "a negation dropped [left edge]": [
+     0,
+     5615
+    ],
+    "a negation dropped [middle]": [
+     0,
+     5615
+    ],
+    "a negation dropped [right edge]": [
+     0,
+     5615
+    ],
+    "a sign standing apart from its number [left edge]": [
+     5615,
+     5615
+    ],
+    "a sign standing apart from its number [middle]": [
+     5615,
+     5615
+    ],
+    "a sign standing apart from its number [right edge]": [
+     5615,
+     5615
+    ],
+    "a bracket that carries the sign [left edge]": [
+     5615,
+     5615
+    ],
+    "a bracket that carries the sign [middle]": [
+     5615,
+     5615
+    ],
+    "a bracket that carries the sign [right edge]": [
+     5615,
+     5615
+    ],
+    "a mark nobody put on the list [left edge]": [
+     0,
+     5615
+    ],
+    "a mark nobody put on the list [middle]": [
+     0,
+     5615
+    ],
+    "a mark nobody put on the list [right edge]": [
+     0,
+     5615
+    ],
+    "a mark opening the span, in front of a number [left edge]": [
+     5615,
+     5615
+    ],
+    "a mark opening the span, in front of a number [middle]": [
+     4,
+     5615
+    ],
+    "a mark opening the span, in front of a number [right edge]": [
+     0,
+     5615
+    ],
+    "an opening mark added where the span began without one [left edge]": [
+     11226,
+     11226
+    ],
+    "a comma against a digit dropped at the left edge, and the head of a number [left edge]": [
+     11230,
+     11230
+    ],
+    "a comma against a digit added at the left edge, and the head of a number [left edge]": [
+     11230,
+     11230
+    ],
+    "a full stop against a digit dropped at the left edge, and the head of a number [left edge]": [
+     11230,
+     11230
+    ],
+    "a full stop against a digit added at the left edge, and the head of a number [left edge]": [
+     11230,
+     11230
+    ],
+    "a closing mark added where the span ended without one [right edge]": [
+     4490,
+     4490
+    ],
+    "a digit of the real quote changed [left edge]": [
+     0,
+     2646
+    ],
+    "a digit of the real quote changed [middle]": [
+     0,
+     2646
+    ],
+    "a digit of the real quote changed [right edge]": [
+     0,
+     2646
+    ],
+    "a comma inside a word dropped [left edge]": [
+     0,
+     162
+    ],
+    "a comma inside a word dropped [middle]": [
+     0,
+     162
+    ],
+    "a comma inside a word dropped [right edge]": [
+     0,
+     162
+    ],
+    "a space dropped so two numbers read as one [left edge]": [
+     0,
+     39
+    ],
+    "a space dropped so two numbers read as one [middle]": [
+     0,
+     39
+    ],
+    "a space dropped so two numbers read as one [right edge]": [
+     0,
+     39
+    ],
+    "a comma dropped and two numbers read as one [left edge]": [
+     8,
+     8
+    ],
+    "a comma dropped and two numbers read as one [middle]": [
+     8,
+     8
+    ],
+    "a comma dropped and two numbers read as one [right edge]": [
+     8,
+     8
+    ],
+    "a space dropped so a sign joins its number [left edge]": [
+     97,
+     158
+    ],
+    "a space dropped so a sign joins its number [middle]": [
+     100,
+     158
+    ],
+    "a space dropped so a sign joins its number [right edge]": [
+     103,
+     158
+    ]
+   },
+   "verdict": "FAIL"
+  },
+  "CONTROL the number convention widened": {
+   "drift_accepted": 0.9999850278108413,
+   "drift_accepted_of": [
+    267158,
+    267162
+   ],
+   "tampering_refused": 0.9998337144044898,
+   "tampering_refused_of": [
+    288612,
+    288660
+   ],
+   "characters_forgiven": 0,
+   "characters_forgiven_names": [],
+   "spans_through_a_number_refused": 1.0,
+   "spans_through_a_number_refused_of": [
+    101077,
+    101077
+   ],
+   "spans_between_numbers_accepted": 1.0,
+   "spans_between_numbers_accepted_of": [
+    50528,
+    50528
+   ],
+   "spans_through_a_word_refused": 1.0,
+   "spans_through_a_word_refused_of": [
+    112300,
+    112300
+   ],
+   "spans_between_words_accepted": 1.0,
+   "spans_between_words_accepted_of": [
+    101070,
+    101070
+   ],
+   "spans_by_kind": {
+    "the head of the span is inside a number set with a colon, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a number set with a colon, the span carrying the separator and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a number set with a comma, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a number set with a comma, the span carrying the separator and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a number set with a full stop, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a number set with a full stop, the span carrying the separator and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a number set with a space, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a number set with a space, the span carrying the separator and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a number set with nothing at all, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the span begins after a grouped number [drift]": [
+     5608,
+     5608
+    ],
+    "the span begins after a grouped number [tampering]": [
+     0,
+     7
+    ],
+    "the span begins at a grouped number whole [drift]": [
+     5615,
+     5615
+    ],
+    "the span begins at a number a sentence begins with [drift]": [
+     5615,
+     5615
+    ],
+    "the span begins at the second of two numbers a clause comma divides [drift]": [
+     5615,
+     5615
+    ],
+    "the span begins at the year of a date [drift]": [
+     5615,
+     5615
+    ],
+    "the span ends at a number a clause comma follows [drift]": [
+     5615,
+     5615
+    ],
+    "the span ends at a number its own sentence ends after [drift]": [
+     5615,
+     5615
+    ],
+    "the span ends at a number the next sentence begins with a number after [drift]": [
+     5615,
+     5615
+    ],
+    "the span ends before a grouped number [drift]": [
+     5615,
+     5615
+    ],
+    "the tail of the span is inside a number set with a colon, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a number set with a colon, the span carrying the separator and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a number set with a comma, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a number set with a comma, the span carrying the separator and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a number set with a full stop, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a number set with a full stop, the span carrying the separator and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a number set with a space, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a number set with a space, the span carrying the separator and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a number set with nothing at all, the citation word for word [tampering]": [
+     0,
+     5615
+    ]
+   },
+   "words_by_kind": {
+    "the head of the span is at a scrape seam,  - Wikipedia|It became  [drift]": [
+     5615,
+     5615
+    ],
+    "the head of the span is at a scrape seam, arlo results|The Venezu [drift]": [
+     5615,
+     5615
+    ],
+    "the head of the span is at a scrape seam, de Sora.\\n\\n|El poblado [drift]": [
+     5615,
+     5615
+    ],
+    "the head of the span is at a scrape seam, l Conference|Deputy chi [drift]": [
+     5615,
+     5615
+    ],
+    "the head of the span is at a scrape seam, ter of Bihar|In office [drift]": [
+     5615,
+     5615
+    ],
+    "the head of the span is inside a word, dis-, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, dis-, the span carrying the affix and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, im-, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, im-, the span carrying the affix and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, in-, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, in-, the span carrying the affix and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, non- with a hyphen, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, non- with a hyphen, the span carrying the affix and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, non-, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, non-, the span carrying the affix and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, the pair round 5 left open, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, the pair round 5 left open, the span carrying the affix and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, un- with the word opening a sentence, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, un- with the word opening a sentence, the span carrying the affix and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, un-, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, un-, the span carrying the affix and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the span begins at a word after a full stop and a space [drift]": [
+     5615,
+     5615
+    ],
+    "the span begins at a word after a line break [drift]": [
+     5615,
+     5615
+    ],
+    "the span begins at a word after a space [drift]": [
+     5615,
+     5615
+    ],
+    "the span begins at the second word of a pair an en dash divides [drift]": [
+     5615,
+     5615
+    ],
+    "the span begins at the whole of a word a prefix flips [drift]": [
+     5615,
+     5615
+    ],
+    "the span ends at a word a hyphen does not reach [drift]": [
+     5615,
+     5615
+    ],
+    "the span ends at a word before a space [drift]": [
+     5615,
+     5615
+    ],
+    "the span ends at a word its own sentence ends after [drift]": [
+     5615,
+     5615
+    ],
+    "the tail of the span is at a scrape seam,  - Wikipedia|It became  [drift]": [
+     5615,
+     5615
+    ],
+    "the tail of the span is at a scrape seam, arlo results|The Venezu [drift]": [
+     5615,
+     5615
+    ],
+    "the tail of the span is at a scrape seam, de Sora.\\n\\n|El poblado [drift]": [
+     5615,
+     5615
+    ],
+    "the tail of the span is at a scrape seam, l Conference|Deputy chi [drift]": [
+     5615,
+     5615
+    ],
+    "the tail of the span is at a scrape seam, ter of Bihar|In office [drift]": [
+     5615,
+     5615
+    ],
+    "the tail of the span is inside a word, -less, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a word, -less, the span carrying the affix and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a word, -n't, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a word, -n't, the span carrying the affix and the citation dropping it [tampering]": [
+     0,
+     5615
+    ]
+   },
+   "drift_by_kind": {
+    "a comma dropped [left edge]": [
+     2264,
+     2264
+    ],
+    "a comma dropped [middle]": [
+     2263,
+     2264
+    ],
+    "a comma dropped [right edge]": [
+     2263,
+     2264
+    ],
+    "a comma added [left edge]": [
+     5241,
+     5241
+    ],
+    "a comma added [middle]": [
+     5241,
+     5241
+    ],
+    "a comma added [right edge]": [
+     5241,
+     5241
+    ],
+    "a space too few [left edge]": [
+     3581,
+     3581
+    ],
+    "a space too few [middle]": [
+     3570,
+     3570
+    ],
+    "a space too few [right edge]": [
+     3612,
+     3612
+    ],
+    "the closing mark doubled [right edge]": [
+     3315,
+     3315
+    ],
+    "the closing full stop dropped [right edge]": [
+     3315,
+     3315
+    ],
+    "a comma against a digit dropped at the right edge, and the numbers are the same [right edge]": [
+     11230,
+     11230
+    ],
+    "a comma against a digit added at the right edge, and the numbers are the same [right edge]": [
+     11230,
+     11230
+    ],
+    "a double quotation mark against a digit dropped at the left edge, and the numbers are the same [left edge]": [
+     11230,
+     11230
+    ],
+    "a double quotation mark against a digit added at the left edge, and the numbers are the same [left edge]": [
+     11230,
+     11230
+    ],
+    "a double quotation mark against a digit dropped at the right edge, and the numbers are the same [right edge]": [
+     11230,
+     11230
+    ],
+    "a double quotation mark against a digit added at the right edge, and the numbers are the same [right edge]": [
+     11230,
+     11230
+    ],
+    "a single quotation mark against a digit dropped at the left edge, and the numbers are the same [left edge]": [
+     11230,
+     11230
+    ],
+    "a single quotation mark against a digit added at the left edge, and the numbers are the same [left edge]": [
+     11230,
+     11230
+    ],
+    "a single quotation mark against a digit dropped at the right edge, and the numbers are the same [right edge]": [
+     11230,
+     11230
+    ],
+    "a single quotation mark against a digit added at the right edge, and the numbers are the same [right edge]": [
+     11230,
+     11230
+    ],
+    "a full stop against a digit dropped at the right edge, and the numbers are the same [right edge]": [
+     11230,
+     11230
+    ],
+    "a full stop against a digit added at the right edge, and the numbers are the same [right edge]": [
+     11230,
+     11230
+    ],
+    "an exclamation mark against a digit dropped at the left edge, and the numbers are the same [left edge]": [
+     11230,
+     11230
+    ],
+    "an exclamation mark against a digit dropped at the right edge, and the numbers are the same [right edge]": [
+     11230,
+     11230
+    ],
+    "a question mark against a digit dropped at the left edge, and the numbers are the same [left edge]": [
+     11230,
+     11230
+    ],
+    "a question mark against a digit dropped at the right edge, and the numbers are the same [right edge]": [
+     11230,
+     11230
+    ],
+    "an ellipsis against a digit dropped at the left edge, and the numbers are the same [left edge]": [
+     11230,
+     11230
+    ],
+    "an ellipsis against a digit added at the left edge, and the numbers are the same [left edge]": [
+     11230,
+     11230
+    ],
+    "an ellipsis against a digit dropped at the right edge, and the numbers are the same [right edge]": [
+     11230,
+     11230
+    ],
+    "an ellipsis against a digit added at the right edge, and the numbers are the same [right edge]": [
+     11230,
+     11230
+    ],
+    "the closing full stop added [right edge]": [
+     2300,
+     2300
+    ],
+    "a space dropped after a mark standing between two numbers [left edge]": [
+     118,
+     118
+    ],
+    "a space dropped after a mark standing between two numbers [middle]": [
+     117,
+     118
+    ],
+    "a space dropped after a mark standing between two numbers [right edge]": [
+     117,
+     118
+    ]
+   },
+   "tampering_by_kind": {
+    "a digit changed [left edge]": [
+     0,
+     5615
+    ],
+    "a digit changed [middle]": [
+     0,
+     5615
+    ],
+    "a digit changed [right edge]": [
+     0,
+     5615
+    ],
+    "the sign before a number [left edge]": [
+     0,
+     5615
+    ],
+    "the sign before a number [middle]": [
+     0,
+     5615
+    ],
+    "the sign before a number [right edge]": [
+     0,
+     5615
+    ],
+    "the currency mark [left edge]": [
+     0,
+     5615
+    ],
+    "the currency mark [middle]": [
+     0,
+     5615
+    ],
+    "the currency mark [right edge]": [
+     0,
+     5615
+    ],
+    "a comparison sign removed [left edge]": [
+     0,
+     5615
+    ],
+    "a comparison sign removed [middle]": [
+     0,
+     5615
+    ],
+    "a comparison sign removed [right edge]": [
+     0,
+     5615
+    ],
+    "a space inside a word [left edge]": [
+     0,
+     5615
+    ],
+    "a space inside a word [middle]": [
+     0,
+     5615
+    ],
+    "a space inside a word [right edge]": [
+     0,
+     5615
+    ],
+    "the closing mark of a statement [left edge]": [
+     0,
+     5615
+    ],
+    "the closing mark of a statement [middle]": [
+     0,
+     5615
+    ],
+    "the closing mark of a statement [right edge]": [
+     0,
+     5615
+    ],
+    "the separator inside a unit [left edge]": [
+     0,
+     5615
+    ],
+    "the separator inside a unit [middle]": [
+     0,
+     5615
+    ],
+    "the separator inside a unit [right edge]": [
+     0,
+     5615
+    ],
+    "the separator inside a number [left edge]": [
+     0,
+     5615
+    ],
+    "the separator inside a number [middle]": [
+     0,
+     5615
+    ],
+    "the separator inside a number [right edge]": [
+     0,
+     5615
+    ],
+    "a negation dropped [left edge]": [
+     0,
+     5615
+    ],
+    "a negation dropped [middle]": [
+     0,
+     5615
+    ],
+    "a negation dropped [right edge]": [
+     0,
+     5615
+    ],
+    "a sign standing apart from its number [left edge]": [
+     0,
+     5615
+    ],
+    "a sign standing apart from its number [middle]": [
+     0,
+     5615
+    ],
+    "a sign standing apart from its number [right edge]": [
+     0,
+     5615
+    ],
+    "a bracket that carries the sign [left edge]": [
+     0,
+     5615
+    ],
+    "a bracket that carries the sign [middle]": [
+     0,
+     5615
+    ],
+    "a bracket that carries the sign [right edge]": [
+     0,
+     5615
+    ],
+    "a mark nobody put on the list [left edge]": [
+     0,
+     5615
+    ],
+    "a mark nobody put on the list [middle]": [
+     0,
+     5615
+    ],
+    "a mark nobody put on the list [right edge]": [
+     0,
+     5615
+    ],
+    "a mark opening the span, in front of a number [left edge]": [
+     0,
+     5615
+    ],
+    "a mark opening the span, in front of a number [middle]": [
+     0,
+     5615
+    ],
+    "a mark opening the span, in front of a number [right edge]": [
+     0,
+     5615
+    ],
+    "an opening mark added where the span began without one [left edge]": [
+     0,
+     11226
+    ],
+    "a comma against a digit dropped at the left edge, and the head of a number [left edge]": [
+     0,
+     11230
+    ],
+    "a comma against a digit added at the left edge, and the head of a number [left edge]": [
+     0,
+     11230
+    ],
+    "a full stop against a digit dropped at the left edge, and the head of a number [left edge]": [
+     0,
+     11230
+    ],
+    "a full stop against a digit added at the left edge, and the head of a number [left edge]": [
+     0,
+     11230
+    ],
+    "a closing mark added where the span ended without one [right edge]": [
+     0,
+     4490
+    ],
+    "a digit of the real quote changed [left edge]": [
+     0,
+     2646
+    ],
+    "a digit of the real quote changed [middle]": [
+     0,
+     2646
+    ],
+    "a digit of the real quote changed [right edge]": [
+     0,
+     2646
+    ],
+    "a comma inside a word dropped [left edge]": [
+     0,
+     162
+    ],
+    "a comma inside a word dropped [middle]": [
+     0,
+     162
+    ],
+    "a comma inside a word dropped [right edge]": [
+     0,
+     162
+    ],
+    "a space dropped so two numbers read as one [left edge]": [
+     8,
+     39
+    ],
+    "a space dropped so two numbers read as one [middle]": [
+     8,
+     39
+    ],
+    "a space dropped so two numbers read as one [right edge]": [
+     8,
+     39
+    ],
+    "a comma dropped and two numbers read as one [left edge]": [
+     8,
+     8
+    ],
+    "a comma dropped and two numbers read as one [middle]": [
+     8,
+     8
+    ],
+    "a comma dropped and two numbers read as one [right edge]": [
+     8,
+     8
+    ],
+    "a space dropped so a sign joins its number [left edge]": [
+     0,
+     158
+    ],
+    "a space dropped so a sign joins its number [middle]": [
+     0,
+     158
+    ],
+    "a space dropped so a sign joins its number [right edge]": [
+     0,
+     158
+    ]
+   },
+   "verdict": "FAIL"
+  },
+  "candidate (tallystick.verify.says_the_same)": {
+   "drift_accepted": 1.0,
+   "drift_accepted_of": [
+    267162,
+    267162
+   ],
+   "tampering_refused": 1.0,
+   "tampering_refused_of": [
+    288660,
+    288660
+   ],
+   "characters_forgiven": 0,
+   "characters_forgiven_names": [],
+   "spans_through_a_number_refused": 1.0,
+   "spans_through_a_number_refused_of": [
+    101077,
+    101077
+   ],
+   "spans_between_numbers_accepted": 1.0,
+   "spans_between_numbers_accepted_of": [
+    50528,
+    50528
+   ],
+   "spans_through_a_word_refused": 1.0,
+   "spans_through_a_word_refused_of": [
+    112300,
+    112300
+   ],
+   "spans_between_words_accepted": 1.0,
+   "spans_between_words_accepted_of": [
+    101070,
+    101070
+   ],
+   "spans_by_kind": {
+    "the head of the span is inside a number set with a colon, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a number set with a colon, the span carrying the separator and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a number set with a comma, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a number set with a comma, the span carrying the separator and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a number set with a full stop, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a number set with a full stop, the span carrying the separator and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a number set with a space, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a number set with a space, the span carrying the separator and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a number set with nothing at all, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the span begins after a grouped number [drift]": [
+     5608,
+     5608
+    ],
+    "the span begins after a grouped number [tampering]": [
+     0,
+     7
+    ],
+    "the span begins at a grouped number whole [drift]": [
+     5615,
+     5615
+    ],
+    "the span begins at a number a sentence begins with [drift]": [
+     5615,
+     5615
+    ],
+    "the span begins at the second of two numbers a clause comma divides [drift]": [
+     5615,
+     5615
+    ],
+    "the span begins at the year of a date [drift]": [
+     5615,
+     5615
+    ],
+    "the span ends at a number a clause comma follows [drift]": [
+     5615,
+     5615
+    ],
+    "the span ends at a number its own sentence ends after [drift]": [
+     5615,
+     5615
+    ],
+    "the span ends at a number the next sentence begins with a number after [drift]": [
+     5615,
+     5615
+    ],
+    "the span ends before a grouped number [drift]": [
+     5615,
+     5615
+    ],
+    "the tail of the span is inside a number set with a colon, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a number set with a colon, the span carrying the separator and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a number set with a comma, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a number set with a comma, the span carrying the separator and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a number set with a full stop, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a number set with a full stop, the span carrying the separator and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a number set with a space, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a number set with a space, the span carrying the separator and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a number set with nothing at all, the citation word for word [tampering]": [
+     0,
+     5615
+    ]
+   },
+   "words_by_kind": {
+    "the head of the span is at a scrape seam,  - Wikipedia|It became  [drift]": [
+     5615,
+     5615
+    ],
+    "the head of the span is at a scrape seam, arlo results|The Venezu [drift]": [
+     5615,
+     5615
+    ],
+    "the head of the span is at a scrape seam, de Sora.\\n\\n|El poblado [drift]": [
+     5615,
+     5615
+    ],
+    "the head of the span is at a scrape seam, l Conference|Deputy chi [drift]": [
+     5615,
+     5615
+    ],
+    "the head of the span is at a scrape seam, ter of Bihar|In office [drift]": [
+     5615,
+     5615
+    ],
+    "the head of the span is inside a word, dis-, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, dis-, the span carrying the affix and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, im-, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, im-, the span carrying the affix and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, in-, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, in-, the span carrying the affix and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, non- with a hyphen, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, non- with a hyphen, the span carrying the affix and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, non-, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, non-, the span carrying the affix and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, the pair round 5 left open, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, the pair round 5 left open, the span carrying the affix and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, un- with the word opening a sentence, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, un- with the word opening a sentence, the span carrying the affix and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, un-, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the head of the span is inside a word, un-, the span carrying the affix and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the span begins at a word after a full stop and a space [drift]": [
+     5615,
+     5615
+    ],
+    "the span begins at a word after a line break [drift]": [
+     5615,
+     5615
+    ],
+    "the span begins at a word after a space [drift]": [
+     5615,
+     5615
+    ],
+    "the span begins at the second word of a pair an en dash divides [drift]": [
+     5615,
+     5615
+    ],
+    "the span begins at the whole of a word a prefix flips [drift]": [
+     5615,
+     5615
+    ],
+    "the span ends at a word a hyphen does not reach [drift]": [
+     5615,
+     5615
+    ],
+    "the span ends at a word before a space [drift]": [
+     5615,
+     5615
+    ],
+    "the span ends at a word its own sentence ends after [drift]": [
+     5615,
+     5615
+    ],
+    "the tail of the span is at a scrape seam,  - Wikipedia|It became  [drift]": [
+     5615,
+     5615
+    ],
+    "the tail of the span is at a scrape seam, arlo results|The Venezu [drift]": [
+     5615,
+     5615
+    ],
+    "the tail of the span is at a scrape seam, de Sora.\\n\\n|El poblado [drift]": [
+     5615,
+     5615
+    ],
+    "the tail of the span is at a scrape seam, l Conference|Deputy chi [drift]": [
+     5615,
+     5615
+    ],
+    "the tail of the span is at a scrape seam, ter of Bihar|In office [drift]": [
+     5615,
+     5615
+    ],
+    "the tail of the span is inside a word, -less, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a word, -less, the span carrying the affix and the citation dropping it [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a word, -n't, the citation word for word [tampering]": [
+     0,
+     5615
+    ],
+    "the tail of the span is inside a word, -n't, the span carrying the affix and the citation dropping it [tampering]": [
+     0,
+     5615
+    ]
+   },
+   "drift_by_kind": {
+    "a comma dropped [left edge]": [
+     2264,
+     2264
+    ],
+    "a comma dropped [middle]": [
+     2264,
+     2264
+    ],
+    "a comma dropped [right edge]": [
+     2264,
+     2264
+    ],
+    "a comma added [left edge]": [
+     5241,
+     5241
+    ],
+    "a comma added [middle]": [
+     5241,
+     5241
+    ],
+    "a comma added [right edge]": [
+     5241,
+     5241
+    ],
+    "a space too few [left edge]": [
+     3581,
+     3581
+    ],
+    "a space too few [middle]": [
+     3570,
+     3570
+    ],
+    "a space too few [right edge]": [
+     3612,
+     3612
+    ],
+    "the closing mark doubled [right edge]": [
+     3315,
+     3315
+    ],
+    "the closing full stop dropped [right edge]": [
+     3315,
+     3315
+    ],
+    "a comma against a digit dropped at the right edge, and the numbers are the same [right edge]": [
+     11230,
+     11230
+    ],
+    "a comma against a digit added at the right edge, and the numbers are the same [right edge]": [
+     11230,
+     11230
+    ],
+    "a double quotation mark against a digit dropped at the left edge, and the numbers are the same [left edge]": [
+     11230,
+     11230
+    ],
+    "a double quotation mark against a digit added at the left edge, and the numbers are the same [left edge]": [
+     11230,
+     11230
+    ],
+    "a double quotation mark against a digit dropped at the right edge, and the numbers are the same [right edge]": [
+     11230,
+     11230
+    ],
+    "a double quotation mark against a digit added at the right edge, and the numbers are the same [right edge]": [
+     11230,
+     11230
+    ],
+    "a single quotation mark against a digit dropped at the left edge, and the numbers are the same [left edge]": [
+     11230,
+     11230
+    ],
+    "a single quotation mark against a digit added at the left edge, and the numbers are the same [left edge]": [
+     11230,
+     11230
+    ],
+    "a single quotation mark against a digit dropped at the right edge, and the numbers are the same [right edge]": [
+     11230,
+     11230
+    ],
+    "a single quotation mark against a digit added at the right edge, and the numbers are the same [right edge]": [
+     11230,
+     11230
+    ],
+    "a full stop against a digit dropped at the right edge, and the numbers are the same [right edge]": [
+     11230,
+     11230
+    ],
+    "a full stop against a digit added at the right edge, and the numbers are the same [right edge]": [
+     11230,
+     11230
+    ],
+    "an exclamation mark against a digit dropped at the left edge, and the numbers are the same [left edge]": [
+     11230,
+     11230
+    ],
+    "an exclamation mark against a digit dropped at the right edge, and the numbers are the same [right edge]": [
+     11230,
+     11230
+    ],
+    "a question mark against a digit dropped at the left edge, and the numbers are the same [left edge]": [
+     11230,
+     11230
+    ],
+    "a question mark against a digit dropped at the right edge, and the numbers are the same [right edge]": [
+     11230,
+     11230
+    ],
+    "an ellipsis against a digit dropped at the left edge, and the numbers are the same [left edge]": [
+     11230,
+     11230
+    ],
+    "an ellipsis against a digit added at the left edge, and the numbers are the same [left edge]": [
+     11230,
+     11230
+    ],
+    "an ellipsis against a digit dropped at the right edge, and the numbers are the same [right edge]": [
+     11230,
+     11230
+    ],
+    "an ellipsis against a digit added at the right edge, and the numbers are the same [right edge]": [
+     11230,
+     11230
+    ],
+    "the closing full stop added [right edge]": [
+     2300,
+     2300
+    ],
+    "a space dropped after a mark standing between two numbers [left edge]": [
+     118,
+     118
+    ],
+    "a space dropped after a mark standing between two numbers [middle]": [
+     118,
+     118
+    ],
+    "a space dropped after a mark standing between two numbers [right edge]": [
+     118,
+     118
+    ]
+   },
+   "tampering_by_kind": {
+    "a digit changed [left edge]": [
+     0,
+     5615
+    ],
+    "a digit changed [middle]": [
+     0,
+     5615
+    ],
+    "a digit changed [right edge]": [
+     0,
+     5615
+    ],
+    "the sign before a number [left edge]": [
+     0,
+     5615
+    ],
+    "the sign before a number [middle]": [
+     0,
+     5615
+    ],
+    "the sign before a number [right edge]": [
+     0,
+     5615
+    ],
+    "the currency mark [left edge]": [
+     0,
+     5615
+    ],
+    "the currency mark [middle]": [
+     0,
+     5615
+    ],
+    "the currency mark [right edge]": [
+     0,
+     5615
+    ],
+    "a comparison sign removed [left edge]": [
+     0,
+     5615
+    ],
+    "a comparison sign removed [middle]": [
+     0,
+     5615
+    ],
+    "a comparison sign removed [right edge]": [
+     0,
+     5615
+    ],
+    "a space inside a word [left edge]": [
+     0,
+     5615
+    ],
+    "a space inside a word [middle]": [
+     0,
+     5615
+    ],
+    "a space inside a word [right edge]": [
+     0,
+     5615
+    ],
+    "the closing mark of a statement [left edge]": [
+     0,
+     5615
+    ],
+    "the closing mark of a statement [middle]": [
+     0,
+     5615
+    ],
+    "the closing mark of a statement [right edge]": [
+     0,
+     5615
+    ],
+    "the separator inside a unit [left edge]": [
+     0,
+     5615
+    ],
+    "the separator inside a unit [middle]": [
+     0,
+     5615
+    ],
+    "the separator inside a unit [right edge]": [
+     0,
+     5615
+    ],
+    "the separator inside a number [left edge]": [
+     0,
+     5615
+    ],
+    "the separator inside a number [middle]": [
+     0,
+     5615
+    ],
+    "the separator inside a number [right edge]": [
+     0,
+     5615
+    ],
+    "a negation dropped [left edge]": [
+     0,
+     5615
+    ],
+    "a negation dropped [middle]": [
+     0,
+     5615
+    ],
+    "a negation dropped [right edge]": [
+     0,
+     5615
+    ],
+    "a sign standing apart from its number [left edge]": [
+     0,
+     5615
+    ],
+    "a sign standing apart from its number [middle]": [
+     0,
+     5615
+    ],
+    "a sign standing apart from its number [right edge]": [
+     0,
+     5615
+    ],
+    "a bracket that carries the sign [left edge]": [
+     0,
+     5615
+    ],
+    "a bracket that carries the sign [middle]": [
+     0,
+     5615
+    ],
+    "a bracket that carries the sign [right edge]": [
+     0,
+     5615
+    ],
+    "a mark nobody put on the list [left edge]": [
+     0,
+     5615
+    ],
+    "a mark nobody put on the list [middle]": [
+     0,
+     5615
+    ],
+    "a mark nobody put on the list [right edge]": [
+     0,
+     5615
+    ],
+    "a mark opening the span, in front of a number [left edge]": [
+     0,
+     5615
+    ],
+    "a mark opening the span, in front of a number [middle]": [
+     0,
+     5615
+    ],
+    "a mark opening the span, in front of a number [right edge]": [
+     0,
+     5615
+    ],
+    "an opening mark added where the span began without one [left edge]": [
+     0,
+     11226
+    ],
+    "a comma against a digit dropped at the left edge, and the head of a number [left edge]": [
+     0,
+     11230
+    ],
+    "a comma against a digit added at the left edge, and the head of a number [left edge]": [
+     0,
+     11230
+    ],
+    "a full stop against a digit dropped at the left edge, and the head of a number [left edge]": [
+     0,
+     11230
+    ],
+    "a full stop against a digit added at the left edge, and the head of a number [left edge]": [
+     0,
+     11230
+    ],
+    "a closing mark added where the span ended without one [right edge]": [
+     0,
+     4490
+    ],
+    "a digit of the real quote changed [left edge]": [
+     0,
+     2646
+    ],
+    "a digit of the real quote changed [middle]": [
+     0,
+     2646
+    ],
+    "a digit of the real quote changed [right edge]": [
+     0,
+     2646
+    ],
+    "a comma inside a word dropped [left edge]": [
+     0,
+     162
+    ],
+    "a comma inside a word dropped [middle]": [
+     0,
+     162
+    ],
+    "a comma inside a word dropped [right edge]": [
+     0,
+     162
+    ],
+    "a space dropped so two numbers read as one [left edge]": [
+     0,
+     39
+    ],
+    "a space dropped so two numbers read as one [middle]": [
+     0,
+     39
+    ],
+    "a space dropped so two numbers read as one [right edge]": [
+     0,
+     39
+    ],
+    "a comma dropped and two numbers read as one [left edge]": [
+     0,
+     8
+    ],
+    "a comma dropped and two numbers read as one [middle]": [
+     0,
+     8
+    ],
+    "a comma dropped and two numbers read as one [right edge]": [
+     0,
+     8
+    ],
+    "a space dropped so a sign joins its number [left edge]": [
+     0,
+     158
+    ],
+    "a space dropped so a sign joins its number [middle]": [
+     0,
+     158
+    ],
+    "a space dropped so a sign joins its number [right edge]": [
+     0,
+     158
+    ]
+   },
+   "verdict": "pass"
+  }
+ }
+}

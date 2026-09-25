@@ -31,6 +31,7 @@ from __future__ import annotations
 from typing import Dict, List, Optional
 
 from .normalize import normalize
+from .tokens import content, cuts_a_number, cuts_a_word, edge_marks, same_ending
 from .types import AccountType, Entry, Run, Step
 
 #: Reasons an entry can be rejected. Stable strings - they end up in reports and in
@@ -38,6 +39,8 @@ from .types import AccountType, Entry, Run, Step
 ARTIFACT_UNKNOWN = "artifact_unknown"
 NOT_REACHABLE = "not_reachable_from_step"
 SPAN_OUT_OF_RANGE = "span_out_of_range"
+SPAN_CUTS_A_NUMBER = "span_cuts_a_number"
+SPAN_CUTS_A_WORD = "span_cuts_a_word"
 SPAN_MISMATCH = "span_mismatch"
 NO_QUOTE = "no_quoted_span"
 PRIOR_NEVER_FUNDS = "prior_never_funds"
@@ -59,6 +62,8 @@ REASON_ORDER = (
     SELF_CITATION,
     SPAN_OUT_OF_RANGE,
     NO_QUOTE,
+    SPAN_CUTS_A_NUMBER,
+    SPAN_CUTS_A_WORD,
     SPAN_MISMATCH,
     ASSUMPTION_UNDECLARED,
     PRIOR_NEVER_FUNDS,
@@ -80,21 +85,54 @@ def worst_reason(entries) -> str:
                                        if r in REASON_ORDER else len(REASON_ORDER), r))
 
 
-def _content(s: str) -> str:
-    """What a string says, with spacing and punctuation dropped: its letters and
-    digits, plus any character standing between two digits.
+def says_the_same(actual: str, quoted: str) -> bool:
+    """Whether two normalised strings say the same thing, differing only in how
+    they are set.
 
-    That last clause is what keeps `12.4` from matching `124`: a separator inside
-    a number is content, not typography. Everything else a recorder may add or
-    drop - spaces, quotes, dashes, a trailing full stop - is not.
+    The rule is one sentence, and the sentence is written from the other end
+    than the three rules before it: **everything in the quote is content,
+    except the four characters `tokens.SETTING` names and the marks that open
+    or close it.** What may differ is listed; what may not is everything else,
+    including every character nobody here has thought of yet.
+
+    The list, and its conditions, are in `tokens.SETTING` - whitespace, the
+    comma, the two quotation marks, and a run of sentence marks at an edge. Each
+    is setting only where it is not holding two words apart and not making one
+    number out of two. `tokens.content` applies it; this function adds the only
+    clause that is about position rather than character:
+
+      **Marks that end a sentence may be added or dropped where the quote
+      begins or ends, but never exchanged for others.** A recorder who cuts a
+      sentence out of a paragraph and keeps or drops its full stop has not
+      changed what it says; one who writes `safe?` where the source says
+      `safe.` has.
+
+    What is folded before this runs - case, NFC composition, invisible
+    characters, quotation and dash styles, runs of whitespace - is in
+    `normalize`. That, plus `SETTING`, is the whole of the tolerance.
+
+    This replaces three rules that all named content and let the rest be noise:
+    an edit budget of 2% of the span's length, which bought more edits the
+    longer the quote; a signature of letters, digits and separators standing
+    between two digits, which dropped every sign, currency mark and comparison
+    operator; and a sequence of tokens in which whole Unicode categories - every
+    dash, every bracket - were setting, so `margin - 5.2 %` could be cited as
+    `margin 5.2 %`. Each was found by a reader who thought of a character the
+    list had not. `bench/quote_gate_corpus.py` measures what each one costs.
+
+    A quote with no content at all - a rule of dashes, a row of marks - vouches
+    for nothing, so two of them are the same thing only when they are equal
+    character for character.
     """
-    keep = []
-    for i, ch in enumerate(s):
-        if ch.isalnum():
-            keep.append(ch)
-        elif 0 < i < len(s) - 1 and s[i - 1].isdigit() and s[i + 1].isdigit():
-            keep.append(ch)
-    return "".join(keep)
+    if actual == quoted:
+        return True
+    a_lead, a_body, a_tail = edge_marks(actual)
+    b_lead, b_body, b_tail = edge_marks(quoted)
+    here, there = content(a_body), content(b_body)
+    if not here or not there:
+        return False
+    return (here == there
+            and same_ending(a_lead, b_lead) and same_ending(a_tail, b_tail))
 
 
 def verify_entry(run: Run, entry: Entry, _flow: Optional[_Flow] = None) -> Entry:
@@ -167,6 +205,43 @@ def verify_entry(run: Run, entry: Entry, _flow: Optional[_Flow] = None) -> Entry
         entry.reason = NO_QUOTE
         return entry
 
+    # Where the span was cut, before what it says. A boundary falling inside a
+    # number means the text the span carries states a number the source does
+    # not - `66 300 people affected` sliced from its third character is
+    # `300 people affected` - and the citation can then be word for word, so
+    # the equality below would answer first and no rule of the gate would ever
+    # be asked. That is the same forgery the two previous rounds closed one
+    # mark at a time inside `says_the_same`, seen from the side it is committed
+    # on: the account's boundaries, which this function has always taken on
+    # trust. `tokens.cuts_a_number` is the reading, and it is the locate's
+    # reading (`cuts_number`, v0.7.0) plus the gate's own grouping separator,
+    # so a number is cut the same way on both sides of the library. Since
+    # round 7 both boundary checks read the source as `normalize` reads it
+    # (`normalize.view`), so a number or a word the comparison below sees whole
+    # is whole at the boundary too: `66 300` with a no-break space, `unsafe`
+    # with a soft hyphen after `un`.
+    if cuts_a_number(artifact.content, start, end):
+        entry.verified = False
+        entry.reason = SPAN_CUTS_A_NUMBER
+        return entry
+
+    # The same question with letters in place of digits, and it is the more
+    # dangerous of the two, because a word can carry the negation of the
+    # sentence it stands in: `the drug is unsafe` cited from the character
+    # after `un` is `safe`, word for word, and the equality below would answer
+    # it. Round 5 named this class as open and measured what closing it costs;
+    # the reading that closes it is `tokens.cuts_a_word`, and it forgives two
+    # shapes - a word run into a capitalised word by a scrape, and the letter
+    # of a literal `\n` - which are seams and not places inside a word.
+    # Without them the check refuses 122 of the 5615 real EVIDENCE quotes of
+    # the two published runs; with them it refuses 4, each a price the owner
+    # chose in round 7 and named in `tokens.py`: two spans cut at an em dash
+    # between two letters and two at a digit run into a word.
+    if cuts_a_word(artifact.content, start, end):
+        entry.verified = False
+        entry.reason = SPAN_CUTS_A_WORD
+        return entry
+
     actual = normalize(artifact.slice(start, end))
     quoted = normalize(entry.quoted_span)
     if actual == quoted:
@@ -174,18 +249,11 @@ def verify_entry(run: Run, entry: Entry, _flow: Optional[_Flow] = None) -> Entry
         entry.reason = OK
         return entry
 
-    # Typographic drift is forgiven; content is not. What the two strings say -
-    # their letters, their digits, and any separator standing between two digits -
-    # must be identical, character for character. Spacing and punctuation may
-    # differ, and that is the whole of the tolerance.
-    #
-    # This replaces an edit budget of 2% of the span's length. That budget had no
-    # ceiling, so it bought more edits the longer the quote: a 308-character source
-    # saying "12.4 million euro" could be cited as "92.4 million euro" and pass,
-    # and a 2,645-character one could have its closing sentence replaced outright.
-    # A cap on the budget would not have closed it either - one edit is enough to
-    # move a digit - so the budget is gone rather than bounded.
-    if _content(actual) and _content(actual) == _content(quoted):
+    # Only the setting may differ, and what counts as setting is a list of four
+    # characters with their conditions (`tokens.SETTING`); everything else in the
+    # quote is content, including characters nobody has thought of. The rule is
+    # in `says_the_same`.
+    if says_the_same(actual, quoted):
         entry.verified = True
         entry.reason = OK
         return entry

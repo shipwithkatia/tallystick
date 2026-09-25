@@ -131,7 +131,13 @@ def _posted(answer, spans, *, fund=True):
 
 
 def test_an_answer_checked_by_one_letter_is_exit_1_and_says_how_little(tmp_path):
-    answer = "Sydney is the capital of Australia. Revenue grew 900%."
+    # The one letter is a word of its own. It used to be the `S` of `Sydney`,
+    # and that is a span cutting a word of the source, which the quote gate
+    # refuses since round 6 - so the entry stopped closing and this test, which
+    # is about the arithmetic of coverage and not about the gate, measured the
+    # wrong thing. The answer carries the same 43 letters and digits it did, so
+    # every number asserted below is the number that was asserted before.
+    answer = "A town is the capital of Australia. Revenue grew 9000%."
     path = _write(tmp_path, "t.json", _posted(answer, [(0, 1)]))
     code, out, _err = _run(["audit", path])
     assert code == 1
