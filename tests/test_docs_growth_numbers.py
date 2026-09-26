@@ -132,7 +132,10 @@ def test_the_check_would_have_caught_the_23908ba_text():
     assert "does not name" in text, text
 
 
-CORPUS = ROOT / "bench" / "work-agenthallu" / "AgentHallu"
+# The variable first, the path in the tree as the fallback - the same way
+# the other corpus tests look, so one setting wakes all of them.
+CORPUS = Path(os.environ.get("TALLYSTICK_AGENTHALLU",
+                             ROOT / "bench" / "work-agenthallu" / "AgentHallu"))
 
 
 @pytest.mark.skipif(not CORPUS.is_dir(), reason=f"AgentHallu corpus not found at {CORPUS}")

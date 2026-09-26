@@ -596,6 +596,24 @@ it been measured.
 
 ### What the commands say, and where
 
+- A mistyped flag in the first position is read as a file name. `tallystick
+  run.json` means `tallystick audit run.json`, and the rule that makes that work
+  takes anything which is not a subcommand as `audit`'s first argument - so
+  `tallystick --versoin` is answered with `audit`'s usage error about a missing
+  trace rather than with a word about the flag. `--version` and `-V` are handled
+  before the rule and are not affected. The rule is kept because a flag before a
+  path reaches `audit` through it as well: `tallystick --quiet run.json` works.
+  A narrower rule - refuse only a first word that begins with a dash and is not
+  a flag `audit` accepts - would keep that and answer `--versoin` with a word
+  about the flag. The parser can be asked which flags those are through its own
+  public `parse_known_args`, so no second list is needed and nothing private is
+  read: two outside reviews each wrote the rule in a few minutes with the suite
+  green. It has a price of its own, which is why it is still a round of its
+  own rather than a line added here: asking the parser what `audit` accepts
+  means handing it a stand-in for `audit`'s required argument, so the rule
+  would carry a second piece of knowledge about that subcommand's shape - the
+  kind of quiet duplicate that answers wrongly once the shape changes. Named
+  so the reader knows this is a choice with a cost on both sides, not a wall.
 - `convert` does not list notes; the trace it writes keeps them in `_meta`, and
   `check-trace` on that trace prints them.
 - `tallystick.audit()` in Python returns the balance without the notes; read

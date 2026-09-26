@@ -48,6 +48,7 @@ import shlex
 import sys
 from pathlib import Path
 
+from . import __version__
 from .auditability import (DEFAULT_MIN_REACHABLE, MULTIPLE_FINAL_ANSWERS, check_trace,
                            multiple_final_answers, report)
 from .convert import (FORMATS, describe, detect, hint_for, looks_like_trace, read_any,
@@ -853,7 +854,15 @@ def _escape_what_cannot_be_printed():
 
 def main(argv: list[str] | None = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
-    # `tallystick run.json` means `tallystick audit run.json`.
+    # Before the shorthand below, because the shorthand would read `--version`
+    # as a file name for `audit` and answer a version question with a usage
+    # error about a missing trace.
+    if argv and argv[0] in ("--version", "-V"):
+        print(f"tallystick {__version__}")
+        raise SystemExit(0)
+    # `tallystick run.json` means `tallystick audit run.json`. A flag first
+    # still reaches `audit`, so `tallystick --quiet run.json` keeps working;
+    # what that costs a mistyped flag is in docs/known-limitations.md.
     if argv and argv[0] not in SUBCOMMANDS and argv[0] not in ("-h", "--help"):
         argv.insert(0, "audit")
     put_back = _escape_what_cannot_be_printed()
