@@ -180,7 +180,6 @@ class Entry:
     claim_id: str
     account: Account
     quoted_span: str = ""
-    amount: float = 1.0
     proposed_by: str = "manual"
     group: str = ""
     verified: Optional[bool] = None

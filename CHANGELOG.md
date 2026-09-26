@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+Two pieces of dead code a linter cannot see, because neither is local to a
+function: `Entry.amount`, a field no reader or writer ever touched and that
+`io.py` does not even read from a trace file, and `check`, a module-level
+alias of `check_trace` whose own comment said it read better inside the
+module - which used it nowhere. Both removed.
+
 ## v0.9.0 — the quote check asks where a quote was cut
 
 The previous tag was `v0.7.4`. The numbers v0.7.5, v0.8.0 and v0.8.1 reached

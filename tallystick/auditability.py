@@ -367,9 +367,6 @@ def check_trace(run: Run, *, min_reachable: Optional[float] = None,
     )
 
 
-#: `check` reads better inside this module; `check_trace` is the exported name.
-check = check_trace
-
 _HEADLINE = {
     "auditable": "CAN BE CHECKED - nothing in the recording is in the way.",
     "partial": ("PARTLY - a check will run, but if it finds nothing that means "
