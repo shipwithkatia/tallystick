@@ -186,7 +186,7 @@ def test_a_tool_handing_back_the_models_earlier_message_is_not_silent_evidence(t
     demotion and no note; the answer quoting it balances: `audit` prints BOOKS
     BALANCE, exit 0, and not one line about it. `check-trace` names the three
     artifacts only as generic `duplicate_content` ("does not decide the
-    verdict"). README's "What still passes without a word" lists a store
+    verdict"). docs/known-limitations.md, "What still passes", lists a store
     record, padding, glued scripts and case, and a `user` message - not this.
     Same on f84f278."""
     draft = ("Sydney is the capital of Australia; it was chosen in 1901 as a compromise "

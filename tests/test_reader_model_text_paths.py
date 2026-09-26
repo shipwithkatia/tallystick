@@ -188,7 +188,7 @@ def test_an_id_declared_twice_in_one_turn_still_names_no_call():
            {"role": "assistant", "content": ANSWER}]
     trace = to_trace(log)
     meta = trace["_meta"]
-    # As README, Known limitations, says: both filed as matching nothing, both
+    # As docs/known-limitations.md, Known limitations, says: both filed as matching nothing, both
     # noted, neither demoted - not placed by name or order.
     assert meta["unmatched_tool_results"] == ["tool[2] (id dup)", "tool[3] (id dup)"]
     assert meta["guessed_tool_names"] == []

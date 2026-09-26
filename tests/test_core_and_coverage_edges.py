@@ -292,7 +292,7 @@ def test_a_note_read_back_from_a_memory_store_record_is_reported():
 @pytest.mark.xfail(strict=True, reason=(
     "known hole, right in substance: the model's draft pasted back as a `user` "
     "message is a root and nothing compares it with the model's text. Described in "
-    "README.md, Known limitations, the item on a draft pasted back as a `user` "
+    "docs/known-limitations.md, Known limitations, the item on a draft pasted back as a `user` "
     "message. Kept red on purpose: documented, not fixed."))
 def test_the_models_draft_pasted_back_as_a_user_message_is_not_silent_evidence(tmp_path):
     """A self-refine loop: the model writes a draft, the harness pastes it back

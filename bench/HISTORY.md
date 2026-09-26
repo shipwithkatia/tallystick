@@ -209,7 +209,7 @@ them.
   forgives letter case, the kind of dash, the style of a quotation mark, Unicode
   composition and invisible characters, so `Polish` cited as `polish` and `–$5`
   as `-$5` pass. Both lists in full are under
-  [Known limitations](../README.md#known-limitations) in the README.
+  [Known limitations](../docs/known-limitations.md#known-limitations).
   **The list is four lines** (`tallystick/tokens.py:SETTING`): whitespace, the
   comma, the two quotation marks, and a run of sentence marks where the quote
   opens or closes. Each carries the reason it is there. A run of setting that
@@ -324,8 +324,8 @@ them.
   question about a word: of the 5,611 spans it places on the 5,615 quotes, the
   gate refuses 4 for cutting a word. Price of the fix on the 5,615 quotes:
   5,611 placed before and after it, 0 placed differently. What the reviews
-  found it still places wrongly or not at all is under Known limitations in the
-  README. The worst of it is a class, not a case: when the model adds a full
+  found it still places wrongly or not at all is under Known limitations in
+  `docs/known-limitations.md`. The worst of it is a class, not a case: when the model adds a full
   stop or quotation marks, the word search drops a mark at the edge of the
   quote, and where the gate does not protect that cut the forgery closes the
   books at exit 0 (`!ready` placed as `ready`, a removed diff line
@@ -370,13 +370,13 @@ them.
   cost: of the 2,767 quotes the published runs write into intermediate text,
   404 would be written without the dash standing just before them (a dash not
   glued to a letter on its left) had the model quoted it, all 404 a list bullet
-  at the start of a line (README,
+  at the start of a line (`docs/known-limitations.md`,
   Known limitations).
   **Time.** Checking the 424 posted traces (`verify_run` alone, best of five
   runs, one machine) takes 0.48 s on v0.9.0 against 0.052 s on v0.8.1: about
   nine times slower, about 1.1 ms a trace. v0.8.1 answered almost every quote
   by string equality; v0.9.0 reads both boundaries of every quote.
-  **Still open**: everything under Known limitations in the README, with its
+  **Still open**: everything under Known limitations in `docs/known-limitations.md`, with its
   frequency where it was counted. That list is what the external reviews had
   found by 25 September 2026, and it is not complete: each review found shapes
   the one before it had not, and the next will most likely find more; v0.9.0

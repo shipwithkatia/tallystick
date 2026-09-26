@@ -21,7 +21,7 @@ names what a quote may differ by rather
 than what it may not, and asks where the span was cut — a span whose boundary
 falls inside a number or a word, as the check reads them, is refused, even when
 the quote matches it word for word. The shapes it does not read as a number or a
-word that the reviews have found are under Known limitations in the README, and
+word that the reviews have found are under Known limitations in [known-limitations.md](known-limitations.md#known-limitations), and
 that list is not complete.
 
 On the instrument in
@@ -32,7 +32,7 @@ tampering and v0.9.0 refuses all of it, accepting every typographic pair. That
 is a statement about the classes the instrument asks about. The ones it does not
 ask about that the reviews have found — forgeries still accepted, honest quotes
 refused, with frequencies where they were counted — are under Known limitations
-in the [README](../README.md#known-limitations), a list that is not complete.
+in [known-limitations.md](known-limitations.md#known-limitations), a list that is not complete.
 
 **It does not move the numbers below, and that was re-derived rather than
 argued.** All 5,615 EVIDENCE quotes in the 424 posted files of both runs are exact
@@ -47,7 +47,7 @@ reproduced. One of the 11,547 claims changes status (`Magentic_One__004`, an
 intermediate claim); no scored sentence or trajectory rests on it. The judges'
 rows do not depend on tallystick and were not rerun; nor was the proposer, which
 is a model. Those posted files are not in this repository — see the note on
-`bench/diagnose.py` below and [Reproducing the numbers](../README.md#reproducing-the-numbers)
+`bench/diagnose.py` below and [Reproducing the numbers](known-limitations.md#reproducing-the-numbers)
 — so the re-audit was run on the owner's copies, offline and at no cost.
 
 Two changes that do **not** reach these numbers, for reasons as specific: the

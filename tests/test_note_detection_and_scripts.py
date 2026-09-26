@@ -192,14 +192,14 @@ def test_a_half_emoji_in_a_noted_line_exits_the_same_loud_and_quiet(tmp_path):
 
 
 def test_readme_names_the_price_of_a_note_and_that_it_moves_no_exit_code():
-    text = " ".join((ROOT / "README.md").read_text(encoding="utf-8").split())
+    text = " ".join((ROOT / "docs" / "known-limitations.md").read_text(encoding="utf-8").split())
     assert "**6 of 20 were the model's own text**" in text
     assert "**A note never changes the exit code**" in text
     assert "`python bench/echo_notes.py <AgentHallu>`" in text
 
 
 def test_readme_names_the_owners_decision_on_the_half_line():
-    text = " ".join((ROOT / "README.md").read_text(encoding="utf-8").split())
+    text = " ".join((ROOT / "docs" / "known-limitations.md").read_text(encoding="utf-8").split())
     assert "owner's decision of 16 September 2026" in text
     assert "it moved 130 from exit 0 to exit 1" in text
     assert "Moving the line to two thirds after seeing the number was considered and refused" in text

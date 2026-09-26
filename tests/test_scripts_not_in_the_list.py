@@ -38,7 +38,7 @@ SHAPES = {"label_quotes": lambda n: f'Note: "{n}"',
 UNLISTED = pytest.mark.xfail(strict=True, reason=(
     "not done: a note in a script written without spaces that is not in the "
     "reader's list, read back inside JSON, `Note: \"...\"` or brackets, gets no "
-    "note - README.md, Known limitations, the item on a script written without "
+    "note - docs/known-limitations.md, Known limitations, the item on a script written without "
     "spaces that is not in the reader's list. Documented, not fixed."))
 
 
