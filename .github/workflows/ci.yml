@@ -7,7 +7,12 @@ jobs:
       matrix:
         python: ["3.10", "3.12"]
     steps:
+      # Full history and tags: tests/test_a_version_claim_matches_git.py
+      # compares what the documents claim about a version against what
+      # git shows, and a shallow checkout carries neither.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
