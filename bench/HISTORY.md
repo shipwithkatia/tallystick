@@ -300,7 +300,8 @@ them.
   refused); every threshold met, both
   controls failing as they must. The v0.8.1 content signature on the same pairs:
   25.23% of the tampering refused.
-  **What it cost, measured against v0.8.1** (the published version): 8 of the
+  **What it cost, measured against v0.8.1** (the last version on `main` before
+  this one): 8 of the
   5,615 real quotes refused (one a real cut, `1/2` cited as `2`; seven named
   prices), 75 of 1,044 values of real tool output refused (7.18%, members of
   11 lists in one trajectory), 1 of 11,547 claim statuses changed on the 424
