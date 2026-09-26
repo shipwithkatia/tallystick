@@ -16,7 +16,7 @@ traceable rather than suspected: `sentence_flags_from_audit` in `bench/run.py`
 builds its per-sentence flags from `balance.audits[...].status`, and those
 statuses are what the quote gate in `tallystick/verify.py` decides. The gate has
 changed in two releases since: v0.8.1 removed an edit budget of 2% of the span's
-length, and v0.9.0 (the working versions v0.8.2 to v0.8.4 were never released)
+length, and v0.9.0 (the working versions v0.8.2 to v0.8.4 never reached `main`)
 names what a quote may differ by rather
 than what it may not, and asks where the span was cut — a span whose boundary
 falls inside a number or a word, as the check reads them, is refused, even when

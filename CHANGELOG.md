@@ -2,9 +2,10 @@
 
 ## v0.9.0 — the quote check asks where a quote was cut
 
-The previous release was v0.8.1. Versions 0.8.2 to 0.8.4 were working versions
-of the same change and were never released; their record is in
-[`bench/HISTORY.md`](bench/HISTORY.md#versions).
+The previous tag was `v0.7.4`. The numbers v0.7.5, v0.8.0 and v0.8.1 reached
+`main` without a tag of their own; v0.8.2 to v0.8.4 were working versions of
+this same change and never reached `main` at all. Which of the three each
+number was is in [`bench/HISTORY.md`](bench/HISTORY.md#versions).
 
 ### What changed
 

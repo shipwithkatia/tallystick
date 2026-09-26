@@ -4,6 +4,17 @@
 
 ## Versions
 
+Three words below are not the same thing, and this file had used them as if they
+were. A version is **tagged** when `git tag` shows it: `v0.6.0`, `v0.7.0`,
+`v0.7.4` and `v0.9.0` are, and nothing else is. A version **reached `main`**
+when its commits are on the public default branch, tag or no tag: every number
+below did except the three named next, and v0.7.5, v0.8.0 and v0.8.1 are the
+ones that did so without a tag. A version **never reached `main`** when its work
+stayed in a branch: v0.8.2 to v0.8.4, each said so where it stands. Two numbers
+are a third case worth naming: `pyproject.toml` never carried `0.5` or `0.5.1`,
+so those two entries record work that reached `main` under the number after
+them.
+
 - **v0.1** — deterministic core: artifacts, steps, claims, entries; three verifier gates; the chain walk; exit codes 0/1/2; an AST test that no verdict-path module imports a model SDK.
 - **v0.2** — model-side proposers (`propose/`), kept outside the verdict path; the model posts claims and quotes into a file, the audit reads the file; verbatim-or-nothing locate; containment rule for credits into a summary.
 - **v0.3** — LangChain callback recorder: inputs of a step recovered from what was verbatim in its prompt; then, before v0.5, exit 2 as a hard boundary for unreadable input.
@@ -86,9 +97,9 @@
   rather than a word about its offsets.
 
 - **v0.8.2** — the quote gate says what it means, and the price is measured.
-  **Never released:** this rule lived in a working copy only, an external review
-  broke it before it reached `main`, and the published project went from v0.8.1
-  straight to v0.8.3.
+  **Never reached `main`:** this rule lived in a working copy only, an external
+  review broke it before it reached `main`, and the published project went from
+  v0.8.1 straight to v0.9.0.
   An external review of v0.8.1 (project rule 10) demonstrated that the content
   signature was looser than the three documents describing it: it kept letters,
   digits and separators standing between two digits, and dropped every other mark,
@@ -260,17 +271,18 @@
   experiment that would measure the cost needs a recorder that quotes from logged
   text by other means than slicing.
   **Still open**: the rule has had one external review and the fix that followed
-  it has had none (rule 10); git tags are still the sixth place a version lives
-  and still stop at `v0.7.4`, so a reader who wants the code behind a published
-  number has neither a tag nor a hash; the step named inside a cycle of claims
-  that cite each other still depends on the claim ids; and a recorder writing
-  UTF-16 code units where the format means code points still gets a verdict about
-  its agent rather than a word about its offsets.
+  it has had none (rule 10); git tags were still the sixth place a version lived
+  and still stopped at `v0.7.4`, so a reader who wanted the code behind a
+  published number had neither a tag nor a hash; the step named inside a cycle
+  of claims that cite each other still depends on the claim ids; and a recorder
+  writing UTF-16 code units where the format means code points still gets a
+  verdict about its agent rather than a word about its offsets.
 
-- **v0.9.0** — the gate asks where a quote was cut. Released after v0.8.1;
-  v0.8.2 to v0.8.4 above were never merged. The release notes, readable on their
-  own, are in [`CHANGELOG.md`](../CHANGELOG.md); this entry keeps what they leave
-  out.
+- **v0.9.0** — the gate asks where a quote was cut. Tagged after `v0.7.4`; the
+  numbers v0.7.5, v0.8.0 and v0.8.1 reached `main` without a tag of their own,
+  and v0.8.2 to v0.8.4 above never reached `main` at all. The release notes,
+  readable on their own, are in [`CHANGELOG.md`](../CHANGELOG.md); this entry
+  keeps what they leave out.
   **Why.** Every rule above compared two strings, and one forgery has nothing in
   the pair of strings to see: a trace may declare its span one character to the
   right, and `66 300 people affected` cut there is `300 people affected`, word
@@ -369,8 +381,8 @@
   the one before it had not, and the next will most likely find more; v0.9.0
   refuses what the README describes as refused, and anything else it may
   accept. The rule was frozen for this release, so none of the classes the
-  external reviews found has been closed or priced. Git tags stop at `v0.7.4`
-  until `v0.9.0` is tagged at the merge.
+  external reviews found has been closed or priced. Git tags stopped at `v0.7.4`
+  until `v0.9.0` was tagged at the merge.
 
 ## Earlier benchmark results
 
