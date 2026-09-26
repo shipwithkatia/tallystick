@@ -79,7 +79,7 @@ def test_readme_status_line_names_the_version_pyproject_installs():
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
     version = re.search(r'^version = "([^"]+)"', pyproject, re.M).group(1)
-    line = next((l for l in readme.splitlines() if l.startswith("**Status:**")), None)
+    line = next((line for line in readme.splitlines() if line.startswith("**Status:**")), None)
     assert line, "README has no '**Status:**' line"
     stated = re.search(r"\bv(\d+\.\d+\.\d+)\b", line)
     assert stated, f"the status line names no version: {line!r}"

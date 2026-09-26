@@ -365,7 +365,7 @@ def _norm(text: str) -> str:
 #: A non-breaking space in a JSON reply stopped the demotion outright - JSON
 #: does not allow it between tokens, so the reply no longer parsed - and a
 #: zero-width space after a value emptied the rule with no threshold in it.
-_CLEAN = {**dict.fromkeys(map(ord, "​‌‍⁠﻿­")),
+_CLEAN = {**dict.fromkeys(map(ord, "\u200b\u200c\u200d\u2060\ufeff\u00ad")),
           **{ord(c): " " for c in "        "
                                   "       　"}}
 
@@ -1674,7 +1674,7 @@ def to_trace(data: Any, *, name: str = "",
             # it afterwards; closing the call any earlier answers those
             # questions against a queue this result has already emptied.
             consumed: Optional[Tuple[str, bool]] = None
-            tool, expected, matched = named_itself, "", False
+            tool, matched = named_itself, False
 
             if cid and ((cid in by_id and cid not in batch_dup_ids)
                         or (cid in tool_names and cid not in reused_ids)):
@@ -1699,7 +1699,7 @@ def to_trace(data: Any, *, name: str = "",
                 named_by_log = named_by_log or (own is not None and own.named)
                 entry = by_id.get(cid)
                 if entry is not None and not entry.done:
-                    expected, matched = entry.name, True
+                    matched = True
                     # The result's own name wins over the call's: a gateway
                     # that renames a tool between call and result is saying
                     # what answered, and that is the more direct evidence.
@@ -1728,7 +1728,7 @@ def to_trace(data: Any, *, name: str = "",
                 name_cursor[named_itself] = i
                 if i < len(queue):
                     entry = queue[i]
-                    expected, matched = entry.name, True
+                    matched = True
                     named_by_log = True
                     if open_count[named_itself] == 1:
                         own, sent = entry, entry.args
@@ -1743,7 +1743,7 @@ def to_trace(data: Any, *, name: str = "",
                 while open_calls[head].done:
                     head += 1
                 entry = open_calls[head]
-                expected = tool = entry.name
+                tool = entry.name
                 entry.done = True
                 consumed = (entry.name, bool(entry.cid))
                 # Doubt is contagious within a batch. Once one result has been

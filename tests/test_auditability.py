@@ -534,6 +534,8 @@ def test_an_unconsumed_root_of_exactly_the_floor_is_reported():
     steps = [{"step_id": "s1", "kind": "tool", "inputs": [], "outputs": ["t"]},
              {"step_id": "s2", "kind": "summarize", "inputs": [], "outputs": ["s"]},
              {"step_id": "s3", "kind": "answer", "inputs": ["s"], "outputs": ["f"]}]
-    codes = lambda c: {f.code for f in check(_run([dict(TOOL, content=c), SUM, ANS], steps)).findings}
+    def codes(c):
+        return {f.code for f in
+                check(_run([dict(TOOL, content=c), SUM, ANS], steps)).findings}
     assert "orphan_root" not in codes(at)
     assert "orphan_root" in codes(over)

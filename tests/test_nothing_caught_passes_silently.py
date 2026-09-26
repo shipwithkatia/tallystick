@@ -259,8 +259,8 @@ def _saved_then_read(stored, readback):
 
 
 @pytest.mark.parametrize("readback", [
-    pytest.param("Canberra​", id="trailing-zero-width-space"),
-    pytest.param("Can​berra", id="zero-width-space-inside"),
+    pytest.param("Canberra\u200b", id="trailing-zero-width-space"),
+    pytest.param("Can\u200bberra", id="zero-width-space-inside"),
     pytest.param("﻿Canberra", id="byte-order-mark"),
     pytest.param('"Canberra"', id="double-quotes"),
     pytest.param("'Canberra'", id="single-quotes"),

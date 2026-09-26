@@ -47,8 +47,10 @@ def test_a_note_read_back_decomposed_is_noted_as_when_composed(note):
 
 @pytest.mark.parametrize("note", [VI, KO], ids=["vi", "ko"])
 def test_the_answering_call_handing_back_its_note_decomposed_is_still_demoted(note):
-    kind = lambda reply: next(a["kind"] for a in to_trace(_same_call(note, reply))["artifacts"]
-                              if a["artifact_id"] == "t2")
+    def kind(reply):
+        return next(a["kind"]
+                    for a in to_trace(_same_call(note, reply))["artifacts"]
+                    if a["artifact_id"] == "t2")
     assert kind(note) == "intermediate", "control: handed back composed, it is demoted"
     assert kind(unicodedata.normalize("NFD", note)) == "intermediate", (
         "handed back decomposed, the model's own note is a root")

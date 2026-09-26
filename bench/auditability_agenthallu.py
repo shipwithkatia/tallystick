@@ -255,7 +255,7 @@ def main(argv=None) -> int:
         exp = obs / ratio if ratio == ratio and ratio else float("nan")
         print(f"  {name:20} n={n:<4} observed {obs:>4}   expected {exp:6.1f}   {ratio:.2f}x")
     obs, hits, draws = within_trace_mc(labelled, draws=args.draws)
-    print(f"  within-trace Monte Carlo (each trace drawn at its own tool-only rate,")
+    print("  within-trace Monte Carlo (each trace drawn at its own tool-only rate,")
     print(f"  nothing shuffled): {hits} of {draws} draws reached {obs}"
           + ("  -> below this test's resolution" if hits == 0 else ""))
     print("So the banding is mostly arithmetic and the labels are still enriched:")

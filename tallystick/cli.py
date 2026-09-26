@@ -59,7 +59,6 @@ from .adapters.openai_chat import DEFAULT_MAX_TOOL_CHARS
 from .io import load_run, read_json_file, read_meta
 from .ledger import TOO_DEEP, close_books
 from .report import answer_cover, chain_view, summary
-from .types import TraceError
 
 SUBCOMMANDS = ("audit", "check-trace", "convert", "propose")
 

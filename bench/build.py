@@ -116,9 +116,9 @@ def load_ragtruth(root: Path) -> Tuple[List[Dict[str, Any]], Dict[str, Dict[str,
         print(f"cloning RAGTruth into {root} ...")
         subprocess.run(["git", "clone", "-q", "--depth", "1", RAGTRUTH_REPO, str(root)],
                        check=True)
-    resp = [json.loads(l) for l in (ds / "response.jsonl").open(encoding="utf-8")]
-    src = {json.loads(l)["source_id"]: json.loads(l)
-           for l in (ds / "source_info.jsonl").open(encoding="utf-8")}
+    resp = [json.loads(line) for line in (ds / "response.jsonl").open(encoding="utf-8")]
+    src = {json.loads(line)["source_id"]: json.loads(line)
+           for line in (ds / "source_info.jsonl").open(encoding="utf-8")}
     return resp, src
 
 
@@ -145,7 +145,7 @@ def root_documents(source: Dict[str, Any]) -> List[Dict[str, str]]:
 def build_trace(item: Dict[str, Any], source: Dict[str, Any], seed: int,
                 quote_n: int = 3) -> Dict[str, Any] | None:
     response = item["response"]
-    labels = [(l["start"], l["end"]) for l in item["labels"]]
+    labels = [(line["start"], line["end"]) for line in item["labels"]]
     sents = sentences(response)
     if len(sents) < 2:
         return None
@@ -201,7 +201,7 @@ def natural_rate(resp, src) -> float:
     for r in resp:
         if r["split"] != "test" or src[r["source_id"]]["task_type"] not in ("Summary", "QA"):
             continue
-        labels = [(l["start"], l["end"]) for l in r["labels"]]
+        labels = [(line["start"], line["end"]) for line in r["labels"]]
         for sp in sentences(r["response"]):
             n += 1
             bad += overlaps(sp, labels)

@@ -28,7 +28,7 @@ dependencies = []
 propose = ["anthropic>=1.0,<2"]
 # Recording a LangChain run. Optional, and never part of a verdict.
 langchain = ["langchain-core>=1.0,<2"]
-dev = ["pytest>=7"]
+dev = ["pytest>=7", "ruff>=0.16"]
 
 [project.scripts]
 tallystick = "tallystick.cli:main"
@@ -36,6 +36,24 @@ tallystick = "tallystick.cli:main"
 [project.urls]
 Homepage = "https://github.com/shipwithkatia/tallystick"
 Issues = "https://github.com/shipwithkatia/tallystick/issues"
+
+[tool.ruff]
+# The whole tree, so a script in `bench/` is held to what the package is.
+target-version = "py310"
+
+[tool.ruff.lint]
+# What is selected is what the project will fix, not what a default happens to
+# contain: an unused import, a dead assignment, an undefined name, a literal
+# invisible character in source. These are defects, and the tree is clean of
+# them - so a new one fails the build rather than joining a backlog.
+#
+# Deliberately not selected yet, each for a reason rather than by omission:
+#   UP   `List` -> `list` and friends: 400 findings, all in annotations, and a
+#        rewrite of that size belongs to its own commit where a diff of the
+#        verdict path can be read. Nothing it names is a defect.
+#   SIM, TRY, PLR, RUF  style opinions. They cost review attention per finding
+#        and buy nothing that a test does not already hold.
+select = ["E4", "E7", "E9", "F", "PLE"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["tallystick"]

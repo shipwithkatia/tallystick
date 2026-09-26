@@ -54,7 +54,7 @@ conversation read backwards.
 from __future__ import annotations
 
 import json
-from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from .openai_chat import DEFAULT_MAX_TOOL_CHARS
 from .openai_chat import to_trace as _messages_to_trace

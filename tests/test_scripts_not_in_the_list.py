@@ -18,8 +18,9 @@ ZH = "堪培拉2021年人口为43.1万，该城市于1913年作为悉尼和墨�
 
 
 def _log(note, reply):
-    call = lambda name, args, cid: {"id": cid, "type": "function", "function": {
-        "name": name, "arguments": json.dumps(args, ensure_ascii=False)}}
+    def call(name, args, cid):
+        return {"id": cid, "type": "function", "function": {
+            "name": name, "arguments": json.dumps(args, ensure_ascii=False)}}
     return [{"role": "user", "content": "Tell me."},
             {"role": "assistant", "content": None, "tool_calls": [call("save_note", {"text": note}, "c1")]},
             {"role": "tool", "tool_call_id": "c1", "name": "save_note", "content": "ok"},

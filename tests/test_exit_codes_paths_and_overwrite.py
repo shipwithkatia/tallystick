@@ -61,7 +61,7 @@ def test_convert_to_another_path_still_names_the_logs_size(tmp_path, capsys):
 # are not here, and where it expected exit 1 they expect 0.
 # ---------------------------------------------------------------------------
 
-import random
+import random  # noqa: E402 - the block above explains the split
 from tallystick.adapters.openai_chat import UNESCAPE_RESULT_CHARS, to_trace  # noqa: E402
 
 

@@ -2576,9 +2576,9 @@ def word_sweep() -> List[Tuple[str, str, int, int, str]]:
         if _invisible(ch):
             source = f"The drug is un{ch}safe{tail}"
             at = len("The drug is un")
-            out.append((f"the sweep: an invisible character inside a word, the span on it",
+            out.append(("the sweep: an invisible character inside a word, the span on it",
                         source, at, len(source), source[at:]))
-            out.append((f"the sweep: an invisible character inside a word, the span after it",
+            out.append(("the sweep: an invisible character inside a word, the span after it",
                         source, at + 1, len(source), source[at + 1:]))
         elif _dash(ch) or ch in _APOSTROPHES:
             source = f"The result was non{ch}lethal{tail}"

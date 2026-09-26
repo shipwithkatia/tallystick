@@ -166,7 +166,7 @@ def test_strict_mode_script_without_the_corpus_says_so_instead_of_crashing(tmp_p
 # are not here, and where it expected exit 1 they expect 0.
 # ---------------------------------------------------------------------------
 
-import random
+import random  # noqa: E402 - the block above explains the split
 from tallystick.adapters.openai_chat import to_trace  # noqa: E402
 
 

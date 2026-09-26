@@ -8,8 +8,6 @@ repository so the copy is what gets imported:
     PYTHONPATH=<copy> python -m pytest -p no:cacheprovider <copy>/tests/test_mutation_coverage.py
 """
 import json
-import subprocess
-import sys
 
 import pytest
 
@@ -234,7 +232,6 @@ def test_a_result_computed_inside_an_open_cycle_is_not_memoised():
 def test_a_cycle_is_named_circular_not_too_deep():
     # guards L10 (the visiting-set cycle guard removed: MAX_DEPTH still stops the
     # walk, so the status survives and only the reason changes)
-    t = "Revenue was 14 million."
     d = _cycle()
     d["entries"] = [e for e in d["entries"] if e["entry_id"] != "e2"]
     b = close_books(load_run(d))

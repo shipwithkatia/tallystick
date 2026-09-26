@@ -33,9 +33,12 @@ import re
 import unicodedata
 from typing import Callable, List, Optional, Tuple
 
-# characters that carry no meaning but break exact comparison
+# characters that carry no meaning but break exact comparison.
+# Written as escapes, not as themselves: a file about invisible
+# characters must not depend on six of them surviving an editor,
+# a copy-paste or a diff (ruff PLE2515).
 _INVISIBLE = dict.fromkeys(
-    map(ord, "­​‌‍⁠﻿"), None
+    map(ord, "\u00ad\u200b\u200c\u200d\u2060\ufeff"), None
 )
 
 _QUOTES = str.maketrans({

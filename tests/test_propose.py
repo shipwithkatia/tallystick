@@ -362,7 +362,8 @@ def test_proposer_output_does_not_depend_on_step_order(raw_run):
     # must be reordered to match: seg answer, seg summary, credits answer, summary.
     script = [GOOD_SCRIPT[1], GOOD_SCRIPT[0]] + GOOD_SCRIPT[6:] + GOOD_SCRIPT[2:6]
     b = post_run(reversed_run, FakeProposer(script))
-    key = lambda p: sorted((e["claim_id"], e["account"]) for e in p["entries"])
+    def key(p):
+        return sorted((e["claim_id"], e["account"]) for e in p["entries"])
     assert key(a) == key(b)
     assert audit(a).laundering_rate == audit(b).laundering_rate
 

@@ -65,7 +65,7 @@ def test_sentences_are_chosen_without_preferring_hallucinated_ones():
     resp, src = build.load_ragtruth(ROOT / "bench" / "sample")
     item = next(r for r in resp if r["labels"])
     sents = build.sentences(item["response"])
-    labels = [(l["start"], l["end"]) for l in item["labels"]]
+    labels = [(line["start"], line["end"]) for line in item["labels"]]
     bad_idx = {i for i, sp in enumerate(sents) if build.overlaps(sp, labels)}
     if not bad_idx or len(bad_idx) == len(sents):
         pytest.skip("sample item has no mix")

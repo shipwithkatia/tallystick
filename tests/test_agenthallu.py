@@ -516,14 +516,14 @@ def test_resume_redoes_trajectories_that_failed_last_time(tmp_path, monkeypatch)
     work = tmp_path / "w"
     args = ["--data", str(SAMPLE), "--work", str(work), "--select", "all"]
     assert harness.main(args) == 0
-    rows = [json.loads(l) for l in (work / "rows.jsonl").read_text().splitlines()]
+    rows = [json.loads(line) for line in (work / "rows.jsonl").read_text().splitlines()]
     assert len(rows) == 3 and not any(r.get("error") for r in rows)
     # fake a failure on one row and resume
     rows[1] = {k: v for k, v in rows[1].items() if k not in ("score", "proposal")}
     rows[1]["error"] = "BadRequestError: credit balance is too low"
     (work / "rows.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
     assert harness.main(args) == 0
-    again = [json.loads(l) for l in (work / "rows.jsonl").read_text().splitlines()]
+    again = [json.loads(line) for line in (work / "rows.jsonl").read_text().splitlines()]
     assert len(again) == 3 and not any(r.get("error") for r in again)
     assert {r["file"] for r in again} == {r["file"] for r in rows}
 
