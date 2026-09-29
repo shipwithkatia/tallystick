@@ -183,6 +183,23 @@ def test_the_selection_runs_on_a_tree_that_hides_the_defect(tmp_path,
         f'CORPUS = ROOT / "bench" / "work-agenthallu" / "AgentHallu"\n'
         f'"{VARIABLE}"\n',
         encoding="utf-8")
+    # Three more shapes of note, one module each, because a tree carrying one
+    # shape proves one rule. A tenth review planted each of these against the
+    # selection and the suite stayed green: a note written as a tuple, a note
+    # written as a one-entry dictionary, and a name standing in the module's
+    # docstring - the position the note above deliberately vacated.
+    (tmp_path / "tests" / "test_guilty_tuple.py").write_text(
+        f'CORPUS = ROOT / "bench" / "work-agenthallu" / "AgentHallu"\n'
+        f'"{VARIABLE}",\n',
+        encoding="utf-8")
+    (tmp_path / "tests" / "test_guilty_dict.py").write_text(
+        f'CORPUS = ROOT / "bench" / "work-agenthallu" / "AgentHallu"\n'
+        f'{{"{VARIABLE}": 1}}\n',
+        encoding="utf-8")
+    (tmp_path / "tests" / "test_guilty_docstring.py").write_text(
+        f'"{VARIABLE}"\n'
+        f'CORPUS = ROOT / "bench" / "work-agenthallu" / "AgentHallu"\n',
+        encoding="utf-8")
     (tmp_path / "tests" / "test_honest.py").write_text(
         f'CORPUS = os.environ.get("{VARIABLE}",\n'
         f'                        ROOT / "work-agenthallu")\n',
@@ -190,7 +207,10 @@ def test_the_selection_runs_on_a_tree_that_hides_the_defect(tmp_path,
     monkeypatch.setattr(sys.modules[__name__], "ROOT", tmp_path)
 
     assert _modules_that_do_not_ask() == ["tests/test_guilty.py",
-                                          "tests/test_guilty_note.py"], \
+                                          "tests/test_guilty_dict.py",
+                                          "tests/test_guilty_docstring.py",
+                                          "tests/test_guilty_note.py",
+                                          "tests/test_guilty_tuple.py"], \
         _modules_that_do_not_ask()
 
 
