@@ -22,6 +22,15 @@ The numbers in the README's TL;DR were measured on v0.6 (the constructed benchma
 
 ## Reading a log: declarations, gates and notes
 
+A long chat makes a big trace. Every step lists every artifact recorded before
+it, because a chat sends its whole history each turn, so the trace grows with
+the square of the turns: 2,000 turns, each a line of text, one tool call and a
+40-character reply, turn a 0.9 MB log into a 127 MB trace
+(`python bench/trace_growth.py`, no data needed). `convert` and `check-trace`
+say so, with the sizes, once the trace is ten times the log; the exit code does
+not change. Why the format keeps it that way
+is in [docs/auditable-traces.md](auditable-traces.md).
+
 Two things the file cannot tell it, and you can. A tool that hands the model's
 own words back (a `final_answer` tool, a note store) is not evidence; a tool
 that returns a page exactly as fetched is:
@@ -124,6 +133,8 @@ under [Known limitations](#known-limitations), with its numbers.
 
 ## Exit codes in full
 
+Exit code 2 is for what stops the audit from running — a malformed trace, a missing SDK or key, a proposer that crashed. A bad API key must never read as "books do not balance". A file that breaks Python itself first need not end in 2: see the item on nesting under [Known limitations](#known-limitations).
+
 Exit codes are the product decision here. **0** — every claim in the answer
 traces back to something outside the model, and at least half of the answer
 stands under a claim. **1** — a claim does not, and the report names it and the
@@ -164,6 +175,17 @@ exit 1, with `chain_too_deep` listed beside it.
 
 ## The Python API in full
 
+```python
+from tallystick import audit
+
+balance = audit("run.json")
+assert balance.books_balance       # drop straight into a test suite
+
+balance.coverage                   # share of final CLAIMS that close - not of the answer
+balance.laundering_rate            # share that cite something real but unfunded
+balance.injection_points()         # failing claims, each with the step that broke
+```
+
 How much of the answer those claims cover — what the terminal prints as
 `coverage` — is `answer_cover`:
 
@@ -186,6 +208,18 @@ before reading False as "does not balance". A file that cannot be read —
 missing, a directory, not JSON, a `_meta` of the wrong shape — raises
 `TraceError` (the terminal's exit 2). `audit()` does not look at how many
 answers are marked `final_answer`; `tallystick audit` does.
+
+Recording a run from Python, with the LangChain recorder:
+
+```python
+from tallystick.adapters.langchain import TraceRecorder
+
+rec = TraceRecorder()                                 # one recorder per agent run
+chain.invoke(question, config={"callbacks": [rec]})   # any LangChain runnable
+rec.save("raw.json")                                  # then: tallystick propose raw.json
+```
+
+Before spending anything on a model, `tallystick check-trace` tells you whether a raw trace can be audited at all, and which defects a recorder can fix: [docs/design.md](design.md#before-the-audit-can-this-trace-be-audited-at-all).
 
 ## Known limitations
 

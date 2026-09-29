@@ -15,9 +15,11 @@ Provenance accounting for LLM agent runs: every claim in the final answer is tra
 
 ![One hop is not enough: the answer quotes the summary, the summary invented a sentence, and the chain breaks at the summarise step](docs/chain.svg)
 
-**Status:** research prototype, v0.9.0. Interfaces may change between versions. The numbers above were measured on v0.6 (the constructed benchmark) and v0.7.3 (the real trajectories) and re-checked on v0.9.0 on the audit side; what that re-check covers is in [docs/known-limitations.md](docs/known-limitations.md#status-and-reproducibility). Each number is summarised from [docs/benchmark.md](docs/benchmark.md), where it names the run it came from. What changed in this release is in [CHANGELOG.md](CHANGELOG.md); the version-by-version record is in [bench/HISTORY.md](bench/HISTORY.md#versions).
+**Status:** research prototype, v0.9.0. Interfaces may change between versions. The numbers above were measured on v0.6 (the constructed benchmark) and v0.7.3 (the real trajectories) and hold on v0.9.0 for the same files; which run each number comes from is in [docs/benchmark.md](docs/benchmark.md), what that re-check covers in [docs/known-limitations.md](docs/known-limitations.md#status-and-reproducibility), and what changed in this release in [CHANGELOG.md](CHANGELOG.md); the version-by-version record is in [bench/HISTORY.md](bench/HISTORY.md#versions).
 
 **Authors:** Katia Engalycheva, with Claude (Anthropic) as co-author. The decisions, reviews and write-ups are mine; much of the typing is not.
+
+What was mine: the product — what this tool is for, what it refuses to do, and what a user gets that a faithfulness score does not; the question it answers — *where* a fabrication entered the run, not *how faithful* the answer reads — and the bookkeeping that answers it; the rule that no model sits in the verdict; the conservation rule, that a step may cite only what it received; all-of over any-of; verbatim or nothing on the model side; the half line on coverage, kept after its price was measured; and publishing the benchmark's caveats before its numbers. Every one of those decisions was argued against an alternative before it was kept, and the ones that lost are recorded with their price in [docs/design.md](docs/design.md#tradeoffs-and-decisions). Every published number, and every guard added since the rule that an author does not review their own fix, went through an adversarial review whose only brief was to break it, run in a separate session from the one that wrote it; what those reviews found, and what is still open, is in [docs/known-limitations.md](docs/known-limitations.md). Claude wrote most of the code and prose under those decisions.
 
 Issues and corrections are welcome — especially a case where the audit is wrong.
 
@@ -114,46 +116,23 @@ tallystick check-trace examples/logs/not_an_agent_log.json # refused, exit 2
 ```
 
 `examples/logs/README.md` says what each one is and what it should print;
-`examples/expected/` holds the exact output, so you can tell whether your copy
-agrees with this one.
+`examples/expected/` holds the exact output.
 
-Then your own log. An OpenAI `messages` array, whatever your app already
-writes — LiteLLM, vLLM and most gateways use the same keys — or an
-OpenTelemetry GenAI span export. No recorder, no code change:
+Then your own log — an OpenAI `messages` array, as LiteLLM, vLLM and most
+gateways write it, or an OpenTelemetry GenAI span export. No recorder, no
+code change:
 
 ```bash
 tallystick check-trace my_log.json
 tallystick check-trace my_log.json --json report.json --quiet   # for CI
 tallystick convert     my_log.json -o trace.json                # keep the reading
+tallystick check-trace my_log.json --tool-returns-model-text save_note   # a tool that echoes the model
 ```
 
-A long chat makes a big trace. Every step lists every artifact recorded before
-it, because a chat sends its whole history each turn, so the trace grows with
-the square of the turns: 2,000 turns, each a line of text, one tool call and a
-40-character reply, turn a 0.9 MB log into a 127 MB trace
-(`python bench/trace_growth.py`, no data needed). `convert` and `check-trace`
-say so, with the sizes, once the trace is ten times the log; the exit code does
-not change. Why the format keeps it that way
-is in [docs/auditable-traces.md](docs/auditable-traces.md).
-
-Two things the file cannot tell it, and you can. A tool that hands the model's
-own words back (a `final_answer` tool, a note store) is not evidence; a tool
-that returns a page exactly as fetched is:
-
-```bash
-tallystick check-trace my_log.json --tool-returns-model-text save_note
-tallystick check-trace my_log.json --tool-returns-verbatim  read_file
-```
-
-A third declaration, `--tool-returns-external NAME`, is for a tool whose result
-is external evidence in its own words — a search API's summary, an API
-response. Tool names are matched with case and surrounding spaces ignored, and
-a name that matches no tool in the log is reported rather than left to do
-nothing in silence. The reader also lists, as `NOTE`, tool results it kept as
-evidence although they may be the model's own text; **a note never changes the
-exit code**. What a note is worth when read by hand, the two flags that turn
-the reading into a gate (`--min-reachable`, `--require-declared-tools`), and
-why both are off by default:
+Two things the file cannot tell the reader, and you can: which tools hand
+the model's own words back, and which return a page exactly as fetched.
+What the three declarations do, the notes the reader prints, the two flags
+that turn the reading into a gate, and why a long chat makes a big trace:
 [reading a log](docs/known-limitations.md#reading-a-log-declarations-gates-and-notes).
 
 **2. Audit a run whose claims are already posted.** Deterministic, offline, no
@@ -168,15 +147,12 @@ tallystick examples/laundered_summary.json --chain ans_3   # the full chain for 
 Exit codes are the product decision here. **0** — every claim in the answer
 traces back to something outside the model, and at least half of the answer
 stands under a claim. **1** — a claim does not, and the report names it and the
-step that introduced it; also when more than half of the answer's letters and
-digits stand under no claim (`answer_mostly_unclaimed`), or more than one
-artifact is marked `final_answer` (`multiple_final_answers`). **2** — the audit
-could not run at all: a malformed file, a missing key, a trace with no claims
-posted on it yet; also when the only claims that did not close are ones the
-audit could not walk to the end (`chain_too_deep`, a chain deeper than 256
-hops). A file that cannot be read must never read as "this agent failed". Each
-code in full, with the half line and what it cost on the benchmark's posted
-traces: [exit codes](docs/known-limitations.md#exit-codes-in-full).
+step that introduced it. **2** — the audit could not run at all: a malformed
+file, a missing key, a proposer that crashed. A bad API key must never read as
+"books do not balance", and a file that cannot be read must never read as
+"this agent failed". The other ways to reach 1 and 2, and what the half line
+cost on the benchmark's posted traces:
+[exit codes](docs/known-limitations.md#exit-codes-in-full).
 
 **3. Let a model post the claims.** This is the only step that costs anything,
 and the only one that needs `ANTHROPIC_API_KEY`. It reads a raw trace, writes
@@ -204,37 +180,22 @@ pip install -e ".[langchain]"
 python examples/langchain_demo.py     # a 4-step agent, recorded -> raw_langchain.json
 ```
 
-```python
-from tallystick.adapters.langchain import TraceRecorder
-
-rec = TraceRecorder()                                 # one recorder per agent run
-chain.invoke(question, config={"callbacks": [rec]})   # any LangChain runnable
-rec.save("raw.json")                                  # then: tallystick propose raw.json
-```
-
-Exit code 2 is for what stops the audit from running — a malformed trace, a missing SDK or key, a proposer that crashed. A bad API key must never read as "books do not balance". A file that breaks Python itself first need not end in 2: see the item on nesting under [Known limitations](docs/known-limitations.md#known-limitations).
-
-The proposer's output is a file. Two proposer runs may differ; two audits of the same file never do. That boundary is physical: `tallystick/propose/` is the only package allowed to import an SDK, and nothing in the verdict path may import `propose/` (`cli.py` may, lazily, inside the `propose` subcommand only). A test walks the AST and fails the build on either, for every spelling of the import it knows, including the ones that once slipped past it.
+From Python, the audit is one call:
 
 ```python
 from tallystick import audit
 
 balance = audit("run.json")
 assert balance.books_balance       # drop straight into a test suite
-
-balance.coverage                   # share of final CLAIMS that close - not of the answer
-balance.laundering_rate            # share that cite something real but unfunded
 balance.injection_points()         # failing claims, each with the step that broke
 ```
 
-The rest of the Python API — `answer_cover` for the share of the answer under
-claims that close, `ClaimStatus.UNCHECKED`, what `audit()` raises and what it
-does not check — is in
+The rest of the Python API — coverage and laundering rate, `answer_cover`,
+`ClaimStatus.UNCHECKED`, what `audit()` raises, the LangChain recorder from
+Python — is in
 [docs/known-limitations.md](docs/known-limitations.md#the-python-api-in-full).
 
 The trace format is plain JSON — artifacts, steps with inputs/outputs, claims by character span, entries — documented in `tallystick/io.py`. `examples/laundered_summary.json` is a complete posted trace; `examples/raw_research_run.json` is the same run before posting; `examples/balanced_run.json` is the same run with an honest summariser, and it balances. A `Run` can also be built in Python from the exported `Artifact`, `Step`, `Claim` and `Entry` types; it gets the same validation as a file.
-
-Before spending anything on a model, `tallystick check-trace` tells you whether a raw trace can be audited at all, and which defects a recorder can fix: [docs/design.md](docs/design.md#before-the-audit-can-this-trace-be-audited-at-all).
 
 ## Tradeoffs and Decisions
 

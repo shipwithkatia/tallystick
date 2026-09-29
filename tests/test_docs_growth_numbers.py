@@ -32,7 +32,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 DOCS = ROOT / "docs" / "auditable-traces.md"
-README = ROOT / "README.md"
+README = ROOT / "docs" / "known-limitations.md"   # the growth paragraph moved here from README.md
 COMMAND = "python bench/trace_growth.py"
 
 
@@ -82,7 +82,7 @@ def _check(docs_text: str, readme_text: str, output: str) -> list:
 
     docs = _paragraph(docs_text, "That record has a cost", "None of AgentHallu")
     readme = _paragraph(readme_text, "A long chat makes a big trace", "Why the format keeps it")
-    for where, text in (("docs", docs), ("README", readme)):
+    for where, text in (("docs", docs), ("known-limitations", readme)):
         if COMMAND not in text:
             problems.append(f"{where}: the growth paragraph does not name `{COMMAND}`")
         # "ten times the log at 127 turns", "the crossing is at 677 turns",
